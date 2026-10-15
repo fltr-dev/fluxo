@@ -62,7 +62,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
           icon={Landmark}
           title="Conecte sua primeira conta"
           action={
-            <Link href="/conexoes" className={buttonVariants()}>
+            <Link href="/contas" className={buttonVariants()}>
               <Plus />
               Conectar conta
             </Link>
@@ -105,9 +105,9 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       ? [{ key: "uncat", href: "/transacoes?ver=uncategorized&periodo=12m", icon: Tag, color: "#8b5cf6", title: `${status.uncategorized} transações a categorizar`, desc: "Defina a categoria para entrarem nos relatórios" }]
       : []),
     ...(status.suggested > 0
-      ? [{ key: "jev", href: "/transacoes?ver=suggested&periodo=12m", icon: Sparkles, color: "#8b5cf6", title: `${status.suggested} sugestões do Jev`, desc: "Confirme ou rejeite" }]
+      ? [{ key: "jev", href: "/transacoes?ver=suggested&periodo=12m", icon: Sparkles, color: "#8b5cf6", title: `${status.suggested} sugestões da IA`, desc: "Confirme ou rejeite" }]
       : []),
-    ...status.connectionErrors.map((c) => ({ key: `c${c.id}`, href: "/conexoes", icon: Clock, color: "#71717a", title: `Problema na conexão ${c.name}`, desc: c.error ?? "" })),
+    ...status.connectionErrors.map((c) => ({ key: `c${c.id}`, href: "/contas", icon: Clock, color: "#71717a", title: `Problema na conexão ${c.name}`, desc: c.error ?? "" })),
   ]
 
   const goalRows = goals

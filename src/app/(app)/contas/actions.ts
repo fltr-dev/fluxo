@@ -5,6 +5,8 @@ import { refresh } from "next/cache"
 import { z } from "zod"
 import { requireUser } from "@/auth"
 import { accounts, db, institutions } from "@/db"
+import { BANKS } from "@/lib/banks"
+import { HEX_RE } from "@/lib/color"
 import { today } from "@/lib/domain/dates"
 import { fd, parseForm } from "@/lib/form"
 import { refreshManualBalances, snapshotBalances } from "@/lib/ledger"
@@ -33,6 +35,10 @@ export async function syncNow() {
 }
 
 const accountTypes = z.enum(["CHECKING", "CREDIT_CARD", "SAVINGS_INVESTMENT", "CASH"])
+const blankToNull = (v: unknown) => (v === "" ? null : v)
+// Aparência: banco (null = detectar pelo nome, "none" = nenhum, ou a chave de um banco conhecido) e cor "#rrggbb" (null = a do banco)
+const bank = z.preprocess(blankToNull, z.string().refine((k) => k === "none" || BANKS.some((b) => b.key === k), "Banco inválido").nullable())
+const color = z.preprocess(blankToNull, z.string().regex(HEX_RE).nullable())
 
 export async function updateAccount(form: FormData) {
   await requireUser()
@@ -43,6 +49,8 @@ export async function updateAccount(form: FormData) {
     isEmergencyReserve: fd.check,
     archived: fd.check,
     openingBalance: fd.optMoney,
+    bank,
+    color,
   })
   const { id, openingBalance, ...data } = v
   const [acc] = await db.select().from(accounts).where(eq(accounts.id, id))
@@ -58,8 +66,8 @@ export async function updateAccount(form: FormData) {
 
 export async function createManualAccount(form: FormData) {
   await requireUser()
-  const v = parseForm(form, { name: fd.text, type: accountTypes, openingBalance: fd.optMoney })
-  await db.insert(accounts).values({ name: v.name, type: v.type, source: "MANUAL", openingBalance: v.openingBalance ?? 0 })
+  const v = parseForm(form, { name: fd.text, type: accountTypes, openingBalance: fd.optMoney, bank, color })
+  await db.insert(accounts).values({ name: v.name, type: v.type, source: "MANUAL", openingBalance: v.openingBalance ?? 0, bank: v.bank, color: v.color })
   await refreshManualBalances()
   await snapshotBalances(today())
   refresh()

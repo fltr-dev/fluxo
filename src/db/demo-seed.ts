@@ -123,7 +123,7 @@ export async function seedDemo(db: PgliteDatabase<typeof import("./schema")>) {
   const catId = new Map<string, number>()
   const parentId = new Map<string, number>()
   for (const c of SEED_CATEGORIES) {
-    const [p] = await db.insert(s.categories).values({ name: c.name, kind: c.kind, color: c.color }).returning({ id: s.categories.id })
+    const [p] = await db.insert(s.categories).values({ name: c.name, kind: c.kind, color: c.color, icon: c.icon }).returning({ id: s.categories.id })
     parentId.set(c.name, p.id)
     const subs = await db
       .insert(s.categories)

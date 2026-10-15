@@ -1,10 +1,11 @@
 import { asc, isNotNull, sql } from "drizzle-orm"
-import { ArrowRight, ChevronRight, Lock, Merge, Pencil, Plus, Tags } from "lucide-react"
+import { ArrowRight, ChevronRight, Lock, Merge, Pencil, Plus, Tag, Tags } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { AutoSubmitSelect } from "@/components/auto-submit"
-import { Empty, Field, fieldClass, IconCircle, PageTitle, SubcategoryOptions } from "@/components/bits"
-import { categoryIcon } from "@/components/category-icon"
+import { Empty, Field, fieldClass, IconCircle, PageTitle } from "@/components/bits"
+import { CategoryFields } from "@/components/category-fields"
+import { categoryIcon, CategoryIcon } from "@/components/category-icon"
+import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -104,7 +105,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
               <details key={p.id} className="group border-b last:border-0">
                 <summary className="flex cursor-pointer list-none items-center gap-3 py-3 [&::-webkit-details-marker]:hidden">
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
-                  <IconCircle icon={categoryIcon(p.name)} color={p.color} soft className="size-9" />
+                  <IconCircle icon={categoryIcon(p.name, p.icon)} color={p.color} soft className="size-9" />
                   <span className="grid min-w-0 flex-1">
                     <span className={cn("truncate font-medium", p.archived && "text-muted-foreground line-through")}>{p.name}</span>
                     <span className="text-xs text-muted-foreground">{p.subs.length} subcategorias</span>
@@ -140,7 +141,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
         <Card>
           <CardHeader>
             <CardTitle className="font-semibold">Mapeamento Pluggy</CardTitle>
-            <p className="text-sm text-muted-foreground">Categoria enviada pela Pluggy → sua subcategoria. Vale quando nenhuma regra nem o Jev resolvem.</p>
+            <p className="text-sm text-muted-foreground">Categoria enviada pela Pluggy → sua subcategoria. Vale quando nenhuma regra nem a IA resolvem.</p>
           </CardHeader>
           <CardContent className="grid max-h-[640px] overflow-y-auto">
             {pluggyNames.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma categoria da Pluggy vista ainda.</p>}
@@ -150,10 +151,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                 <span className="font-mono text-xs text-muted-foreground">{name}</span>
                 <span className="flex items-center gap-2">
                   <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
-                  <AutoSubmitSelect name="subcategoryId" defaultValue={mapBy.get(name) ?? ""} className={cn(fieldClass, "h-8")} aria-label={`Mapeamento de ${name}`}>
-                    <option value="">Não mapear</option>
-                    <SubcategoryOptions options={options} />
-                  </AutoSubmitSelect>
+                  <SubcategorySelect name="subcategoryId" options={options} defaultValue={String(mapBy.get(name) ?? "")} emptyLabel="Não mapear" autoSubmit size="sm" aria-label={`Mapeamento de ${name}`} />
                 </span>
               </form>
             ))}
@@ -164,20 +162,17 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
       {sp.nova && (
         <RouteDialog closeHref={close} title="Nova categoria" description="Depois você adiciona as subcategorias.">
           <form action={createAndClose} className="grid gap-4">
-            <Field label="Nome">
-              <input name="name" required maxLength={200} placeholder="Ex.: Pets" className={fieldClass} />
+            <CategoryFields defaultColor="#64748b" defaultIcon={null} currentIcon={<Tag />} fallbackIcon={<Tag />} placeholder="Ex.: Pets" />
+            <Field label="Tipo">
+              <FormSelect
+                name="kind"
+                defaultValue={tab === "INCOME" ? "INCOME" : "EXPENSE"}
+                options={[
+                  { value: "EXPENSE", label: "Despesa" },
+                  { value: "INCOME", label: "Receita" },
+                ]}
+              />
             </Field>
-            <div className="grid grid-cols-[1fr_auto] gap-3">
-              <Field label="Tipo">
-                <select name="kind" defaultValue={tab === "INCOME" ? "INCOME" : "EXPENSE"} className={fieldClass}>
-                  <option value="EXPENSE">Despesa</option>
-                  <option value="INCOME">Receita</option>
-                </select>
-              </Field>
-              <Field label="Cor">
-                <input type="color" name="color" defaultValue="#64748b" className="h-9 w-14 cursor-pointer rounded-lg border bg-transparent p-1" />
-              </Field>
-            </div>
             <Button type="submit" className="h-9">Criar categoria</Button>
           </form>
         </RouteDialog>
@@ -187,16 +182,10 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
         <RouteDialog closeHref={close} title="Mesclar subcategorias" description="Transações, regras, mapeamentos e limites passam para o destino. A origem é apagada.">
           <form action={mergeAndClose} className="grid gap-4">
             <Field label="Mover tudo de">
-              <select name="sourceId" required defaultValue="" className={fieldClass}>
-                <option value="" disabled>Escolha a origem…</option>
-                <SubcategoryOptions options={options} />
-              </select>
+              <SubcategorySelect name="sourceId" options={options} required placeholder="Escolha a origem…" />
             </Field>
             <Field label="Para">
-              <select name="targetId" required defaultValue="" className={fieldClass}>
-                <option value="" disabled>Escolha o destino…</option>
-                <SubcategoryOptions options={options} />
-              </select>
+              <SubcategorySelect name="targetId" options={options} required placeholder="Escolha o destino…" />
             </Field>
             <Button type="submit" variant="destructive" className="h-9">Mesclar e apagar origem</Button>
           </form>
@@ -208,14 +197,14 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
           <div className="grid gap-6">
             <form action={updateCategory} className="grid gap-4">
               <input type="hidden" name="id" value={editing.id} />
-              <div className="grid grid-cols-[1fr_auto] gap-3">
-                <Field label="Nome">
-                  <input name="name" required maxLength={200} defaultValue={editing.name} className={fieldClass} />
-                </Field>
-                <Field label="Cor">
-                  <input type="color" name="color" defaultValue={editing.color} className="h-9 w-14 cursor-pointer rounded-lg border bg-transparent p-1" />
-                </Field>
-              </div>
+              <CategoryFields
+                key={editing.id}
+                defaultName={editing.name}
+                defaultColor={editing.color}
+                defaultIcon={editing.icon}
+                currentIcon={<CategoryIcon name={editing.name} icon={editing.icon} />}
+                fallbackIcon={<CategoryIcon name={editing.name} />}
+              />
               <Button type="submit" variant="outline" className="justify-self-start">Salvar</Button>
             </form>
 

@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  CalendarDays,
   ChartColumn,
   Gauge,
   Landmark,
@@ -20,6 +21,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/relatorios", label: "Relatórios", icon: ChartColumn },
       { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
+      { href: "/calendario", label: "Calendário", icon: CalendarDays },
     ],
   },
   {
@@ -35,10 +37,13 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: "/categorias", label: "Categorias", icon: Tags },
       { href: "/regras", label: "Regras", icon: ListChecks },
-      { href: "/conexoes", label: "Contas", icon: Landmark },
+      { href: "/contas", label: "Contas", icon: Landmark },
     ],
   },
 ]
+
+/** Rota cujos itens-filhos são as contas do usuário (sidebar). */
+export const ACCOUNTS_HREF = "/contas"
 
 export const isActive = (href: string, path: string) => (href === "/" ? path === "/" : path.startsWith(href))
 

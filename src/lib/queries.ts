@@ -1,6 +1,6 @@
 import "server-only"
 import { cache } from "react"
-import { aliasedTable, and, asc, desc, eq, gte, ilike, isNotNull, isNull, lte, ne, sql } from "drizzle-orm"
+import { aliasedTable, and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, ne, sql } from "drizzle-orm"
 import {
   accounts,
   categories,
@@ -21,6 +21,8 @@ export type Filters = Period & {
   preset: string
   accountId?: number
   categoryId?: number
+  /** Várias categorias/subcategorias de uma vez (calendário); soma-se ao `categoryId`. */
+  categoryIds?: number[]
   kind?: "INCOME" | "EXPENSE"
   q?: string
   view?: "uncategorized" | "suggested" | "transfers" | "pending"
@@ -31,6 +33,11 @@ const str = (sp: SearchParams, k: string) => (typeof sp[k] === "string" && sp[k]
 const posInt = (sp: SearchParams, k: string) => {
   const n = Number(str(sp, k))
   return Number.isInteger(n) && n > 0 ? n : undefined
+}
+/** "3,7,12" → [3, 7, 12]: só inteiros positivos, sem repetição, no máximo 100. */
+const idList = (v?: string) => {
+  const ids = [...new Set((v ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 100)
+  return ids.length ? ids : undefined
 }
 const isoDate = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined)
 
@@ -44,6 +51,7 @@ export function parseFilters(sp: SearchParams): Filters {
     ...resolvePeriod(preset, today(), isoDate(str(sp, "de")), isoDate(str(sp, "ate"))),
     accountId: posInt(sp, "conta"),
     categoryId: posInt(sp, "categoria"),
+    categoryIds: idList(str(sp, "categorias")),
     kind: tipo === "receita" ? "INCOME" : tipo === "despesa" ? "EXPENSE" : undefined,
     q: str(sp, "q")?.slice(0, 100),
     view: ver === "uncategorized" || ver === "suggested" || ver === "transfers" || ver === "pending" ? ver : undefined,
@@ -66,6 +74,9 @@ export function withParams(sp: SearchParams, patch: Record<string, string | numb
 const categoryMatch = (id: number) =>
   sql`${transactions.subcategoryId} in (select id from categories where id = ${id} or parent_id = ${id})`
 
+const categoriesMatch = (ids: number[]) =>
+  sql`${transactions.subcategoryId} in (select id from categories where ${inArray(categories.id, ids)} or ${inArray(categories.parentId, ids)})`
+
 /** report=true: só o que conta em receita/despesa (sem transferências e ignoradas). */
 export function txWhere(f: Filters, report: boolean, period: Period = f) {
   return and(
@@ -73,6 +84,7 @@ export function txWhere(f: Filters, report: boolean, period: Period = f) {
     lte(transactions.date, period.to),
     f.accountId ? eq(transactions.accountId, f.accountId) : undefined,
     f.categoryId ? categoryMatch(f.categoryId) : undefined,
+    f.categoryIds ? categoriesMatch(f.categoryIds) : undefined,
     f.kind ? eq(transactions.kind, f.kind) : undefined,
     report ? and(eq(transactions.ignored, false), ne(transactions.kind, "TRANSFER")) : undefined,
   )
@@ -96,6 +108,16 @@ export async function monthlyTotals(f: Filters, period: Period) {
   return new Map(rows.map((r) => [r.month, r]))
 }
 
+/** Receitas, despesas e nº de lançamentos por dia (calendário); sem transferências e ignoradas. */
+export async function dailyTotals(f: Filters) {
+  const rows = await db
+    .select({ date: transactions.date, income: incomeSum, expense: expenseSum, count: sql<number>`count(*)::int` })
+    .from(transactions)
+    .where(txWhere(f, true))
+    .groupBy(transactions.date)
+  return new Map(rows.map((r) => [r.date, r]))
+}
+
 const sub = aliasedTable(categories, "sub")
 const parent = aliasedTable(categories, "parent")
 
@@ -106,12 +128,12 @@ export async function byCategory(f: Filters, drillParentId?: number) {
   const total = sql<number>`(${sign} * sum(${transactions.amount}))::float8`
   const g = drillParentId ? sub : parent
   return db
-    .select({ id: g.id, name: g.name, color: parent.color, total })
+    .select({ id: g.id, name: g.name, color: parent.color, icon: parent.icon, total })
     .from(transactions)
     .leftJoin(sub, eq(transactions.subcategoryId, sub.id))
     .leftJoin(parent, eq(sub.parentId, parent.id))
     .where(txWhere({ ...f, kind }, true))
-    .groupBy(g.id, g.name, parent.color)
+    .groupBy(g.id, g.name, parent.color, parent.icon)
     .orderBy(desc(total))
 }
 
@@ -128,24 +150,39 @@ export async function monthlyByCategory(f: Filters, period: Period) {
     .groupBy(month, parent.id, parent.name, parent.color)
 }
 
-export async function listAccounts() {
+/** Uma consulta por requisição (layout e página pedem a lista). */
+export const listAccounts = cache(async () => {
   return db
     .select({
       id: accounts.id,
       name: accounts.name,
       type: accounts.type,
       source: accounts.source,
+      color: accounts.color,
+      bank: accounts.bank,
       balance: accounts.balance,
       openingBalance: accounts.openingBalance,
       isEmergencyReserve: accounts.isEmergencyReserve,
       archived: accounts.archived,
       pluggyId: accounts.pluggyId,
+      syncedAt: accounts.transactionsSyncedAt,
       institution: institutions.name,
       institutionId: accounts.institutionId,
     })
     .from(accounts)
     .leftJoin(institutions, eq(accounts.institutionId, institutions.id))
     .orderBy(asc(accounts.archived), asc(institutions.name), asc(accounts.name))
+})
+
+/** Saldo de uma conta no fim de cada mês (último snapshot do mês), dos últimos `months` meses com histórico. */
+export async function accountBalanceSeries(accountId: number, months = 12) {
+  const r = await db.execute<{ month: string; balance: string }>(sql`
+    select * from (
+      select distinct on (to_char(date, 'YYYY-MM')) to_char(date, 'YYYY-MM') as month, balance
+      from balance_snapshots where account_id = ${accountId}
+      order by to_char(date, 'YYYY-MM'), date desc
+    ) m order by month desc limit ${months}`)
+  return r.rows.map((x) => ({ month: x.month, value: Number(x.balance) })).reverse()
 }
 
 export async function netWorth(months: string[]) {

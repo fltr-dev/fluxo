@@ -2,6 +2,7 @@ import { Gauge, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Bar, Empty, Field, fieldClass, PageTitle } from "@/components/bits"
+import { FormSelect } from "@/components/form-select"
 import { RouteDialog } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
@@ -172,17 +173,16 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
         <RouteDialog closeHref="/limites" title={editing ? "Editar limite" : "Novo limite"} description="Vale para todo mês calendário até você remover.">
           <form action={saveAndClose} className="grid gap-4">
             <Field label="Categoria ou subcategoria">
-              <select name="categoryId" required defaultValue={preset ?? ""} className={fieldClass}>
-                <option value="" disabled>Escolha…</option>
-                {expenseTree.map((p) => (
-                  <optgroup key={p.id} label={p.name}>
-                    <option value={p.id}>{p.name} (categoria inteira)</option>
-                    {p.subs.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+              <FormSelect
+                name="categoryId"
+                required
+                defaultValue={preset ? String(preset) : null}
+                placeholder="Escolha…"
+                groups={expenseTree.map((p) => ({
+                  label: p.name,
+                  options: [{ value: String(p.id), label: `${p.name} (categoria inteira)`, text: p.name, color: p.color }, ...p.subs.map((s) => ({ value: String(s.id), label: s.name, text: `${p.name} › ${s.name}`, color: p.color }))],
+                }))}
+              />
             </Field>
             <Field label="Valor mensal (R$)" hint="Salvar de novo para a mesma categoria atualiza o valor.">
               <input type="number" name="monthlyAmount" required min="0.01" step="0.01" inputMode="decimal" defaultValue={editing?.limit} className={cn(fieldClass, "h-11 text-lg font-semibold tabular-nums")} />

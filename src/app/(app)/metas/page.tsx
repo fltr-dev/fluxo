@@ -2,6 +2,7 @@ import { Pencil, Plus, Target, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Bar, Empty, Field, fieldClass, IconCircle, Money, PageTitle } from "@/components/bits"
+import { FormSelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -52,10 +53,14 @@ function GoalForm({ goal, accounts, action }: { goal?: Goal; accounts: { id: num
         </Field>
       </div>
       <Field label="Acompanhar por">
-        <select name="tracking" defaultValue={goal?.tracking ?? "CONTRIBUTIONS"} className={fieldClass}>
-          <option value="CONTRIBUTIONS">Aportes manuais</option>
-          <option value="ACCOUNT">Saldo de conta(s) vinculada(s)</option>
-        </select>
+        <FormSelect
+          name="tracking"
+          defaultValue={goal?.tracking ?? "CONTRIBUTIONS"}
+          options={[
+            { value: "CONTRIBUTIONS", label: "Aportes manuais" },
+            { value: "ACCOUNT", label: "Saldo de conta(s) vinculada(s)" },
+          ]}
+        />
       </Field>
       <Field label="Valor inicial (R$)" hint="Só para metas por aportes.">
         <input type="number" name="initialAmount" min="0" step="0.01" defaultValue={goal?.initialAmount ?? ""} className={fieldClass} />

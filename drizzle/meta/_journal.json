@@ -15,6 +15,13 @@
       "when": 1792070379270,
       "tag": "0001_investment_movements",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792098579679,
+      "tag": "0002_aparencia_e_credenciais",
+      "breakpoints": true
     }
   ]
 }

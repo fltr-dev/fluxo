@@ -2,13 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* .dark/.light no <html> vêm do cookie "theme"; sem cookie, segue o sistema */
+/* .dark/.dim/.light no <html> vêm do cookie "theme" (.dim = fundo cinza, também escuro); sem cookie, segue o sistema */
 @custom-variant dark {
-  &:where(.dark, .dark *) {
+  &:where(.dark, .dark *, .dim, .dim *) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
-    &:where(:root:not(.light), :root:not(.light) *) {
+    &:where(:root:not(.light, .dim), :root:not(.light, .dim) *) {
       @slot;
     }
   }
@@ -135,6 +135,48 @@
     --sidebar-ring: #10b981;
   }
 }
+/* Fundo "Cinza": o tema escuro acima com superfícies mais claras (vence o bloco escuro por especificidade) */
+:root.dim {
+  --background: #232326;
+  --foreground: #fafafa;
+  --card: #2c2c30;
+  --card-foreground: #fafafa;
+  --popover: #2c2c30;
+  --popover-foreground: #fafafa;
+  --secondary: #37373c;
+  --secondary-foreground: #fafafa;
+  --muted: #37373c;
+  --muted-foreground: #a8a8b0;
+  --accent: #37373c;
+  --accent-foreground: #fafafa;
+  --border: #3d3d43;
+  --input: #55555c;
+  --sidebar: #1c1c1f;
+  --sidebar-foreground: #d4d4d8;
+  --sidebar-border: #34343a;
+}
+
+/* Controles e barras de rolagem do navegador acompanham o fundo */
+:root {
+  color-scheme: light;
+}
+:root:where(.dark, .dim) {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light, .dim) {
+    color-scheme: dark;
+  }
+}
+
+/* Largura da sidebar (o <html> leva data-sidebar="collapsed"|"expanded"); a barra de ações em lote usa para centralizar */
+:root {
+  --sidebar-w: 16rem;
+}
+:root[data-sidebar="collapsed"] {
+  --sidebar-w: 3.5rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -1,16 +1,16 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { AutoSubmitSelect } from "@/components/auto-submit"
-import { Empty, Field, fieldClass, Money, PageTitle, SubcategoryOptions } from "@/components/bits"
+import { Empty, Field, fieldClass, Money, PageTitle } from "@/components/bits"
 import { BulkBar, SelectAll } from "@/components/bulk-bar"
 import { Filters } from "@/components/filters"
+import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { transactions } from "@/db"
 import { today } from "@/lib/domain/dates"
-import { dateBR, pct } from "@/lib/format"
+import { dateBR, dayLabel, pct } from "@/lib/format"
 import { subcategoryOptions } from "@/lib/ledger"
 import { listAccounts, listTransactions, PAGE_SIZE, parseFilters, shellStatus, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
@@ -28,12 +28,7 @@ import {
   updateManual,
 } from "./actions"
 
-const SOURCE_LABEL: Record<string, string> = { RULE: "Regra", JEV: "Jev", PLUGGY_MAP: "Mapa Pluggy", USER: "Você", NONE: "Nenhuma" }
-const WEEKDAY = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
-const dayLabel = (d: string) => {
-  const s = WEEKDAY.format(new Date(`${d}T00:00:00Z`))
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
+const SOURCE_LABEL: Record<string, string> = { RULE: "Regra", JEV: "IA", PLUGGY_MAP: "Mapa Pluggy", USER: "Você", NONE: "Nenhuma" }
 
 type Account = Awaited<ReturnType<typeof listAccounts>>[number]
 type Option = Awaited<ReturnType<typeof subcategoryOptions>>[number]
@@ -91,17 +86,10 @@ function ManualForm({ action, accounts, options, values, submit, next }: {
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Conta">
-          <select name="accountId" required defaultValue={values?.accountId} className={fieldClass}>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
+          <FormSelect name="accountId" required defaultValue={String(values?.accountId ?? accounts[0]?.id ?? "")} options={accounts.map((a) => ({ value: String(a.id), label: a.name }))} />
         </Field>
         <Field label="Categoria">
-          <select name="subcategoryId" defaultValue={values?.subcategoryId ?? ""} className={fieldClass}>
-            <option value="">A categorizar</option>
-            <SubcategoryOptions options={options} />
-          </select>
+          <SubcategorySelect name="subcategoryId" options={options} defaultValue={String(values?.subcategoryId ?? "")} emptyLabel="A categorizar" />
         </Field>
       </div>
       <Field label="Nota (opcional)">
@@ -130,7 +118,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   const views = [
     [undefined, "Todas", undefined, undefined],
     ["uncategorized", "A categorizar", Tag, status.uncategorized],
-    ["suggested", "Sugestões do Jev", Sparkles, status.suggested],
+    ["suggested", "Sugestões da IA", Sparkles, status.suggested],
     ["pending", "Pendentes", Clock, undefined],
     ["transfers", "Transferências", ArrowLeftRight, undefined],
   ] as const
@@ -236,7 +224,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                               <span className="flex items-center gap-1.5 text-muted-foreground"><Link2 className="size-4" />Transferência</span>
                             ) : tx.suggestedSubcategoryId ? (
                               <span className="flex items-center gap-1">
-                                <span className="inline-flex max-w-52 items-center gap-1 truncate rounded-full border border-violet-200 bg-violet-50 px-2 text-xs font-medium text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300" title="Sugestão do Jev">
+                                <span className="inline-flex max-w-52 items-center gap-1 truncate rounded-full border border-violet-200 bg-violet-50 px-2 text-xs font-medium text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300" title="Sugestão da IA">
                                   <Sparkles className="size-3 shrink-0" />
                                   {label.get(tx.suggestedSubcategoryId)?.split(" › ")[1] ?? "?"} · {pct(tx.suggestionConfidence ?? 0)}
                                 </span>
@@ -253,18 +241,19 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                               <form action={setCategory} className="flex min-w-0 items-center gap-2">
                                 <input type="hidden" name="id" value={tx.id} />
                                 <span className="size-2 shrink-0 rounded-full" style={{ background: tx.subcategoryId ? (color ?? "#a1a1aa") : "#f59e0b" }} aria-hidden />
-                                <AutoSubmitSelect
+                                <SubcategorySelect
                                   name="subcategoryId"
-                                  defaultValue={tx.subcategoryId ?? ""}
+                                  options={options}
+                                  defaultValue={String(tx.subcategoryId ?? "")}
+                                  emptyLabel="A categorizar"
+                                  autoSubmit
+                                  size="sm"
                                   aria-label={`Categoria de ${tx.description}`}
                                   className={cn(
-                                    "h-7 w-full min-w-0 cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1.5 text-sm outline-none hover:border-border focus-visible:border-ring",
-                                    !tx.subcategoryId && "border-dashed border-amber-300 bg-amber-50 font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400",
+                                    "h-7 w-full min-w-0 border-transparent bg-transparent px-1.5 shadow-none hover:border-border",
+                                    !tx.subcategoryId && "border-dashed border-amber-300 bg-amber-50 font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400",
                                   )}
-                                >
-                                  <option value="">A categorizar</option>
-                                  <SubcategoryOptions options={options} />
-                                </AutoSubmitSelect>
+                                />
                               </form>
                             )}
                           </td>
@@ -341,10 +330,15 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
       )}
 
       <BulkBar formId="bulk" action={bulkUpdate}>
-        <select name="subcategoryId" aria-label="Categoria para as selecionadas" defaultValue="" className="h-8 max-w-52 rounded-md border border-background/20 bg-transparent px-2 text-sm text-background [&>*]:text-foreground">
-          <option value="">A categorizar</option>
-          <SubcategoryOptions options={options} />
-        </select>
+        <SubcategorySelect
+          name="subcategoryId"
+          options={options}
+          defaultValue=""
+          emptyLabel="A categorizar"
+          size="sm"
+          aria-label="Categoria para as selecionadas"
+          className="w-52 border-background/20 bg-transparent text-background shadow-none hover:bg-background/15 dark:bg-transparent dark:hover:bg-background/15 [&_svg]:text-background/70"
+        />
         <Button type="submit" name="op" value="categorizar" variant="ghost" className="text-background hover:bg-background/15 hover:text-background">
           <Tag />
           Categorizar
@@ -415,7 +409,7 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
         <div className="grid gap-3 rounded-xl border border-violet-200 bg-violet-50 p-4 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
           <span className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="size-4" />
-            Sugestão do Jev · {pct(tx.suggestionConfidence ?? 0)} de confiança
+            Sugestão da IA · {pct(tx.suggestionConfidence ?? 0)} de confiança
           </span>
           <span className="text-sm">{label.get(tx.suggestedSubcategoryId) ?? "?"}</span>
           <div className="flex gap-2">
@@ -435,10 +429,7 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
         <form action={setCategory} className="grid gap-1.5">
           <input type="hidden" name="id" value={tx.id} />
           <label htmlFor="sheet-cat" className="text-sm font-medium">Categoria</label>
-          <AutoSubmitSelect id="sheet-cat" name="subcategoryId" defaultValue={tx.subcategoryId ?? ""} className={fieldClass}>
-            <option value="">A categorizar</option>
-            <SubcategoryOptions options={options} />
-          </AutoSubmitSelect>
+          <SubcategorySelect id="sheet-cat" name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" autoSubmit />
           <Link href={`/regras?de=${tx.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
             <ListChecks className="size-3.5" />
             Criar regra a partir desta transação
