@@ -1,14 +1,15 @@
-import { CircleAlert, Lock } from "lucide-react"
+import { CircleAlert, CircleCheck, Lock } from "lucide-react"
 import { AuthError } from "next-auth"
 import { redirect } from "next/navigation"
 import { signIn } from "@/auth"
-import { Logo, ThemeToggle } from "@/components/shell-client"
+import { Logo } from "@/components/logo"
+import { ThemeToggle } from "@/components/shell-client"
 import { Button } from "@/components/ui/button"
 
 const field = "h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { error } = await searchParams
+  const { error, alterado } = await searchParams
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center bg-muted px-4 py-10 dark:bg-background">
       <ThemeToggle className="absolute top-4 right-4" />
@@ -39,7 +40,13 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             {error && (
               <div role="alert" className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
                 <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                <span className="font-semibold">Usuário ou senha incorretos</span>
+                <span className="font-semibold">{error === "expired" ? "O login foi alterado. Entre novamente." : "Usuário ou senha incorretos"}</span>
+              </div>
+            )}
+            {alterado && !error && (
+              <div role="status" className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <CircleCheck className="mt-0.5 size-4 shrink-0" />
+                <span className="font-semibold">Login atualizado. Entre com o novo usuário e a nova senha.</span>
               </div>
             )}
             <input name="user" required autoComplete="username" placeholder="Usuário" aria-label="Usuário" className={field} />

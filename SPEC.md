@@ -1,6 +1,6 @@
 # SPEC — Sistema de Controle Financeiro Pessoal
 
-> Versão 1.0 · 2026-10-05 · Status: aprovado para implementação do MVP
+> Versão 1.1 · 2026-10-15 · Status: MVP implementado; 1.1 acrescenta sidebar retrátil, contas com detalhe, calendário, configurações e PWA instalável
 
 ## 1. Visão geral
 
@@ -34,7 +34,7 @@ Escala trivial: nenhuma otimização além de índices básicos no Postgres.
 | Gráficos | **Recharts** |
 | Banco | **Neon Postgres** (free tier, serverless; hiberna quando ocioso, não perde dados) |
 | ORM / migrações | **Drizzle ORM** + drizzle-kit |
-| Auth | **Auth.js** (Google OAuth) com sessão **JWT** |
+| Auth | **Auth.js** (usuário e senha, ver §4) com sessão **JWT** |
 | Hospedagem | **Vercel Hobby** |
 | Jobs | **Vercel Cron** (1x/dia) |
 | Open Finance | **Pluggy API** via conector **MeuPluggy** (connector 200) |
@@ -56,8 +56,9 @@ Monólito único. Sem API pública, sem filas, sem cache dedicado.
 ## 4. Autenticação e segurança
 
 - **Login**: usuário e senha (Auth.js Credentials), sem cadastro e sem OAuth. Dois papéis definidos por variáveis de ambiente: `owner` (`OWNER_USER`/`OWNER_PASSWORD`, dados reais e escrita) e `demo` (`DEMO_USER`/`DEMO_PASSWORD`, opcional). A demo usa um Postgres embutido em memória (PGlite), populado com dados fictícios fixos (`src/db/demo-seed.ts`), e é somente leitura: `requireUser()` recusa escritas e o acesso ao banco falha fechado (só `owner`, ou o cron, alcança `DATABASE_URL`). O site não é indexável (`robots`).
+- **Login do dono editável**: em *Configurações › Conta* o dono troca usuário e senha (exige a senha atual). O login fica na tabela `app_credentials` (linha única; senha como hash **scrypt** com sal próprio) e, existindo, **substitui** `OWNER_USER`/`OWNER_PASSWORD` (que funcionam só como login inicial). A leitura do login salvo falha fechada: erro do banco recusa a entrada, nunca recai nas variáveis de ambiente (tabela ainda não migrada conta como "sem login salvo"). A demonstração não é editável. Ao trocar, as sessões antigas deixam de valer: o token JWT leva a "versão" do login (instante da última troca) e `requireUser()` e o layout das telas a comparam com o banco; o proxy continua sem consultar o banco.
 - **Sessão**: estratégia **JWT** do Auth.js. O token fica num cookie criptografado (JWE), `httpOnly`, `secure`, `sameSite=lax`, com validade de 30 dias. Não há tabela de sessões, então o banco não é consultado (nem acordado) a cada request.
-- **Proteção de rotas**: middleware exige sessão válida em todas as páginas e Server Actions, exceto `/login`, `/api/auth/*`, `/api/cron/*` (CRON_SECRET) e `/robots.txt`.
+- **Proteção de rotas**: middleware exige sessão válida em todas as páginas e Server Actions, exceto `/login`, `/api/auth/*`, `/api/cron/*` (CRON_SECRET), `/robots.txt` e os arquivos do PWA (`/manifest.webmanifest`, `/icon.svg`, `/apple-icon.png`, `/favicon.ico`, `/icons/*`), que o navegador busca antes do login.
 - **Cron**: `/api/cron/sync` exige header `Authorization: Bearer ${CRON_SECRET}` (padrão Vercel).
 - **Segredos** (somente variáveis de ambiente, nunca no banco nem no cliente):
   `AUTH_SECRET`, `OWNER_USER`, `OWNER_PASSWORD`, `DEMO_USER`, `DEMO_PASSWORD`, `DATABASE_URL`, `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `CRON_SECRET`, `AI_GATEWAY_API_KEY` ou `TYPESAFE_API_KEY` (opcional).
@@ -162,9 +163,10 @@ Cada transação registra `category_source` (`USER`, `RULE`, `JEV`, `PLUGGY_MAP`
 ```
 institutions      id, pluggy_item_id, name, status, last_synced_at
 accounts          id, institution_id?, pluggy_account_id?, name, type, source,
-                  is_emergency_reserve, archived, created_at
+                  is_emergency_reserve, archived, created_at,
+                  color? (#rrggbb; null = cor do banco), bank? (chave do banco; null = detectar, "none" = nenhum)
 balance_snapshots id, account_id, date, balance
-categories        id, parent_id?, name, kind(INCOME|EXPENSE), color, icon,
+categories        id, parent_id?, name, kind(INCOME|EXPENSE), color, icon? (nome do ícone do Lucide),
                   archived, is_system
 transactions      id, account_id, pluggy_transaction_id? (unique),
                   date, amount, description, status(POSTED|PENDING),
@@ -181,6 +183,7 @@ goal_accounts     goal_id, account_id
 goal_contributions id, goal_id, date, amount, note
 reserve_settings  target_mode(MONTHS|FIXED), target_months, target_amount
 sync_runs         id, trigger(CRON|MANUAL), started_at, finished_at, status, error
+app_credentials   id (=1), username, password_hash (scrypt), updated_at
 categorization_examples id, description, amount, subcategory_id, created_at
 ```
 
@@ -188,7 +191,7 @@ Valores monetários em `numeric(14,2)` (nunca float). Índices: `transactions(da
 
 ## 8. Telas e fluxos principais
 
-1. **Login**: botão "Entrar com Google".
+1. **Login**: usuário e senha (sem cadastro e sem OAuth); avisa quando o login foi alterado e a sessão antiga caiu.
 2. **Dashboard** (home), com filtros globais: **período** (mês atual, mês anterior, últimos 3/6/12 meses, ano atual, ano anterior, intervalo personalizado), **contas**, **categorias/subcategorias** e **tipo** (receita/despesa). Os filtros ficam na URL (compartilháveis e com histórico do navegador).
    - **Patrimônio líquido**: gráfico de área dos últimos 3/6/12 meses (contas + investimentos − fatura aberta dos cartões), a partir dos snapshots.
    - **Resumo**: receitas, despesas, saldo do período (variação vs período anterior) e meses de cobertura da reserva.
@@ -200,12 +203,21 @@ Valores monetários em `numeric(14,2)` (nunca float). Índices: `transactions(da
    - **Categorias**: drill-down categoria → subcategoria → lista de transações.
    - **Patrimônio**: evolução do patrimônio líquido e saldo por conta.
 3. **Transações**: lista paginada e filtrável (mesmos filtros + busca por texto + "a categorizar" + "sugestões do Jev"). Edição inline de categoria; nota; ignorar; confirmar/rejeitar sugestão; criar regra a partir da correção; vincular/desvincular transferência; **exportar CSV** do resultado filtrado. Criar/editar/excluir transação manual.
-4. **Categorias**: árvore de 2 níveis, CRUD, arquivar, mesclar, cor/ícone. Subseção de **mapeamento Pluggy**.
+4. **Categorias**: árvore de 2 níveis, CRUD, arquivar, mesclar, **cor** e **ícone** (qualquer ícone do Lucide, com busca em português/inglês e sugestões) com pré-visualização da combinação ícone + cor. Subseção de **mapeamento Pluggy**.
 5. **Regras**: CRUD com prioridade, pré-visualização ("quantas transações casam") e "aplicar às transações existentes não editadas pelo usuário".
 6. **Limites**: CRUD e uso do mês atual.
 7. **Metas**: CRUD, aportes, progresso e aporte mensal necessário.
 8. **Reserva**: contas marcadas, configuração de alvo e indicadores.
-9. **Conexões / Contas**: items Pluggy, contas, tipo, flag de reserva, contas manuais, botão "Sincronizar agora", histórico de `sync_runs`.
+9. **Contas** (`/contas`, antes "Conexões"): **resumo geral** (patrimônio, disponível, investido, cartões), items Pluggy, contas, contas manuais, botão "Sincronizar agora", histórico de `sync_runs`. Cada conta tem **apelido**, **banco** e **cor** editáveis; bancos conhecidos (Nubank, Itaú, Inter, Bradesco, Santander, Banco do Brasil, Caixa, C6, BTG, XP, Mercado Pago, PicPay, PagBank, Sicredi, Sicoob, Will Bank, Original) são detectados pelo nome da conexão/conta e trazem cor e logo em SVG. `/contas/[id]` mostra o **detalhe da conta**: saldo (ou fatura aberta), receitas/despesas do mês, evolução do saldo, detalhes e histórico de transações (período, busca, paginação). `/conexoes` redireciona para `/contas`.
+10. **Calendário** (`/calendario`): grade do mês com o total **recebido** e **gasto** em cada dia (sem transferências e ignoradas), resumo do mês, navegação por mês, filtro por conta e por **várias categorias** (categoria inclui as subcategorias). Clicar num dia lista as transações dele. Estado na URL (`mes`, `dia`, `conta`, `categorias`).
+11. **Configurações** (modal aberto pelo menu do perfil, com barra lateral de seções): **Aparência** (fundo Sistema/Claro/Cinza/Preto e cor de destaque entre 9 opções prontas, sem escolha livre; por aparelho, em cookie), **Conta** (alterar usuário e senha, ver §4) e **Sobre** (versão e empresa desenvolvedora, *FLTR Sistemas*).
+
+### Layout e padrões de interface
+
+- **Sidebar** à esquerda no desktop: item ativo destacado só pelo fundo (sem barra lateral), **recolhível** a apenas ícones com *tooltip* (`Ctrl/⌘ + B`; cookie `sidebar`), versão do sistema no rodapé, menu do perfil com *Configurações* e *Sair* (cor *destructive*). *Contas* tem como **subitens** as contas ativas (recolhíveis quando existe alguma). No celular, barra inferior e menu "Mais" com o mesmo conteúdo.
+- **Sem controles nativos do navegador** para escolha: seletores (`FormSelect`) e cor (`ColorPicker`) próprios, no tema do sistema, compatíveis com formulários de Server Actions.
+- A classificação por IA aparece ao usuário como "IA"; o nome do provedor (Jev) fica restrito à documentação técnica.
+- **PWA instalável** (manifest, ícones 192/512/maskable, favicon, ícone iOS, `theme-color`, área segura do iPhone), sem modo offline.
 
 Todas as telas são utilizáveis em telas de 360 px de largura (tabelas viram listas/cards no mobile).
 
@@ -224,7 +236,9 @@ Vitest, unitários e sem I/O, sobre funções puras de domínio:
 - Merge da sync (campos do usuário preservados; pendente → confirmada).
 - Cálculos: consumo de limite e estados, metas (aporte mensal necessário), reserva (média e meses de cobertura), agrupamento por mês no fuso `America/Sao_Paulo`.
 
-Sem E2E no MVP.
+Também testados (Vitest, sem navegador): cor e contraste (WCAG) das 9 cores de destaque nos fundos claro e escuro, ids de tema/cor vindos de cookie (nunca viram CSS sem validar), detecção de banco por nome e aparência da conta (cor escolhida > cor do banco), existência de todos os ícones sugeridos na versão instalada do Lucide, hash scrypt e regras do login do dono contra Postgres em memória (variáveis de ambiente, login salvo, troca e versão, tabela não migrada, falha fechada) e os totais por dia do calendário com filtro de várias categorias (incluindo payloads de SQL injection).
+
+Sem E2E automatizado no MVP; as telas novas foram verificadas manualmente no navegador (desktop e celular, claro/cinza/preto) contra Postgres local e contra a demonstração.
 
 ## 11. Fora do MVP
 
@@ -232,7 +246,7 @@ Sem E2E no MVP.
 - Recorrências e previsão/projeção de saldo.
 - Importação OFX/CSV.
 - Notificações (e-mail/push).
-- PWA / modo offline.
+- Modo offline (o PWA instalável já existe; os dados vêm sempre do servidor).
 - IA além do Jev na categorização (insights, chat, previsões).
 - Multiusuário / compartilhamento familiar.
 - Split de transações.

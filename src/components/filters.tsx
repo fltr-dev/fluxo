@@ -4,6 +4,7 @@ import { PRESETS } from "@/lib/domain/dates"
 import { dateBR } from "@/lib/format"
 import { categoryTree, listAccounts, withParams, type Filters as F, type SearchParams } from "@/lib/queries"
 import { Field, fieldClass } from "./bits"
+import { FormSelect } from "./form-select"
 import { FilterSheet, MenuLinks } from "./filters-client"
 
 /** Formulário GET: os filtros ficam na URL. Datas só valem com período "Personalizado". */
@@ -13,11 +14,7 @@ async function FiltersForm({ f, children }: { f: F; children?: React.ReactNode }
   return (
     <form method="get" className="grid gap-4">
       <Field label="Período">
-        <select name="periodo" defaultValue={f.preset} className={fieldClass}>
-          {Object.entries(PRESETS).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
+        <FormSelect name="periodo" defaultValue={f.preset} options={Object.entries(PRESETS).map(([value, label]) => ({ value, label }))} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="De">
@@ -28,32 +25,29 @@ async function FiltersForm({ f, children }: { f: F; children?: React.ReactNode }
         </Field>
       </div>
       <Field label="Conta">
-        <select name="conta" defaultValue={f.accountId ?? ""} className={fieldClass}>
-          <option value="">Todas</option>
-          {accs.filter((a) => !a.archived).map((a) => (
-            <option key={a.id} value={a.id}>{a.name}</option>
-          ))}
-        </select>
+        <FormSelect name="conta" defaultValue={String(f.accountId ?? "")} emptyLabel="Todas" options={accs.filter((a) => !a.archived).map((a) => ({ value: String(a.id), label: a.name }))} />
       </Field>
       <Field label="Categoria">
-        <select name="categoria" defaultValue={f.categoryId ?? ""} className={fieldClass}>
-          <option value="">Todas</option>
-          {tree.map((p) => (
-            <optgroup key={p.id} label={p.name}>
-              <option value={p.id}>{p.name} (todas)</option>
-              {p.subs.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <FormSelect
+          name="categoria"
+          defaultValue={String(f.categoryId ?? "")}
+          emptyLabel="Todas"
+          groups={tree.map((p) => ({
+            label: p.name,
+            options: [{ value: String(p.id), label: `${p.name} (todas)`, color: p.color }, ...p.subs.map((s) => ({ value: String(s.id), label: s.name, color: p.color }))],
+          }))}
+        />
       </Field>
       <Field label="Tipo">
-        <select name="tipo" defaultValue={kind} className={fieldClass}>
-          <option value="">Receitas e despesas</option>
-          <option value="despesa">Despesas</option>
-          <option value="receita">Receitas</option>
-        </select>
+        <FormSelect
+          name="tipo"
+          defaultValue={kind}
+          emptyLabel="Receitas e despesas"
+          options={[
+            { value: "despesa", label: "Despesas" },
+            { value: "receita", label: "Receitas" },
+          ]}
+        />
       </Field>
       {children}
       <div className="flex gap-2 pt-2">
@@ -66,23 +60,30 @@ async function FiltersForm({ f, children }: { f: F; children?: React.ReactNode }
 
 const periodLabel = (f: F) => (f.preset === "custom" ? `${dateBR(f.from)} a ${dateBR(f.to)}` : PRESETS[f.preset as keyof typeof PRESETS] ?? PRESETS.mes)
 
+/** Só o seletor de período (menu de links; o período vive na URL). */
+export function PeriodMenu({ f, sp }: { f: F; sp: SearchParams }) {
+  return (
+    <MenuLinks
+      label={
+        <>
+          <Calendar />
+          {periodLabel(f)}
+          <ChevronDown className="text-muted-foreground" />
+        </>
+      }
+      items={Object.entries(PRESETS)
+        .filter(([v]) => v !== "custom")
+        .map(([v, l]) => ({ label: l, href: withParams(sp, { periodo: v, de: undefined, ate: undefined, pagina: undefined }), active: f.preset === v }))}
+    />
+  )
+}
+
 /** Seletor de período (menu) + botão "Filtros" que abre o formulário completo num painel lateral. */
 export function Filters({ f, sp, children }: { f: F; sp: SearchParams; children?: React.ReactNode }) {
   const active = [f.accountId, f.categoryId, f.kind, f.q].filter(Boolean).length
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <MenuLinks
-        label={
-          <>
-            <Calendar />
-            {periodLabel(f)}
-            <ChevronDown className="text-muted-foreground" />
-          </>
-        }
-        items={Object.entries(PRESETS)
-          .filter(([v]) => v !== "custom")
-          .map(([v, l]) => ({ label: l, href: withParams(sp, { periodo: v, de: undefined, ate: undefined, pagina: undefined }), active: f.preset === v }))}
-      />
+      <PeriodMenu f={f} sp={sp} />
       <FilterSheet count={active}>
         <FiltersForm f={f}>{children}</FiltersForm>
       </FilterSheet>

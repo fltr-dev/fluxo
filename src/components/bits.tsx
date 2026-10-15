@@ -52,26 +52,6 @@ export const Money = ({ value, className, signed }: { value: number; className?:
   </span>
 )
 
-type SubOption = { id: number; name: string; kind: string; parentName: string }
-
-/** <optgroup>s "Receita · Categoria" / subcategorias, para qualquer <select> de subcategoria. */
-export function SubcategoryOptions({ options }: { options: SubOption[] }) {
-  const groups = new Map<string, SubOption[]>()
-  for (const o of options) {
-    const key = `${o.kind === "INCOME" ? "Receita" : "Despesa"} · ${o.parentName}`
-    groups.set(key, [...(groups.get(key) ?? []), o])
-  }
-  return [...groups].map(([label, subs]) => (
-    <optgroup key={label} label={label}>
-      {subs.map((s) => (
-        <option key={s.id} value={s.id}>
-          {s.name}
-        </option>
-      ))}
-    </optgroup>
-  ))
-}
-
 export const Field = ({ label, children, className, hint }: { label: string; children: React.ReactNode; className?: string; hint?: string }) => (
   <label className={cn("grid content-start gap-1.5 text-sm font-medium", className)}>
     {label}

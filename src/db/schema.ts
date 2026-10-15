@@ -50,6 +50,9 @@ export const accounts = pgTable("accounts", {
   openingBalance: money("opening_balance").notNull().default(0),
   isEmergencyReserve: boolean().notNull().default(false),
   archived: boolean().notNull().default(false),
+  // Aparência (editável): cor "#rrggbb" (null = cor do banco) e banco ("nubank"…; null = detectar pelo nome, "none" = nenhum)
+  color: text(),
+  bank: text(),
   transactionsSyncedAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })
@@ -82,6 +85,8 @@ export const categories = pgTable("categories", {
   name: text().notNull(),
   kind: categoryKind().notNull(),
   color: text().notNull().default("#64748b"),
+  // Nome do ícone do Lucide em PascalCase ("Utensils"); null = ícone padrão pelo nome da categoria
+  icon: text(),
   archived: boolean().notNull().default(false),
 })
 
@@ -194,4 +199,13 @@ export const syncRuns = pgTable("sync_runs", {
   finishedAt: timestamp({ withTimezone: true }),
   status: text().notNull().default("RUNNING"), // RUNNING | OK | PARTIAL | ERROR
   error: text(),
+})
+
+// Login do dono definido pelo app (Configurações › Conta). Linha única (id = 1); enquanto não existir,
+// vale OWNER_USER/OWNER_PASSWORD do ambiente. A senha é guardada como hash scrypt, nunca em texto.
+export const appCredentials = pgTable("app_credentials", {
+  id: integer().primaryKey().default(1),
+  username: text().notNull(),
+  passwordHash: text().notNull(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })

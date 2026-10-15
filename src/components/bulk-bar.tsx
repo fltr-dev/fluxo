@@ -30,7 +30,7 @@ export function BulkBar({ formId, action, children }: { formId: string; action: 
         clear()
       }}
       hidden={count === 0}
-      className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl bg-foreground py-2 pr-2 pl-4 text-background shadow-lg md:bottom-6 md:left-[calc(50%+8rem)]"
+      className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl bg-foreground py-2 pr-2 pl-4 text-background shadow-lg md:bottom-6 md:left-[calc(50%+var(--sidebar-w)/2)]"
       role="toolbar"
       aria-label="Ações em lote"
     >

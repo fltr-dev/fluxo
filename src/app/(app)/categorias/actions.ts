@@ -6,7 +6,20 @@ import { z } from "zod"
 import { requireUser } from "@/auth"
 import { categories, categoryRules, db, pluggyCategoryMap, spendingLimits, transactions } from "@/db"
 import { SEED_CATEGORIES, SEED_PLUGGY_MAP } from "@/db/seed-data"
+import { lucideByName } from "@/components/category-icon"
 import { fd, parseForm } from "@/lib/form"
+
+const color = z.string().regex(/^#[0-9a-f]{6}$/i)
+// Nome do ícone do Lucide: "" apaga (volta ao padrão), ausente não mexe; precisa existir na biblioteca
+const icon = z.preprocess(
+  (v) => (v === "" ? null : v),
+  z
+    .string()
+    .regex(/^[A-Za-z0-9]{1,64}$/)
+    .refine((n) => !!lucideByName(n), "Ícone inválido")
+    .nullable()
+    .optional(),
+)
 
 export async function seedDefaults() {
   await requireUser()
@@ -14,7 +27,7 @@ export async function seedDefaults() {
   if (count > 0) return
   const ids = new Map<string, number>()
   for (const c of SEED_CATEGORIES) {
-    const [p] = await db.insert(categories).values({ name: c.name, kind: c.kind, color: c.color }).returning({ id: categories.id })
+    const [p] = await db.insert(categories).values({ name: c.name, kind: c.kind, color: c.color, icon: c.icon }).returning({ id: categories.id })
     const subs = await db
       .insert(categories)
       .values(c.subs.map((name) => ({ name, kind: c.kind, color: c.color, parentId: p.id })))
@@ -29,21 +42,24 @@ export async function seedDefaults() {
 
 export async function createCategory(form: FormData) {
   await requireUser()
-  const v = parseForm(form, { name: fd.text, kind: z.enum(["INCOME", "EXPENSE"]).optional(), color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), parentId: fd.optId })
+  const v = parseForm(form, { name: fd.text, kind: z.enum(["INCOME", "EXPENSE"]).optional(), color: color.optional(), icon, parentId: fd.optId })
   if (v.parentId) {
     const [p] = await db.select().from(categories).where(eq(categories.id, v.parentId))
     if (!p || p.parentId) throw new Error("Categoria-pai inválida")
     await db.insert(categories).values({ name: v.name, kind: p.kind, color: p.color, parentId: p.id })
   } else {
-    await db.insert(categories).values({ name: v.name, kind: v.kind ?? "EXPENSE", color: v.color ?? "#64748b" })
+    await db.insert(categories).values({ name: v.name, kind: v.kind ?? "EXPENSE", color: v.color ?? "#64748b", icon: v.icon ?? null })
   }
   refresh()
 }
 
 export async function updateCategory(form: FormData) {
   await requireUser()
-  const v = parseForm(form, { id: fd.id, name: fd.text, color: z.string().regex(/^#[0-9a-f]{6}$/i).optional() })
-  await db.update(categories).set({ name: v.name, ...(v.color && { color: v.color }) }).where(eq(categories.id, v.id))
+  const v = parseForm(form, { id: fd.id, name: fd.text, color: color.optional(), icon })
+  await db
+    .update(categories)
+    .set({ name: v.name, ...(v.color && { color: v.color }), ...(v.icon !== undefined && { icon: v.icon }) })
+    .where(eq(categories.id, v.id))
   refresh()
 }
 

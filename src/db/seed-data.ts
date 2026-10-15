@@ -1,18 +1,18 @@
 // Conjunto inicial editável de categorias e o mapeamento das categorias Pluggy para elas.
-export const SEED_CATEGORIES: { name: string; kind: "INCOME" | "EXPENSE"; color: string; subs: string[] }[] = [
-  { name: "Moradia", kind: "EXPENSE", color: "#0ea5e9", subs: ["Aluguel", "Condomínio", "Contas da casa", "Internet e telefone", "Manutenção"] },
-  { name: "Alimentação", kind: "EXPENSE", color: "#f97316", subs: ["Mercado", "Restaurantes", "Delivery"] },
-  { name: "Transporte", kind: "EXPENSE", color: "#8b5cf6", subs: ["Combustível", "App e táxi", "Transporte público", "Estacionamento e pedágio", "Manutenção do veículo"] },
-  { name: "Saúde", kind: "EXPENSE", color: "#ef4444", subs: ["Plano de saúde", "Farmácia", "Consultas e exames", "Academia"] },
-  { name: "Lazer", kind: "EXPENSE", color: "#eab308", subs: ["Passeios e eventos", "Viagens", "Jogos e hobbies"] },
-  { name: "Educação", kind: "EXPENSE", color: "#14b8a6", subs: ["Cursos", "Livros", "Escola e faculdade"] },
-  { name: "Compras", kind: "EXPENSE", color: "#ec4899", subs: ["Roupas", "Eletrônicos", "Casa", "Pets", "Presentes", "Outros"] },
-  { name: "Assinaturas", kind: "EXPENSE", color: "#6366f1", subs: ["Streaming", "Software"] },
-  { name: "Impostos e taxas", kind: "EXPENSE", color: "#78716c", subs: ["Impostos", "Tarifas bancárias", "Juros e multas"] },
-  { name: "Outros", kind: "EXPENSE", color: "#64748b", subs: ["Seguros", "Doações", "Diversos"] },
-  { name: "Salário", kind: "INCOME", color: "#16a34a", subs: ["Salário", "13º e férias", "Bônus"] },
-  { name: "Rendimentos", kind: "INCOME", color: "#22c55e", subs: ["Juros e dividendos"] },
-  { name: "Outras receitas", kind: "INCOME", color: "#4ade80", subs: ["Reembolsos", "Vendas", "Presentes recebidos", "Diversos"] },
+export const SEED_CATEGORIES: { name: string; kind: "INCOME" | "EXPENSE"; color: string; icon: string; subs: string[] }[] = [
+  { name: "Moradia", kind: "EXPENSE", color: "#0ea5e9", icon: "House", subs: ["Aluguel", "Condomínio", "Contas da casa", "Internet e telefone", "Manutenção"] },
+  { name: "Alimentação", kind: "EXPENSE", color: "#f97316", icon: "Utensils", subs: ["Mercado", "Restaurantes", "Delivery"] },
+  { name: "Transporte", kind: "EXPENSE", color: "#8b5cf6", icon: "Car", subs: ["Combustível", "App e táxi", "Transporte público", "Estacionamento e pedágio", "Manutenção do veículo"] },
+  { name: "Saúde", kind: "EXPENSE", color: "#ef4444", icon: "HeartPulse", subs: ["Plano de saúde", "Farmácia", "Consultas e exames", "Academia"] },
+  { name: "Lazer", kind: "EXPENSE", color: "#eab308", icon: "Ticket", subs: ["Passeios e eventos", "Viagens", "Jogos e hobbies"] },
+  { name: "Educação", kind: "EXPENSE", color: "#14b8a6", icon: "GraduationCap", subs: ["Cursos", "Livros", "Escola e faculdade"] },
+  { name: "Compras", kind: "EXPENSE", color: "#ec4899", icon: "ShoppingBag", subs: ["Roupas", "Eletrônicos", "Casa", "Pets", "Presentes", "Outros"] },
+  { name: "Assinaturas", kind: "EXPENSE", color: "#6366f1", icon: "Repeat", subs: ["Streaming", "Software"] },
+  { name: "Impostos e taxas", kind: "EXPENSE", color: "#78716c", icon: "Receipt", subs: ["Impostos", "Tarifas bancárias", "Juros e multas"] },
+  { name: "Outros", kind: "EXPENSE", color: "#64748b", icon: "Ellipsis", subs: ["Seguros", "Doações", "Diversos"] },
+  { name: "Salário", kind: "INCOME", color: "#16a34a", icon: "Briefcase", subs: ["Salário", "13º e férias", "Bônus"] },
+  { name: "Rendimentos", kind: "INCOME", color: "#22c55e", icon: "TrendingUp", subs: ["Juros e dividendos"] },
+  { name: "Outras receitas", kind: "INCOME", color: "#4ade80", icon: "CirclePlus", subs: ["Reembolsos", "Vendas", "Presentes recebidos", "Diversos"] },
 ]
 
 // Nome da categoria Pluggy → "Categoria/Subcategoria"

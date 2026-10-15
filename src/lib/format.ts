@@ -23,3 +23,10 @@ export const signedPct = (n: number) =>
 
 /** Variação relativa; null quando não há base de comparação. */
 export const delta = (cur: number, prev: number) => (prev ? (cur - prev) / Math.abs(prev) : null)
+
+const dayFmt = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
+/** "2026-03-05" → "Quinta-feira, 5 de março" */
+export function dayLabel(d: string) {
+  const s = dayFmt.format(new Date(`${d}T00:00:00Z`))
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}

@@ -1,22 +1,28 @@
 import { desc } from "drizzle-orm"
-import { Banknote, CircleAlert, CircleCheck, ExternalLink, Landmark, Pencil, Plus, Trash2 } from "lucide-react"
+import { Banknote, ChevronRight, CircleAlert, CircleCheck, CreditCard, ExternalLink, Landmark, Pencil, PiggyBank, Plus, Trash2, Wallet } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Empty, Field, fieldClass, Money, PageTitle } from "@/components/bits"
-import { RouteDialog, RouteSheet } from "@/components/route-overlay"
+import { AccountAvatar } from "@/components/account-avatar"
+import { AccountFields } from "@/components/account-fields"
+import { Empty, Field, fieldClass, IconCircle, Money, PageTitle } from "@/components/bits"
+import { FormSelect } from "@/components/form-select"
+import { RouteDialog } from "@/components/route-overlay"
 import { SyncButton } from "@/components/shell-client"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { db, institutions, syncRuns } from "@/db"
-import { ago } from "@/lib/format"
+import { ACCOUNT_TYPES } from "@/lib/account-types"
+import { accountLook } from "@/lib/banks"
+import { brl, ago } from "@/lib/format"
 import { listAccounts } from "@/lib/queries"
 import { cn } from "@/lib/utils"
-import { addInstitution, createManualAccount, removeInstitution, syncNow, updateAccount } from "./actions"
+import { AccountEditSheet } from "./account-edit"
+import { addInstitution, createManualAccount, removeInstitution, syncNow } from "./actions"
 
 // A sincronização manual roda dentro da Server Action desta página
 export const maxDuration = 60
 
-const TYPES = { CHECKING: "Conta corrente", CREDIT_CARD: "Cartão de crédito", SAVINGS_INVESTMENT: "Poupança/investimento", CASH: "Dinheiro" }
+const TYPES = ACCOUNT_TYPES
 const RUN = {
   OK: ["OK", "bg-emerald-500/10 text-income", "bg-emerald-500"],
   PARTIAL: ["Parcial", "bg-amber-500/10 text-amber-700 dark:text-amber-400", "bg-amber-500"],
@@ -24,25 +30,19 @@ const RUN = {
   RUNNING: ["Rodando", "bg-sky-500/10 text-sky-700 dark:text-sky-300", "bg-sky-500"],
 } as const
 const when = (d: Date | null) => (d ? d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) : "nunca")
-const initials = (s: string) => s.replace(/[^\p{L}\p{N} ]/gu, "").split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?"
 
 async function addAndClose(form: FormData) {
   "use server"
   await addInstitution(form)
-  redirect("/conexoes")
+  redirect("/contas")
 }
 async function createAccountAndClose(form: FormData) {
   "use server"
   await createManualAccount(form)
-  redirect("/conexoes")
-}
-async function updateAndClose(form: FormData) {
-  "use server"
-  await updateAccount(form)
-  redirect("/conexoes")
+  redirect("/contas")
 }
 
-export default async function ConnectionsPage({ searchParams }: PageProps<"/conexoes">) {
+export default async function ConnectionsPage({ searchParams }: PageProps<"/contas">) {
   const sp = await searchParams
   const [insts, accs, runs] = await Promise.all([db.select().from(institutions), listAccounts(), db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(8)])
   const manual = accs.filter((a) => a.source === "MANUAL")
@@ -50,35 +50,67 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
   const last = runs[0]
   const editing = accs.find((a) => a.id === Number(sp.editar))
 
-  const AccountRow = ({ a }: { a: (typeof accs)[number] }) => (
-    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 border-b py-3 last:border-0", a.archived && "opacity-60")}>
-      <span className="grid min-w-40 flex-1">
-        <span className="truncate text-sm font-medium">{a.name}</span>
-        <span className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-          {TYPES[a.type]}
-          {a.isEmergencyReserve && <span className="rounded-full bg-violet-500/10 px-1.5 text-violet-700 dark:text-violet-300">reserva</span>}
-          {a.archived && <span className="rounded-full bg-muted px-1.5">arquivada</span>}
-        </span>
-      </span>
-      <Money value={a.balance} className="text-sm font-medium" />
-      <Link href={`/conexoes?editar=${a.id}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar ${a.name}`}>
-        <Pencil />
-      </Link>
-    </div>
-  )
+  // Resumo geral: patrimônio e como ele se divide (contas ativas; cartão entra com a fatura aberta como dívida)
+  const active = accs.filter((a) => !a.archived)
+  const sum = (types: string[]) => active.filter((a) => types.includes(a.type)).reduce((t, a) => t + a.balance, 0)
+  const summary = [
+    { label: "Patrimônio", hint: "Tudo somado", value: active.reduce((t, a) => t + a.balance, 0), icon: Landmark, color: "#0ea5e9" },
+    { label: "Disponível", hint: "Contas correntes e dinheiro", value: sum(["CHECKING", "CASH"]), icon: Wallet, color: "#10b981" },
+    { label: "Investido", hint: "Poupança e investimentos", value: sum(["SAVINGS_INVESTMENT"]), icon: PiggyBank, color: "#8b5cf6" },
+    { label: "Cartões", hint: "Fatura aberta", value: sum(["CREDIT_CARD"]), icon: CreditCard, color: "#f43f5e" },
+  ]
+
+  const AccountRow = ({ a }: { a: (typeof accs)[number] }) => {
+    const look = accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution })
+    return (
+      <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 border-b py-2 last:border-0", a.archived && "opacity-60")}>
+        <Link href={`/contas/${a.id}`} className="group flex min-w-40 flex-1 items-center gap-3 rounded-lg py-1 pr-2 hover:bg-muted/50">
+          <AccountAvatar look={look} size={36} />
+          <span className="grid min-w-0 flex-1">
+            <span className="truncate text-sm font-medium group-hover:underline">{a.name}</span>
+            <span className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+              {TYPES[a.type]}
+              {a.isEmergencyReserve && <span className="rounded-full bg-violet-500/10 px-1.5 text-violet-700 dark:text-violet-300">reserva</span>}
+              {a.archived && <span className="rounded-full bg-muted px-1.5">arquivada</span>}
+            </span>
+          </span>
+          <Money value={a.balance} className="text-sm font-medium" />
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+        <Link href={`/contas?editar=${a.id}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar ${a.name}`}>
+          <Pencil />
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="grid gap-5">
-      <PageTitle title="Contas e conexões" description="Conexões do MeuPluggy, contas importadas e contas manuais.">
-        <Link href="/conexoes?conta=1" className={buttonVariants({ variant: "outline" })}>
+      <PageTitle title="Contas" description="Resumo geral. Clique numa conta para ver os detalhes e o histórico de transações.">
+        <Link href="/contas?conta=1" className={buttonVariants({ variant: "outline" })}>
           <Banknote />
           Conta manual
         </Link>
-        <Link href="/conexoes?conexao=1" className={buttonVariants()}>
+        <Link href="/contas?conexao=1" className={buttonVariants()}>
           <Plus />
           Adicionar conexão
         </Link>
       </PageTitle>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4" aria-label="Resumo">
+        {summary.map((k) => (
+          <Card key={k.label} className="gap-3 px-4 py-4">
+            <div className="flex items-center gap-2.5">
+              <IconCircle icon={k.icon} color={k.color} soft className="size-8" />
+              <span className="text-sm font-medium text-muted-foreground">{k.label}</span>
+            </div>
+            <div className="grid gap-0.5">
+              <span className={cn("text-xl font-semibold tracking-tight tabular-nums", k.value < 0 && "text-expense")} aria-label={brl(k.value)}>{brl(k.value)}</span>
+              <span className="text-xs text-muted-foreground">{k.hint}</span>
+            </div>
+          </Card>
+        ))}
+      </section>
 
       <Card className="flex-row flex-wrap items-center gap-4 px-5 py-4">
         {last?.status === "ERROR" ? (
@@ -102,7 +134,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="grid gap-4">
           {insts.length === 0 && (
-            <Empty icon={Landmark} title="Nenhuma conexão cadastrada" action={<Link href="/conexoes?conexao=1" className={buttonVariants()}><Plus />Adicionar conexão</Link>}>
+            <Empty icon={Landmark} title="Nenhuma conexão cadastrada" action={<Link href="/contas?conexao=1" className={buttonVariants()}><Plus />Adicionar conexão</Link>}>
               Conecte o MeuPluggy na sua aplicação da Pluggy e cadastre aqui o Item ID gerado.
             </Empty>
           )}
@@ -112,7 +144,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
               <Card key={i.id}>
                 <CardHeader className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-sm font-semibold">{initials(i.name)}</span>
+                    <AccountAvatar look={accountLook({ name: i.name })} size={40} className="rounded-xl" />
                     <div className="grid min-w-0">
                       <span className="flex items-center gap-2">
                         <CardTitle className="truncate font-semibold">{i.name}</CardTitle>
@@ -164,7 +196,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
                 <CardTitle className="font-semibold">Contas manuais</CardTitle>
                 <p className="text-sm text-muted-foreground">Saldo = saldo inicial + lançamentos</p>
               </div>
-              <Link href="/conexoes?conta=1" className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label="Nova conta manual">
+              <Link href="/contas?conta=1" className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label="Nova conta manual">
                 <Plus />
               </Link>
             </CardHeader>
@@ -202,7 +234,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
       </div>
 
       {sp.conexao && (
-        <RouteDialog closeHref="/conexoes" title="Adicionar conexão" description="Cole o Item ID gerado na sua aplicação da Pluggy (não o do site meu.pluggy.ai).">
+        <RouteDialog closeHref="/contas" title="Adicionar conexão" description="Cole o Item ID gerado na sua aplicação da Pluggy (não o do site meu.pluggy.ai).">
           <form action={addAndClose} className="grid gap-4">
             <Field label="Item ID" hint="dashboard.pluggy.ai › sua aplicação › Ir para Demo › ⋮ › Copiar Item ID.">
               <input name="pluggyItemId" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[0-9a-fA-F-]{36}" className={cn(fieldClass, "font-mono")} />
@@ -222,18 +254,12 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
       )}
 
       {sp.conta && (
-        <RouteDialog closeHref="/conexoes" title="Nova conta manual" description="Para dinheiro em espécie ou contas sem Open Finance.">
+        <RouteDialog closeHref="/contas" title="Nova conta manual" description="Para dinheiro em espécie ou contas sem Open Finance.">
           <form action={createAccountAndClose} className="grid gap-4">
-            <Field label="Nome">
-              <input name="name" required maxLength={200} placeholder="Ex.: Carteira" className={fieldClass} />
-            </Field>
+            <AccountFields defaultBank={null} defaultColor={null} placeholder="Ex.: Carteira" />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo">
-                <select name="type" defaultValue="CASH" className={fieldClass}>
-                  {Object.entries(TYPES).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
+                <FormSelect name="type" defaultValue="CASH" options={Object.entries(TYPES).map(([value, label]) => ({ value, label }))} />
               </Field>
               <Field label="Saldo inicial (R$)">
                 <input type="number" name="openingBalance" step="0.01" placeholder="0,00" className={fieldClass} />
@@ -244,48 +270,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
         </RouteDialog>
       )}
 
-      {editing && (
-        <RouteSheet closeHref="/conexoes" title="Editar conta" description={editing.source === "PLUGGY" ? `Importada · ${editing.institution ?? "Pluggy"}` : "Conta manual"}>
-          <form action={updateAndClose} className="grid gap-4">
-            <input type="hidden" name="id" value={editing.id} />
-            <Field label="Apelido">
-              <input name="name" required maxLength={200} defaultValue={editing.name} className={fieldClass} />
-            </Field>
-            <Field label="Tipo">
-              <select name="type" defaultValue={editing.type} className={fieldClass}>
-                {Object.entries(TYPES).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            {editing.source === "MANUAL" ? (
-              <Field label="Saldo inicial (R$)" hint={`Saldo atual: ${editing.balance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}>
-                <input type="number" name="openingBalance" step="0.01" defaultValue={editing.openingBalance} className={fieldClass} />
-              </Field>
-            ) : (
-              <div className="flex justify-between rounded-xl bg-muted p-3 text-sm">
-                <span className="text-muted-foreground">Saldo (vem do banco)</span>
-                <Money value={editing.balance} className="font-medium" />
-              </div>
-            )}
-            <label className="flex items-center justify-between gap-4 rounded-xl border p-3.5">
-              <span className="grid">
-                <span className="text-sm font-medium">Compõe a reserva de emergência</span>
-                <span className="text-xs text-muted-foreground">O saldo entra no cálculo da reserva.</span>
-              </span>
-              <input type="checkbox" name="isEmergencyReserve" defaultChecked={editing.isEmergencyReserve} className="size-4 accent-primary" />
-            </label>
-            <label className="flex items-center justify-between gap-4 rounded-xl border p-3.5">
-              <span className="grid">
-                <span className="text-sm font-medium">Arquivada</span>
-                <span className="text-xs text-muted-foreground">Some do patrimônio e dos seletores; o histórico fica.</span>
-              </span>
-              <input type="checkbox" name="archived" defaultChecked={editing.archived} className="size-4 accent-primary" />
-            </label>
-            <Button type="submit" className="h-9">Salvar</Button>
-          </form>
-        </RouteSheet>
-      )}
+      {editing && <AccountEditSheet account={editing} closeHref="/contas" />}
     </div>
   )
 }

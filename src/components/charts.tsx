@@ -100,6 +100,25 @@ export function NetWorthArea({ data, current }: { data: { month: string; value: 
   )
 }
 
+/** Saldo de uma conta mês a mês (área na cor da conta). */
+export function BalanceArea({ data, color }: { data: { month: string; value: number }[]; color: string }) {
+  return (
+    <AreaChart responsive style={{ width: "100%", height: 200 }} data={data} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+      <defs>
+        <linearGradient id="bal-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <CartesianGrid {...grid} />
+      <XAxis dataKey="month" tickFormatter={monthLabel} tick={axis} axisLine={false} tickLine={false} tickMargin={8} />
+      <YAxis orientation="right" tickFormatter={compactNum} tick={axis} axisLine={false} tickLine={false} width={72} domain={["auto", "auto"]} />
+      <Tooltip content={<Bubble />} cursor={{ stroke: "var(--muted-foreground)", strokeDasharray: "4 4" }} />
+      <Area dataKey="value" name="Saldo" type="monotone" stroke={color} strokeWidth={2.25} fill="url(#bal-fill)" activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} />
+    </AreaChart>
+  )
+}
+
 /** Meio-donut com o total no centro e legenda em percentuais. */
 export function ExpenseGauge({ data, total }: { data: { name: string; value: number; color: string }[]; total: number }) {
   return (

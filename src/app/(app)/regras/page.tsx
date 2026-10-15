@@ -1,7 +1,8 @@
 import { asc, eq, ne } from "drizzle-orm"
 import { ChevronRight, CircleCheck, Eye, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { Empty, Field, fieldClass, Money, PageTitle, SubcategoryOptions } from "@/components/bits"
+import { Empty, Field, fieldClass, Money, PageTitle } from "@/components/bits"
+import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -37,19 +38,18 @@ function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: 
       </fieldset>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Conta">
-          <select name="accountId" defaultValue={rule.accountId ?? ""} className={fieldClass}>
-            <option value="">Qualquer conta</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
+          <FormSelect name="accountId" defaultValue={String(rule.accountId ?? "")} emptyLabel="Qualquer conta" options={accounts.map((a) => ({ value: String(a.id), label: a.name }))} />
         </Field>
         <Field label="Tipo">
-          <select name="kind" defaultValue={rule.kind ?? ""} className={fieldClass}>
-            <option value="">Qualquer</option>
-            <option value="EXPENSE">Despesa</option>
-            <option value="INCOME">Receita</option>
-          </select>
+          <FormSelect
+            name="kind"
+            defaultValue={rule.kind ?? ""}
+            emptyLabel="Qualquer"
+            options={[
+              { value: "EXPENSE", label: "Despesa" },
+              { value: "INCOME", label: "Receita" },
+            ]}
+          />
         </Field>
         <Field label="Valor mínimo (R$)">
           <input type="number" name="minAmount" min={0} step="0.01" defaultValue={rule.minAmount ?? ""} className={fieldClass} />
@@ -59,10 +59,7 @@ function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: 
         </Field>
       </div>
       <Field label="Categorizar como">
-        <select name="subcategoryId" required defaultValue={rule.subcategoryId ?? ""} className={fieldClass}>
-          <option value="" disabled>Escolha…</option>
-          <SubcategoryOptions options={options} />
-        </select>
+        <SubcategorySelect name="subcategoryId" options={options} required defaultValue={rule.subcategoryId ? String(rule.subcategoryId) : null} placeholder="Escolha…" />
       </Field>
       <Field label="Prioridade" hint="Menor número vence quando duas regras casam.">
         <input type="number" name="priority" min={0} max={10000} defaultValue={rule.priority ?? 100} className={cn(fieldClass, "w-28")} />
@@ -117,7 +114,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
         <ol className="flex flex-wrap items-center gap-2 text-xs font-medium">
           {[
             ["1 Suas regras", "bg-emerald-500/10 text-income"],
-            ["2 Jev (IA)", "bg-violet-500/10 text-violet-700 dark:text-violet-300"],
+            ["2 Inteligência artificial", "bg-violet-500/10 text-violet-700 dark:text-violet-300"],
             ["3 Mapeamento Pluggy", "bg-muted text-muted-foreground"],
             ["4 A categorizar", "bg-amber-500/10 text-amber-700 dark:text-amber-400"],
           ].map(([l, c], i, all) => (
@@ -131,7 +128,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
 
       {rules.length === 0 ? (
         <Empty icon={ListChecks} title="Nenhuma regra" action={<Link href="/regras?nova=1" className={buttonVariants()}><Plus />Criar regra</Link>}>
-          Regras têm prioridade sobre o Jev e o mapeamento da Pluggy.
+          Regras têm prioridade sobre a IA e o mapeamento da Pluggy.
         </Empty>
       ) : (
         <Card className="py-0">
