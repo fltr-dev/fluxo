@@ -1,9 +1,8 @@
 "use client"
 
-import { ChevronRight, ChevronsUpDown, House, LogOut, Menu, Moon, Plus, RefreshCw, Sun, Wallet, ArrowLeftRight, ChartColumn } from "lucide-react"
+import { ChevronRight, ChevronsUpDown, Eye, EyeOff, House, LogOut, Menu, Moon, Plus, RefreshCw, Sun, Wallet, ArrowLeftRight, ChartColumn } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useTheme } from "next-themes"
 import { useState } from "react"
 import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
@@ -44,7 +43,7 @@ export function SidebarNav({ badges }: { badges: Record<string, number | "warn" 
               >
                 <Icon className="size-4" />
                 {label}
-                {typeof b === "number" && b > 0 && <span className="ml-auto text-xs font-medium text-muted-foreground tabular-nums">{b}</span>}
+                {typeof b === "number" && b > 0 && <span className="ml-auto text-xs font-medium text-muted-foreground">{b}</span>}
                 {b === "warn" && <span className="ml-auto size-2 rounded-full bg-amber-500" aria-label="Precisa de atenção" />}
                 {b === "danger" && <span className="ml-auto size-2 rounded-full bg-red-500" aria-label="Com erro" />}
               </Link>
@@ -96,19 +95,40 @@ export function Breadcrumb() {
       </nav>
       <div className="flex min-w-0 items-center gap-2.5 md:hidden">
         <Logo small />
-        <span className="truncate text-base font-semibold">{nav?.item.label ?? "Finanças"}</span>
+        <span className="truncate text-base font-semibold">{nav?.item.label ?? "FLTR Financeiro"}</span>
       </div>
     </>
   )
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { resolvedTheme, setTheme } = useTheme()
+  function toggle() {
+    const html = document.documentElement
+    const dark = html.classList.contains("dark") || (!html.classList.contains("light") && matchMedia("(prefers-color-scheme: dark)").matches)
+    const next = dark ? "light" : "dark"
+    html.classList.remove("dark", "light")
+    html.classList.add(next)
+    document.cookie = `theme=${next}; path=/; max-age=31536000; samesite=lax`
+  }
   return (
-    <Button variant="ghost" size="icon" className={className} aria-label="Alternar tema" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+    <Button variant="ghost" size="icon" className={className} aria-label="Alternar tema" onClick={toggle}>
       {/* os dois ícones ficam no DOM; o CSS escolhe, sem depender do tema na hidratação */}
       <Moon className="dark:hidden" />
       <Sun className="hidden dark:block" />
+    </Button>
+  )
+}
+
+/** Esconde os valores com blur (classe .privacy no <html>, ver globals.css); cookie para o SSR já vir escondido. */
+export function PrivacyToggle({ className }: { className?: string }) {
+  function toggle() {
+    const on = document.documentElement.classList.toggle("privacy")
+    document.cookie = `privacy=${on ? 1 : 0}; path=/; max-age=31536000; samesite=lax`
+  }
+  return (
+    <Button variant="ghost" size="icon" className={className} aria-label="Mostrar ou esconder valores" title="Mostrar/esconder valores" onClick={toggle}>
+      <Eye className="in-[.privacy]:hidden" />
+      <EyeOff className="hidden in-[.privacy]:block" />
     </Button>
   )
 }
@@ -161,7 +181,7 @@ export function MobileNav({ signOut }: { signOut: () => Promise<void> }) {
         <SheetContent side="right" className="w-72 gap-0 p-0">
           <div className="flex h-14 items-center gap-2.5 border-b px-4">
             <Logo />
-            <SheetTitle className="font-semibold">Finanças</SheetTitle>
+            <SheetTitle className="font-semibold">FLTR Financeiro</SheetTitle>
           </div>
           <div className="flex-1 overflow-y-auto py-2" onClick={() => setOpen(false)}>
             <SidebarNav badges={{}} />

@@ -52,7 +52,7 @@ export default async function ReservePage() {
               </span>
             </div>
             {missing > 0 ? (
-              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Faltam {brl(missing)} para o alvo</span>
+              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Faltam <span className="tabular-nums">{brl(missing)}</span> para o alvo</span>
             ) : (
               <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-income">Alvo atingido</span>
             )}
@@ -123,7 +123,7 @@ export default async function ReservePage() {
                 </span>
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input type="number" name="targetMonths" min={1} max={60} defaultValue={r.settings.targetMonths} aria-label="Meses" className={cn(fieldClass, "w-20 text-center tabular-nums")} />
-                  meses × {brl(r.avgMonthlyExpense)}
+                  meses × <span className="tabular-nums">{brl(r.avgMonthlyExpense)}</span>
                 </span>
               </span>
             </label>
@@ -150,7 +150,7 @@ export default async function ReservePage() {
           </div>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="w-4 border-t-2 border-dashed border-primary" />
-            Média {brl(r.avgMonthlyExpense)}
+            Média <span className="tabular-nums">{brl(r.avgMonthlyExpense)}</span>
           </span>
         </CardHeader>
         <CardContent>

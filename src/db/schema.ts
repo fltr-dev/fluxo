@@ -65,6 +65,16 @@ export const balanceSnapshots = pgTable(
   (t) => [unique().on(t.accountId, t.date)],
 )
 
+// Aplicações (+) e resgates (−) de investimentos: só reconstroem o histórico do patrimônio,
+// ficam fora de transactions para não entrar em receitas/despesas
+export const investmentMovements = pgTable("investment_movements", {
+  id: serial().primaryKey(),
+  accountId: integer().notNull().references(() => accounts.id, { onDelete: "cascade" }),
+  pluggyId: text().notNull().unique(),
+  date: date({ mode: "string" }).notNull(),
+  amount: money("amount").notNull(),
+})
+
 export const categories = pgTable("categories", {
   id: serial().primaryKey(),
   // null = categoria (nível 1); preenchido = subcategoria (nível 2)

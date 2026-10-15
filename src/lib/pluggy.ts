@@ -1,5 +1,5 @@
 import "server-only"
-import type { PluggyTx } from "./domain/sync-merge"
+import type { PluggyInvestment, PluggyInvestmentTx, PluggyTx } from "./domain/sync-merge"
 
 const BASE = "https://api.pluggy.ai"
 
@@ -19,7 +19,6 @@ export type PluggyAccount = {
   number?: string
   balance: number
 }
-export type PluggyInvestment = { id: string; name: string; balance: number; status?: string }
 
 async function request<T>(apiKey: string | null, path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
@@ -48,6 +47,14 @@ export async function pluggyClient() {
       const all: PluggyInvestment[] = []
       for (let page = 1; ; page++) {
         const r = await get<{ results: PluggyInvestment[]; totalPages?: number }>(`/investments?itemId=${itemId}&page=${page}`)
+        all.push(...r.results)
+        if (!r.totalPages || page >= r.totalPages) return all
+      }
+    },
+    async investmentTransactions(investmentId: string) {
+      const all: PluggyInvestmentTx[] = []
+      for (let page = 1; ; page++) {
+        const r = await get<{ results: PluggyInvestmentTx[]; totalPages?: number }>(`/investments/${investmentId}/transactions?page=${page}&pageSize=500`)
         all.push(...r.results)
         if (!r.totalPages || page >= r.totalPages) return all
       }

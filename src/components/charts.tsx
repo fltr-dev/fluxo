@@ -210,7 +210,7 @@ export function StackedCategoryChart({ data, series }: { data: Record<string, st
 }
 
 /** Comparativo por categoria: período atual (cor da categoria) vs referência (cinza). */
-export function CompareBars({ data, refLabel }: { data: { name: string; color: string; cur: number; ref: number }[]; refLabel: string }) {
+export function CompareBars({ data, refLabel }: { data: { name: string; color: string; cur: number; prev: number }[]; refLabel: string }) {
   return (
     <BarChart responsive style={{ width: "100%", height: 260 }} data={data} barGap={4} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
       <CartesianGrid {...grid} />
@@ -222,7 +222,7 @@ export function CompareBars({ data, refLabel }: { data: { name: string; color: s
           <Cell key={d.name} fill={d.color} />
         ))}
       </Bar>
-      <Bar dataKey="ref" name={refLabel} fill="var(--border)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+      <Bar dataKey="prev" name={refLabel} fill="var(--border)" radius={[4, 4, 0, 0]} maxBarSize={22} />
     </BarChart>
   )
 }

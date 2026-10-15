@@ -77,7 +77,7 @@ async function Comparisons({ sp }: { sp: SearchParams }) {
   const expense = { ...f, kind: "EXPENSE" as const }
   const [cur, base, cats, refCats] = await Promise.all([totals(f), totals(f, refPeriod), byCategory(expense), byCategory({ ...expense, ...refPeriod })])
   const refBy = new Map(refCats.map((c) => [c.id, c.total * scale]))
-  const rows = cats.map((c) => ({ name: c.name ?? "A categorizar", color: c.color ?? "#a1a1aa", cur: c.total, ref: refBy.get(c.id) ?? 0 }))
+  const rows = cats.map((c) => ({ name: c.name ?? "A categorizar", color: c.color ?? "#a1a1aa", cur: c.total, prev: refBy.get(c.id) ?? 0 }))
   const refIncome = base.income * scale
   const refExpense = base.expense * scale
   const summary = [
@@ -101,7 +101,7 @@ async function Comparisons({ sp }: { sp: SearchParams }) {
             <span className="text-xl font-semibold tracking-tight tabular-nums">{brl(s.cur)}</span>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Delta value={delta(s.cur, s.ref)} upIsGood={s.upIsGood} />
-              vs {brl(s.ref)}
+              vs <span className="tabular-nums">{brl(s.ref)}</span>
             </span>
           </div>
         ))}
@@ -133,13 +133,13 @@ async function Comparisons({ sp }: { sp: SearchParams }) {
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const d = delta(r.cur, r.ref)
+                  const d = delta(r.cur, r.prev)
                   return (
                     <tr key={r.name} className="border-b last:border-0">
                       <td className="h-12 px-5"><span className="flex items-center gap-2 font-medium"><span className="size-2.5 rounded-sm" style={{ background: r.color }} />{r.name}</span></td>
                       <td className="px-3 text-right font-medium tabular-nums">{brl(r.cur)}</td>
-                      <td className="px-3 text-right text-muted-foreground tabular-nums">{brl(r.ref)}</td>
-                      <td className={cn("px-3 text-right tabular-nums", r.cur > r.ref ? "text-expense" : "text-income")}>{r.cur === r.ref ? "—" : `${r.cur > r.ref ? "+" : "−"}${brl(Math.abs(r.cur - r.ref))}`}</td>
+                      <td className="px-3 text-right text-muted-foreground tabular-nums">{brl(r.prev)}</td>
+                      <td className={cn("px-3 text-right tabular-nums", r.cur > r.prev ? "text-expense" : "text-income")}>{r.cur === r.prev ? "—" : `${r.cur > r.prev ? "+" : "−"}${brl(Math.abs(r.cur - r.prev))}`}</td>
                       <td className="px-5 text-right">
                         <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", d == null ? "bg-muted text-muted-foreground" : d > 0 ? "bg-rose-500/10 text-expense" : "bg-emerald-500/10 text-income")}>
                           {d == null ? "novo" : signedPct(d)}
@@ -230,7 +230,7 @@ async function Categories({ sp }: { sp: SearchParams }) {
             </>
           )}
         </nav>
-        <CardTitle className="font-semibold">{brl(total)} no período</CardTitle>
+        <CardTitle className="font-semibold"><span className="tabular-nums">{brl(total)}</span> no período</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-1">
         {cats.length === 0 && <Empty>Sem lançamentos no período.</Empty>}

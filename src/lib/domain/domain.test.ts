@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { averageMonthlyExpense, goalProgress, limitStatus, netWorthSeries, reserveStatus } from "./calc"
 import { deriveKind, mapPluggyCategory, matchRule, resolveCategory, type Rule } from "./categorize"
 import { monthEnd, previousPeriod, resolvePeriod, samePeriodLastYear, toLocalDate } from "./dates"
-import { mergeTransactions, normalizePluggyTx, type Existing, type Incoming } from "./sync-merge"
+import { deriveInvestmentMovements, mergeTransactions, normalizePluggyTx, type Existing, type Incoming } from "./sync-merge"
 import { detectTransfers, type TransferCandidate } from "./transfers"
 
 describe("datas", () => {
@@ -138,6 +138,30 @@ describe("limites, metas, reserva e patrimônio", () => {
       [{ accountId: 1, date: "2026-01-05", balance: 100 }, { accountId: 2, date: "2026-02-01", balance: -30 }, { accountId: 1, date: "2026-03-02", balance: 150 }],
       ["2026-01", "2026-02", "2026-03"],
     )
-    expect(s.map((p) => p.value)).toEqual([100, 70, 120])
+    expect(s.map((p) => p.value)).toEqual([70, 70, 120])
+  })
+  it("patrimônio antes do primeiro snapshot volta no tempo pelas transações", () => {
+    const s = netWorthSeries(
+      [{ accountId: 1, date: "2026-03-10", balance: 500 }, { accountId: 2, date: "2026-03-10", balance: 1000 }],
+      ["2026-01", "2026-02", "2026-03"],
+      [{ accountId: 1, month: "2026-02", amount: 200 }, { accountId: 1, month: "2026-03", amount: -50 }],
+    )
+    // conta 1: mar=500, fev=500−(−50)=550, jan=550−200=350; conta 2 (sem transações) constante
+    expect(s.map((p) => p.value)).toEqual([1350, 1550, 1500])
+  })
+})
+
+describe("movimentações de investimento", () => {
+  const inv = { id: "i1", name: "CDB", balance: 1010, purchaseDate: "2026-03-10T00:00:00.000Z", amountOriginal: 1000 }
+  it("aplicação soma, resgate subtrai, data sem conversão de fuso", () => {
+    const m = deriveInvestmentMovements(inv, [
+      { id: "a", amount: 500, movementType: "CREDIT", date: "2026-01-01T00:00:00.000Z" },
+      { id: "b", amount: -200, movementType: "DEBIT", date: "2026-02-01T00:00:00.000Z" },
+    ])
+    expect(m).toEqual([{ pluggyId: "a", date: "2026-01-01", amount: 500 }, { pluggyId: "b", date: "2026-02-01", amount: -200 }])
+  })
+  it("sem movimentações usa a compra; resgatado (saldo 0) fica sem nada", () => {
+    expect(deriveInvestmentMovements(inv, [])).toEqual([{ pluggyId: "purchase:i1", date: "2026-03-10", amount: 1000 }])
+    expect(deriveInvestmentMovements({ ...inv, balance: 0 }, [])).toEqual([])
   })
 })

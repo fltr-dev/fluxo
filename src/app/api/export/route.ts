@@ -9,7 +9,7 @@ const cell = (v: unknown) => {
 }
 
 export async function GET(request: Request) {
-  await requireUser()
+  await requireUser({ allowDemo: true })
   const f = parseFilters(Object.fromEntries(new URL(request.url).searchParams))
   const rows = await exportTransactions(f)
   const header = ["data", "descricao", "valor", "tipo", "status", "conta", "categoria", "subcategoria", "nota", "ignorada"]

@@ -166,7 +166,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
                           {filters.length > 0 && (
                             <span className="flex flex-wrap gap-1">
                               {filters.map((x) => (
-                                <span key={String(x)} className="rounded-full bg-muted px-2 text-xs text-muted-foreground">{x}</span>
+                                <span key={String(x)} className={cn("rounded-full bg-muted px-2 text-xs text-muted-foreground", String(x).includes("R$") && "tabular-nums")}>{x}</span>
                               ))}
                             </span>
                           )}

@@ -68,7 +68,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
             </Link>
           }
         >
-          Cadastre os Item IDs do MeuPluggy para importar contas e transações automaticamente. Você também pode começar com uma conta manual.
+          Conecte o MeuPluggy na sua aplicação da Pluggy e cadastre o Item ID para importar contas e transações automaticamente. Você também pode começar com uma conta manual.
         </Empty>
       </div>
     )
@@ -99,7 +99,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
         icon: Gauge,
         color: s.state === "over" ? "#ef4444" : "#f59e0b",
         title: s.state === "over" ? `${l.label} passou do limite` : `${l.label} perto do limite`,
-        desc: `${brl(l.spent)} de ${brl(l.limit)} · ${pct(s.pct)}`,
+        desc: <span className="tabular-nums">{`${brl(l.spent)} de ${brl(l.limit)} · ${pct(s.pct)}`}</span>,
       })),
     ...(status.uncategorized > 0
       ? [{ key: "uncat", href: "/transacoes?ver=uncategorized&periodo=12m", icon: Tag, color: "#8b5cf6", title: `${status.uncategorized} transações a categorizar`, desc: "Defina a categoria para entrarem nos relatórios" }]
@@ -232,7 +232,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                 <IconCircle icon={a.icon} color={a.color} soft className="size-8" />
                 <span className="grid min-w-0 flex-1">
                   <span className="truncate text-sm font-medium">{a.title}</span>
-                  <span className="truncate text-xs text-muted-foreground tabular-nums">{a.desc}</span>
+                  <span className="truncate text-xs text-muted-foreground">{a.desc}</span>
                 </span>
                 <ChevronRight className="size-4 text-muted-foreground" />
               </Link>

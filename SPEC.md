@@ -55,21 +55,23 @@ Monólito único. Sem API pública, sem filas, sem cache dedicado.
 
 ## 4. Autenticação e segurança
 
-- **Login**: Google OAuth via Auth.js. **Allowlist**: só o e-mail definido em `ALLOWED_EMAIL` entra; qualquer outro é rejeitado no callback `signIn`.
+- **Login**: usuário e senha (Auth.js Credentials), sem cadastro e sem OAuth. Dois papéis definidos por variáveis de ambiente: `owner` (`OWNER_USER`/`OWNER_PASSWORD`, dados reais e escrita) e `demo` (`DEMO_USER`/`DEMO_PASSWORD`, opcional). A demo usa um Postgres embutido em memória (PGlite), populado com dados fictícios fixos (`src/db/demo-seed.ts`), e é somente leitura: `requireUser()` recusa escritas e o acesso ao banco falha fechado (só `owner`, ou o cron, alcança `DATABASE_URL`). O site não é indexável (`robots`).
 - **Sessão**: estratégia **JWT** do Auth.js. O token fica num cookie criptografado (JWE), `httpOnly`, `secure`, `sameSite=lax`, com validade de 30 dias. Não há tabela de sessões, então o banco não é consultado (nem acordado) a cada request.
-- **Proteção de rotas**: middleware exige sessão válida em todas as páginas e Server Actions, exceto `/login` e `/api/auth/*`.
+- **Proteção de rotas**: middleware exige sessão válida em todas as páginas e Server Actions, exceto `/login`, `/api/auth/*`, `/api/cron/*` (CRON_SECRET) e `/robots.txt`.
 - **Cron**: `/api/cron/sync` exige header `Authorization: Bearer ${CRON_SECRET}` (padrão Vercel).
 - **Segredos** (somente variáveis de ambiente, nunca no banco nem no cliente):
-  `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ALLOWED_EMAIL`, `DATABASE_URL`, `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `CRON_SECRET`, `JEV_API_KEY` (opcional).
+  `AUTH_SECRET`, `OWNER_USER`, `OWNER_PASSWORD`, `DEMO_USER`, `DEMO_PASSWORD`, `DATABASE_URL`, `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `CRON_SECRET`, `AI_GATEWAY_API_KEY` ou `TYPESAFE_API_KEY` (opcional).
 - Chamadas à Pluggy e ao Jev acontecem **apenas no servidor**.
 - Validação de entrada (ex.: Zod) em todas as Server Actions.
+- **SQL injection**: todo acesso ao banco passa pelo Drizzle, que envia valores como parâmetros (`$1`, `$2`…), nunca concatenados ao SQL. Os trechos `sql\`…\`` usam apenas interpolação `${valor}` (parametrizada); `sql.raw` e concatenação de strings em SQL são proibidos. Parâmetros de URL são normalizados antes de chegar à query (`parseFilters`: inteiros positivos, datas `AAAA-MM-DD`, enums fixos, busca limitada a 100 caracteres). A busca por descrição usa `ilike` parametrizado (`%`/`_` digitados atuam como curinga, sem risco de injeção). Coberto por `src/lib/sql-injection.test.ts`, que roda payloads clássicos (`' OR '1'='1`, `'; DROP TABLE …`, `UNION SELECT`) contra um Postgres real em memória (PGlite) com as migrations do projeto.
 
 ## 5. Integração Open Finance (Pluggy / MeuPluggy)
 
 ### Setup (uma vez, manual)
 1. Criar conta em `meu.pluggy.ai` e conectar os bancos lá (consentimento Open Finance).
 2. Criar aplicação em `dashboard.pluggy.ai`, ativar o conector MeuPluggy e obter `CLIENT_ID`/`CLIENT_SECRET`.
-3. No sistema, tela **Conexões**: cadastrar os **Item IDs** do MeuPluggy. O sistema lista as contas de cada item e o usuário define apelido e tipo (corrente, cartão, poupança/investimento) e se a conta compõe a **reserva**.
+3. Na aplicação, abrir o **Demo** ("Ir para Demo"), conectar o conector **MeuPluggy** autorizando com a conta do meu.pluggy.ai e copiar o **Item ID** gerado (menu ⋮ › "Copiar Item ID"). O ID exibido no próprio meu.pluggy.ai pertence a outra aplicação e retorna `ITEM_NOT_FOUND`.
+4. No sistema, tela **Conexões**: cadastrar esses **Item IDs**. O sistema lista as contas de cada item e o usuário define apelido e tipo (corrente, cartão, poupança/investimento) e se a conta compõe a **reserva**.
 
 > O conector MeuPluggy é gratuito por tempo indeterminado para dados do **próprio CPF**. Isso inviabiliza multiusuário sem um contrato pago, o que é coerente com o escopo.
 
@@ -121,17 +123,17 @@ O par é vinculado (`transfer_pair_id`), marcado como `TRANSFER` e excluído de 
 Executado para cada transação nova sem categoria definida pelo usuário, nesta ordem:
 
 1. **Regras do usuário**: condições sobre descrição (contém / começa com / regex), conta, faixa de valor e tipo → subcategoria. Prioridade explícita; a primeira que casar vence.
-2. **Jev** (se `JEV_API_KEY` estiver configurada): envia descrição, valor, tipo, conta e categoria da Pluggy, com o schema = enum das subcategorias ativas do tipo correspondente. Recebe subcategoria + confiança.
+2. **Jev** (se `AI_GATEWAY_API_KEY` ou `TYPESAFE_API_KEY` estiver configurada): envia descrição, valor, conta e categoria da Pluggy como `state`, com uma pergunta `choice` cujos critérios são as subcategorias ativas do tipo correspondente. Recebe subcategoria + probabilidade.
    - confiança ≥ **0,85** (configurável) → aplica, com origem `JEV`.
    - **0,60–0,85** → grava como **sugestão** pendente de confirmação e segue para o passo 3.
    - abaixo disso, erro ou timeout (> 2 s) → ignora e segue.
-   - Correções do usuário são guardadas como exemplos rotulados (descrição → subcategoria) para enviar como contexto, se a API do Jev permitir.
+   - Correções do usuário são guardadas como exemplos rotulados (descrição → subcategoria) para enviar como contexto (`state.examples`).
 3. **Mapeamento de categoria Pluggy** → subcategoria do usuário (tabela editável de mapeamento).
 4. Senão → **"A categorizar"**.
 
 Cada transação registra `category_source` (`USER`, `RULE`, `JEV`, `PLUGGY_MAP`, `NONE`). Quando o usuário corrige uma categoria, a origem vira `USER` e a UI oferece **"criar regra a partir desta correção"**.
 
-> O Jev está em early access (lista de espera); a API e o SDK exatos serão confirmados ao obter acesso. A integração fica isolada num único módulo do servidor. Privacidade: com a flag ligada, a descrição e o valor das transações saem do sistema.
+> A integração segue a API SystemOne da TypeSafe (https://docs.typesafe.ai/api), direta ou via AI Gateway da Vercel, e fica isolada num único módulo do servidor (`src/lib/jev.ts`). Privacidade: com a flag ligada, a descrição e o valor das transações saem do sistema.
 
 ### 6.7 Limites de gasto
 - Valor em R$ **por mês calendário**, por **categoria** ou **subcategoria** (despesas).

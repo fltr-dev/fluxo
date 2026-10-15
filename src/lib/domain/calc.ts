@@ -55,9 +55,21 @@ export function reserveStatus(r: {
   }
 }
 
-/** Patrimônio por mês: último snapshot de cada conta até o fim do mês (carrega o valor anterior se faltar). */
-export function netWorthSeries(snapshots: { accountId: number; date: string; balance: number }[], months: string[]) {
+/**
+ * Patrimônio por mês: último snapshot de cada conta até o fim do mês (carrega o valor anterior se faltar).
+ * Antes do primeiro snapshot, reconstrói o saldo voltando no tempo: primeiro snapshot − transações
+ * posteriores ao mês. `flows` = soma mensal das transações até a data do primeiro snapshot da conta.
+ * Investimentos entram com aplicações/resgates (investment_movements); rendimento passado não existe na
+ * Pluggy, então fica embutido no valor antes da primeira aplicação. Sem movimentações (ações/BDRs): constante.
+ */
+export function netWorthSeries(
+  snapshots: { accountId: number; date: string; balance: number }[],
+  months: string[],
+  flows: { accountId: number; month: string; amount: number }[] = [],
+) {
   const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date))
+  const first = new Map<number, number>()
+  for (const s of sorted) if (!first.has(s.accountId)) first.set(s.accountId, s.balance)
   const last = new Map<number, number>()
   let i = 0
   return months.map((m) => {
@@ -65,6 +77,9 @@ export function netWorthSeries(snapshots: { accountId: number; date: string; bal
       last.set(sorted[i].accountId, sorted[i].balance)
       i++
     }
-    return { month: m, value: round2([...last.values()].reduce((a, b) => a + b, 0)) }
+    let value = [...last.values()].reduce((a, b) => a + b, 0)
+    for (const [id, balance] of first) if (!last.has(id)) value += balance
+    for (const f of flows) if (f.month > m && !last.has(f.accountId)) value -= f.amount
+    return { month: m, value: round2(value) }
   })
 }

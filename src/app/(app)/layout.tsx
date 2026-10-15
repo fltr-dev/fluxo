@@ -1,7 +1,7 @@
 import { Plus, TriangleAlert } from "lucide-react"
 import Link from "next/link"
 import { auth, signOut } from "@/auth"
-import { Breadcrumb, Logo, MobileNav, SidebarNav, SyncButton, ThemeToggle, UserMenu } from "@/components/shell-client"
+import { Breadcrumb, Logo, MobileNav, PrivacyToggle, SidebarNav, SyncButton, ThemeToggle, UserMenu } from "@/components/shell-client"
 import { buttonVariants } from "@/components/ui/button"
 import { ago } from "@/lib/format"
 import { shellStatus } from "@/lib/queries"
@@ -18,6 +18,7 @@ async function logout() {
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const [session, status] = await Promise.all([auth(), shellStatus()])
   const user = { name: session?.user?.name || "Você", email: session?.user?.email ?? "" }
+  const demo = session?.user?.role === "demo"
   const run = status.lastRun
   const syncError = status.connectionErrors.length > 0 || run?.status === "ERROR"
 
@@ -27,7 +28,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <div className="flex h-14 shrink-0 items-center gap-2.5 px-4">
           <Logo />
           <div className="grid leading-tight">
-            <span className="font-semibold">Finanças</span>
+            <span className="font-semibold">FLTR Financeiro</span>
             <span className="text-xs text-muted-foreground">Controle pessoal</span>
           </div>
         </div>
@@ -55,18 +56,24 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               {run?.finishedAt ? `Sincronizado ${ago(run.finishedAt)}` : "Nunca sincronizado"}
             </span>
           )}
-          <form action={syncNow} className="hidden md:block">
-            <SyncButton />
-          </form>
-          <form action={syncNow} className="md:hidden">
-            <SyncButton compact />
-          </form>
-          <Link href="/transacoes?nova=1" className={buttonVariants({ className: "max-md:hidden" })} aria-label="Nova transação">
-            <Plus />
-            <span className="hidden lg:inline">Transação</span>
-          </Link>
+          {!demo && (
+            <>
+              <form action={syncNow} className="hidden md:block">
+                <SyncButton />
+              </form>
+              <form action={syncNow} className="md:hidden">
+                <SyncButton compact />
+              </form>
+              <Link href="/transacoes?nova=1" className={buttonVariants({ className: "max-md:hidden" })} aria-label="Nova transação">
+                <Plus />
+                <span className="hidden lg:inline">Transação</span>
+              </Link>
+            </>
+          )}
+          <PrivacyToggle />
           <ThemeToggle className="hidden md:inline-flex" />
         </header>
+        {demo && <div className="border-b bg-amber-500/10 px-4 py-1.5 text-center text-xs font-medium text-amber-700 md:px-6 dark:text-amber-300">Demonstração · dados fictícios · somente leitura</div>}
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">{children}</main>
       </div>
 

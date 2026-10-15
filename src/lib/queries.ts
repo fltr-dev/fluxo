@@ -149,14 +149,30 @@ export async function listAccounts() {
 }
 
 export async function netWorth(months: string[]) {
-  const rows = await db.execute<{ account_id: number; date: string; balance: string }>(sql`
-    select distinct on (s.account_id, to_char(s.date, 'YYYY-MM')) s.account_id, s.date::text as date, s.balance
-    from balance_snapshots s join accounts a on a.id = s.account_id
-    where not a.archived and s.date <= ${monthEnd(months[months.length - 1])}
-    order by s.account_id, to_char(s.date, 'YYYY-MM'), s.date desc`)
+  // último snapshot de cada mês + o primeiro snapshot de cada conta (âncora da reconstrução)
+  const [rows, flows] = await Promise.all([
+    db.execute<{ account_id: number; date: string; balance: string }>(sql`
+      (select distinct on (s.account_id, to_char(s.date, 'YYYY-MM')) s.account_id, s.date::text as date, s.balance
+      from balance_snapshots s join accounts a on a.id = s.account_id
+      where not a.archived and s.date <= ${monthEnd(months[months.length - 1])}
+      order by s.account_id, to_char(s.date, 'YYYY-MM'), s.date desc)
+      union
+      (select distinct on (s.account_id) s.account_id, s.date::text as date, s.balance
+      from balance_snapshots s join accounts a on a.id = s.account_id
+      where not a.archived
+      order by s.account_id, s.date)`),
+    db.execute<{ account_id: number; month: string; amount: number }>(sql`
+      select t.account_id, to_char(t.date, 'YYYY-MM') as month, sum(t.amount)::float8 as amount
+      from (select account_id, date, amount from transactions union all select account_id, date, amount from investment_movements) t
+      join accounts a on a.id = t.account_id
+      join (select account_id, min(date) as d from balance_snapshots group by account_id) f on f.account_id = t.account_id
+      where not a.archived and t.date <= f.d
+      group by 1, 2`),
+  ])
   return netWorthSeries(
     rows.rows.map((r) => ({ accountId: r.account_id, date: r.date, balance: Number(r.balance) })),
     months,
+    flows.rows.map((f) => ({ accountId: f.account_id, month: f.month, amount: f.amount })),
   )
 }
 

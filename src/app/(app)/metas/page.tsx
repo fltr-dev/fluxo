@@ -105,11 +105,11 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
         <>
           <Card className="grid gap-0 py-0 sm:grid-cols-3">
             {[
-              ["Guardado em metas", brl(rows.reduce((s, r) => s + r.g.current, 0)), `de ${brl(rows.reduce((s, r) => s + r.g.targetAmount, 0))} no total`],
+              ["Guardado em metas", brl(rows.reduce((s, r) => s + r.g.current, 0)), <>de <span className="tabular-nums">{brl(rows.reduce((s, r) => s + r.g.targetAmount, 0))}</span> no total</>],
               ["Aporte mensal necessário", brl(open.reduce((s, r) => s + r.p.monthlyNeeded, 0)), "somando as metas em andamento"],
               ["Próximo prazo", next ? monthLabel(next.g.deadline.slice(0, 7)) : "—", next ? `${next.g.name} · ${next.p.monthsLeft} ${next.p.monthsLeft === 1 ? "mês" : "meses"}` : "nenhuma meta em andamento"],
             ].map(([label, value, hint], i) => (
-              <div key={label} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-t-0 sm:border-l")}>
+              <div key={String(label)} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-t-0 sm:border-l")}>
                 <span className="text-sm font-medium text-muted-foreground">{label}</span>
                 <span className="text-xl font-semibold tracking-tight tabular-nums">{value}</span>
                 <span className="truncate text-xs text-muted-foreground">{hint}</span>
@@ -183,7 +183,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
       )}
 
       {contributeTo && (
-        <RouteDialog closeHref="/metas" title="Novo aporte" description={`${contributeTo.g.name} · ${brl(contributeTo.g.current)} de ${brl(contributeTo.g.targetAmount)}`}>
+        <RouteDialog closeHref="/metas" title="Novo aporte" description={<>{contributeTo.g.name} · <span className="tabular-nums">{brl(contributeTo.g.current)} de {brl(contributeTo.g.targetAmount)}</span></>}>
           <form action={contributeAndClose} className="grid gap-4">
             <input type="hidden" name="goalId" value={contributeTo.g.id} />
             <div className="grid grid-cols-2 gap-3">
@@ -198,7 +198,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
               <input name="note" maxLength={1000} placeholder="Ex.: parte do 13º" className={fieldClass} />
             </Field>
             <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-              Faltam {brl(contributeTo.p.remaining)} · hoje o aporte necessário é {brl(contributeTo.p.monthlyNeeded)}/mês.
+              Faltam <span className="tabular-nums">{brl(contributeTo.p.remaining)}</span> · hoje o aporte necessário é <span className="tabular-nums">{brl(contributeTo.p.monthlyNeeded)}</span>/mês.
             </p>
             <Button type="submit" className="h-9">Registrar aporte</Button>
           </form>

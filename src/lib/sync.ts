@@ -1,16 +1,16 @@
 import "server-only"
 import { and, asc, eq, inArray, isNotNull, or, sql } from "drizzle-orm"
-import { accounts, db, institutions, syncRuns, transactions } from "@/db"
+import { accounts, db, institutions, investmentMovements, syncRuns, transactions } from "@/db"
 import { deriveKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
-import { mergeTransactions, normalizePluggyTx } from "./domain/sync-merge"
+import { deriveInvestmentMovements, mergeTransactions, normalizePluggyTx, type PluggyInvestment } from "./domain/sync-merge"
 import { detectAndMarkTransfers, loadCategorizer, refreshManualBalances, snapshotBalances } from "./ledger"
 import { pluggyClient, type PluggyAccount } from "./pluggy"
 
 type Pluggy = Awaited<ReturnType<typeof pluggyClient>>
 type Categorizer = Awaited<ReturnType<typeof loadCategorizer>>
 
-// Investimentos não têm transações; o prefixo os distingue das contas na mesma coluna pluggyId
+// Investimentos não têm transações comuns; o prefixo os distingue das contas na mesma coluna pluggyId
 const INVESTMENT_PREFIX = "inv:"
 // Reprocessa alguns dias antes da última sync para pegar pendentes que foram confirmadas
 const OVERLAP_DAYS = 10
@@ -35,11 +35,13 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
     ...invs.map((i) => ({ pluggyId: INVESTMENT_PREFIX + i.id, name: i.name, type: "SAVINGS_INVESTMENT" as const, balance: i.balance })),
   ]
   if (rows.length) {
-    await db
+    const saved = await db
       .insert(accounts)
       .values(rows.map((r) => ({ ...r, institutionId: inst.id, source: "PLUGGY" as const })))
       // nome e tipo são editáveis pelo usuário: só o saldo é atualizado
       .onConflictDoUpdate({ target: accounts.pluggyId, set: { balance: sql`excluded.balance`, institutionId: inst.id } })
+      .returning({ id: accounts.id, pluggyId: accounts.pluggyId })
+    await syncInvestmentMovements(pluggy, invs, new Map(saved.map((s) => [s.pluggyId, s.id])))
   }
   await db
     .update(institutions)
@@ -49,6 +51,25 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
       error: item.status === "UPDATED" ? null : (item.error?.message ?? item.executionStatus ?? null),
     })
     .where(eq(institutions.id, inst.id))
+}
+
+/**
+ * Movimentações dos investimentos, só para o histórico do patrimônio. Refaz tudo a cada sync
+ * (poucas linhas por investimento); investimento cuja busca falhar mantém o que já tinha.
+ */
+async function syncInvestmentMovements(pluggy: Pluggy, invs: PluggyInvestment[], accountIds: Map<string | null, number>) {
+  const fetched = await Promise.all(
+    invs.map(async (inv) => {
+      const accountId = accountIds.get(INVESTMENT_PREFIX + inv.id)
+      const txs = await pluggy.investmentTransactions(inv.id).catch(() => null)
+      return accountId && txs ? { accountId, rows: deriveInvestmentMovements(inv, txs).map((m) => ({ ...m, accountId })) } : null
+    }),
+  )
+  const ok = fetched.filter((f) => f !== null)
+  if (!ok.length) return
+  await db.delete(investmentMovements).where(inArray(investmentMovements.accountId, ok.map((f) => f.accountId)))
+  const rows = ok.flatMap((f) => f.rows)
+  if (rows.length) await db.insert(investmentMovements).values(rows)
 }
 
 async function syncAccountTransactions(pluggy: Pluggy, cat: Categorizer, acc: typeof accounts.$inferSelect) {

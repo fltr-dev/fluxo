@@ -103,7 +103,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
         <div className="grid gap-4">
           {insts.length === 0 && (
             <Empty icon={Landmark} title="Nenhuma conexão cadastrada" action={<Link href="/conexoes?conexao=1" className={buttonVariants()}><Plus />Adicionar conexão</Link>}>
-              Conecte seus bancos no MeuPluggy e cadastre aqui o Item ID de cada conexão.
+              Conecte o MeuPluggy na sua aplicação da Pluggy e cadastre aqui o Item ID gerado.
             </Empty>
           )}
           {insts.map((i) => {
@@ -202,17 +202,18 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cone
       </div>
 
       {sp.conexao && (
-        <RouteDialog closeHref="/conexoes" title="Adicionar conexão" description="Cole o Item ID de um banco já conectado no MeuPluggy.">
+        <RouteDialog closeHref="/conexoes" title="Adicionar conexão" description="Cole o Item ID gerado na sua aplicação da Pluggy (não o do site meu.pluggy.ai).">
           <form action={addAndClose} className="grid gap-4">
-            <Field label="Item ID" hint="Em meu.pluggy.ai › Conexões › detalhes do banco.">
+            <Field label="Item ID" hint="dashboard.pluggy.ai › sua aplicação › Ir para Demo › ⋮ › Copiar Item ID.">
               <input name="pluggyItemId" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[0-9a-fA-F-]{36}" className={cn(fieldClass, "font-mono")} />
             </Field>
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer font-medium">Como configurar</summary>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
-                <li>Crie uma conta em meu.pluggy.ai e conecte seus bancos.</li>
-                <li>Em dashboard.pluggy.ai, crie uma aplicação com o conector MeuPluggy e coloque Client ID/Secret no ambiente.</li>
-                <li>Copie o Item ID de cada conexão e cadastre aqui. Depois clique em “Sincronizar”.</li>
+                <li>Em meu.pluggy.ai, crie sua conta e conecte seus bancos (consentimento Open Finance).</li>
+                <li>Em dashboard.pluggy.ai, crie uma aplicação e coloque o Client ID/Secret no ambiente.</li>
+                <li>Na aplicação, clique em “Ir para Demo”, conecte o conector MeuPluggy e autorize com a sua conta do MeuPluggy.</li>
+                <li>No menu ⋮ do Demo, use “Copiar Item ID”, cole aqui e clique em “Sincronizar”. O ID que aparece no site meu.pluggy.ai não funciona (HTTP 404).</li>
               </ol>
             </details>
             <Button type="submit" className="h-9">Adicionar conexão</Button>

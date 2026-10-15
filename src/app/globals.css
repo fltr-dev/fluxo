@@ -2,7 +2,17 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* .dark/.light no <html> vêm do cookie "theme"; sem cookie, segue o sistema */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light), :root:not(.light) *) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -88,40 +98,42 @@
   --sidebar-ring: #10b981;
 }
 
-.dark {
-  --background: #09090b; /* zinc-950 */
-  --foreground: #fafafa;
-  --card: #18181b; /* zinc-900 */
-  --card-foreground: #fafafa;
-  --popover: #18181b;
-  --popover-foreground: #fafafa;
-  --primary: #10b981; /* emerald-500 */
-  --primary-foreground: #022c22; /* emerald-950 */
-  --secondary: #27272a; /* zinc-800 */
-  --secondary-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa; /* zinc-400 */
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  --destructive: #ef4444; /* red-500 */
-  --border: #27272a;
-  --input: #3f3f46; /* zinc-700 */
-  --ring: #10b981;
-  --income: #34d399; /* emerald-400 */
-  --expense: #fb7185; /* rose-400 */
-  --chart-1: #34d399;
-  --chart-2: #38bdf8;
-  --chart-3: #a78bfa;
-  --chart-4: #fbbf24;
-  --chart-5: #fb7185;
-  --sidebar: #09090b;
-  --sidebar-foreground: #d4d4d8; /* zinc-300 */
-  --sidebar-primary: #10b981;
-  --sidebar-primary-foreground: #022c22;
-  --sidebar-accent: #022c22; /* emerald-950 */
-  --sidebar-accent-foreground: #34d399;
-  --sidebar-border: #27272a;
-  --sidebar-ring: #10b981;
+:root {
+  @variant dark {
+    --background: #09090b; /* zinc-950 */
+    --foreground: #fafafa;
+    --card: #18181b; /* zinc-900 */
+    --card-foreground: #fafafa;
+    --popover: #18181b;
+    --popover-foreground: #fafafa;
+    --primary: #10b981; /* emerald-500 */
+    --primary-foreground: #022c22; /* emerald-950 */
+    --secondary: #27272a; /* zinc-800 */
+    --secondary-foreground: #fafafa;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa; /* zinc-400 */
+    --accent: #27272a;
+    --accent-foreground: #fafafa;
+    --destructive: #ef4444; /* red-500 */
+    --border: #27272a;
+    --input: #3f3f46; /* zinc-700 */
+    --ring: #10b981;
+    --income: #34d399; /* emerald-400 */
+    --expense: #fb7185; /* rose-400 */
+    --chart-1: #34d399;
+    --chart-2: #38bdf8;
+    --chart-3: #a78bfa;
+    --chart-4: #fbbf24;
+    --chart-5: #fb7185;
+    --sidebar: #09090b;
+    --sidebar-foreground: #d4d4d8; /* zinc-300 */
+    --sidebar-primary: #10b981;
+    --sidebar-primary-foreground: #022c22;
+    --sidebar-accent: #022c22; /* emerald-950 */
+    --sidebar-accent-foreground: #34d399;
+    --sidebar-border: #27272a;
+    --sidebar-ring: #10b981;
+  }
 }
 @layer base {
   * {
@@ -133,4 +145,16 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Modo privado (PrivacyToggle): todo valor monetário usa tabular-nums; o eixo Y dos gráficos também mostra valores */
+.privacy .tabular-nums {
+  filter: blur(6px);
+  user-select: none;
+}
+/* Recharts 3 desenha os rótulos do eixo numa camada própria (fora de .recharts-yAxis);
+   texto SVG usa o filtro #privacy-blur do layout raiz, que funciona em qualquer navegador */
+.privacy .recharts-yAxis-tick-labels text {
+  filter: url(#privacy-blur);
+  user-select: none;
 }
