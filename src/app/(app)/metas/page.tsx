@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { Bar, Empty, Field, fieldClass, IconCircle, Money, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
+import { SwipeRow, type RowAction } from "@/components/swipe-row"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { goalProgress } from "@/lib/domain/calc"
@@ -15,8 +16,8 @@ import { addContribution, archiveGoal, deleteContribution, saveGoal } from "./ac
 
 const STATE = {
   done: { label: "Concluída", badge: "bg-muted text-muted-foreground", color: "#71717a" },
-  on_track: { label: "No ritmo", badge: "bg-emerald-500/10 text-income", color: "#10b981" },
-  late: { label: "Atrasada", badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400", color: "#f59e0b" },
+  on_track: { label: "No ritmo", badge: "bg-income/10 text-income", color: "#22c55e" },
+  late: { label: "Atrasada", badge: "bg-amber-500/10 text-warning", color: "#f59e0b" },
 } as const
 
 type Goal = Awaited<ReturnType<typeof goalsWithProgress>>[number]
@@ -81,6 +82,22 @@ function GoalForm({ goal, accounts, action }: { goal?: Goal; accounts: { id: num
   )
 }
 
+/** Gestos do card: arrastar à direita aporta, à esquerda edita/arquiva; pressionar abre o painel. */
+function goalActions(id: number, canContribute: boolean) {
+  const contribute: RowAction = { label: "Aportar", icon: "plus", tone: "primary", href: `/metas?aporte=${id}` }
+  const edit: RowAction = { label: "Editar", icon: "edit", href: `/metas?editar=${id}` }
+  const archive: RowAction = { label: "Arquivar", icon: "archive", tone: "warning", run: archiveGoal, id, confirm: "Confirmar" }
+  return {
+    left: canContribute ? [contribute] : [],
+    right: [edit, archive],
+    menu: [
+      ...(canContribute ? [{ ...contribute, label: "Novo aporte" }] : []),
+      { ...edit, label: "Editar meta" },
+      { ...archive, label: "Arquivar meta", confirm: "Toque de novo para arquivar" },
+    ],
+  }
+}
+
 export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
   const sp = await searchParams
   const now = today()
@@ -127,7 +144,8 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
               const st = STATE[p.state]
               const linked = active.filter((a) => g.accountIds.includes(a.id)).map((a) => a.name).join(", ")
               return (
-                <Card key={g.id}>
+                <SwipeRow key={g.id} {...goalActions(g.id, g.tracking === "CONTRIBUTIONS" && p.state !== "done")} title={g.name} description={`${brl(g.current)} de ${brl(g.targetAmount)}`} className="rounded-2xl">
+                <Card className="h-full ring-inset">
                   <CardHeader className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <IconCircle icon={Target} color={st.color} soft />
@@ -157,7 +175,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                       ].map(([k, v], i) => (
                         <div key={k} className={cn("grid min-w-0 gap-0.5 px-3 py-2.5", i > 0 && "border-l")}>
                           <span className="text-xs text-muted-foreground">{k}</span>
-                          <span className={cn("truncate font-medium tabular-nums", k === "Por mês" && p.state === "late" && "text-amber-700 dark:text-amber-400")}>{v}</span>
+                          <span className={cn("truncate font-medium tabular-nums", k === "Por mês" && p.state === "late" && "text-warning")}>{v}</span>
                         </div>
                       ))}
                     </div>
@@ -175,6 +193,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                     </Link>
                   </div>
                 </Card>
+                </SwipeRow>
               )
             })}
           </div>

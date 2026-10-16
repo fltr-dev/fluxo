@@ -5,16 +5,19 @@ import { Bar, Delta, Empty, IconCircle, PageTitle } from "@/components/bits"
 import { categoryIcon } from "@/components/category-icon"
 import { ExpenseGauge, IncomeExpenseChart, NetWorthArea } from "@/components/charts"
 import { Filters } from "@/components/filters"
+import { TxOptions, TxSwipe } from "@/components/tx-row"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { goalProgress, limitStatus } from "@/lib/domain/calc"
 import { addMonths, monthEnd, monthOf, monthStart, monthsInRange, previousPeriod, today } from "@/lib/domain/dates"
 import { brl, dateBR, delta, num1, pct } from "@/lib/format"
+import { subcategoryOptions } from "@/lib/ledger"
 import {
   byCategory,
   goalsWithProgress,
   limitsWithUsage,
   listAccounts,
+  listTransactions,
   monthlyTotals,
   netWorth,
   parseFilters,
@@ -25,7 +28,7 @@ import {
 } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 
-const GOAL_STATE = { done: ["Concluída", "bg-muted text-muted-foreground"], on_track: ["No ritmo", "bg-emerald-500/10 text-income"], late: ["Atrasada", "bg-amber-500/10 text-amber-700 dark:text-amber-400"] } as const
+const GOAL_STATE = { done: ["Concluída", "bg-muted text-muted-foreground"], on_track: ["No ritmo", "bg-income/10 text-income"], late: ["Atrasada", "bg-amber-500/10 text-warning"] } as const
 
 export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
@@ -39,7 +42,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const expenseOnly = { ...f, kind: "EXPENSE" as const }
 
   const firstName = (await auth())?.user?.name?.split(" ")[0]
-  const [accs, cur, prev, cats, prevCats, flow, nw, limits, goals, reserve, status] = await Promise.all([
+  const [accs, cur, prev, cats, prevCats, flow, nw, limits, goals, reserve, status, recent, options] = await Promise.all([
     listAccounts(),
     totals(f),
     totals(f, prevPeriod),
@@ -51,6 +54,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
     goalsWithProgress(),
     reserveOverview(),
     shellStatus(),
+    listTransactions({ ...f, page: 1 }),
+    subcategoryOptions(),
   ])
 
   const activeAccounts = accs.filter((a) => !a.archived)
@@ -116,7 +121,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
     .slice(0, 3)
 
   const kpis = [
-    { label: "Receitas", value: brl(cur.income), icon: ArrowDownLeft, color: "#10b981", delta: delta(cur.income, prev.income), upIsGood: true },
+    { label: "Receitas", value: brl(cur.income), icon: ArrowDownLeft, color: "#22c55e", delta: delta(cur.income, prev.income), upIsGood: true },
     { label: "Despesas", value: brl(cur.expense), icon: ArrowUpRight, color: "#f43f5e", delta: delta(cur.expense, prev.expense), upIsGood: false },
     { label: "Saldo do período", value: `${balance > 0 ? "+" : ""}${brl(balance)}`, valueClass: balance >= 0 ? "text-income" : "text-expense", icon: Wallet, color: "#0ea5e9", delta: delta(balance, prev.income - prev.expense), upIsGood: true },
   ]
@@ -220,6 +225,26 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        {/* Mesmos gestos da lista de Transações: arrastar revela ações, pressionar abre o painel */}
+        <Card className="content-start gap-0 overflow-hidden pb-0">
+          <CardHeader className="flex items-center justify-between pb-3">
+            <CardTitle className="font-semibold">Últimas transações</CardTitle>
+            <Link href={`/transacoes${withParams(sp, {})}`} className="text-sm font-medium text-primary hover:underline">Ver todas</Link>
+          </CardHeader>
+          {recent.rows.length === 0 ? (
+            <p className="px-6 pb-6 text-center text-sm text-muted-foreground">Nenhuma transação no período.</p>
+          ) : (
+            <TxOptions options={options}>
+              <div className="border-t">
+                {recent.rows.slice(0, 6).map((r) => (
+                  <TxSwipe key={r.tx.id} item={r} href={`/transacoes?periodo=custom&de=${r.tx.date}&ate=${r.tx.date}&tx=${r.tx.id}`} showAccount />
+                ))}
+              </div>
+            </TxOptions>
+          )}
+        </Card>
+
+        <div className="grid content-start gap-4">
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle className="font-semibold">Precisa de atenção</CardTitle>
@@ -265,6 +290,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
             })}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   )

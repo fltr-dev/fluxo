@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
+import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Empty, Field, fieldClass, Money, PageTitle } from "@/components/bits"
@@ -6,6 +6,7 @@ import { BulkBar, SelectAll } from "@/components/bulk-bar"
 import { Filters } from "@/components/filters"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
+import { TxContextRow, TxOptions, TxSwipe } from "@/components/tx-row"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { transactions } from "@/db"
@@ -173,8 +174,8 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
           Nenhuma transação com esses filtros.
         </Empty>
       ) : (
-        <>
-          {/* Desktop: tabela agrupada por dia */}
+        <TxOptions options={options}>
+          {/* Desktop: tabela agrupada por dia; clique direito numa linha abre o painel de ações */}
           <Card className="hidden gap-0 py-0 md:flex">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] table-fixed text-sm">
@@ -205,8 +206,10 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                         <td className={cn("px-3 text-right tabular-nums", net > 0 && "text-income")}>{net ? <Money value={net} signed /> : "—"}</td>
                         <td />
                       </tr>
-                      {list.map(({ tx, accountName, color }) => (
-                        <tr key={tx.id} className={cn("border-b last:border-0 hover:bg-muted/30", tx.ignored && "opacity-60", openId === tx.id && "bg-muted")}>
+                      {list.map((r) => {
+                        const { tx, accountName, color } = r
+                        return (
+                        <TxContextRow key={tx.id} item={r} href={txHref(tx.id)} className={cn("border-b last:border-0 hover:bg-muted/30", tx.ignored && "opacity-60", openId === tx.id && "bg-muted")}>
                           <td className="pl-4"><input type="checkbox" name="ids" value={tx.id} form="bulk" aria-label={`Selecionar ${tx.description}`} className="size-4 accent-primary" /></td>
                           <td className="max-w-0 px-3 py-2.5">
                             <Link href={txHref(tx.id)} scroll={false} className="grid gap-0.5 hover:underline">
@@ -266,8 +269,9 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                               <ChevronRight />
                             </Link>
                           </td>
-                        </tr>
-                      ))}
+                        </TxContextRow>
+                        )
+                      })}
                     </tbody>
                   )
                 })}
@@ -275,7 +279,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
             </div>
           </Card>
 
-          {/* Celular: lista em cards agrupada por dia */}
+          {/* Celular: lista agrupada por dia; arrastar revela ações, pressionar abre o painel */}
           <div className="grid gap-4 md:hidden">
             {[...days].map(([day, list]) => {
               const net = dayNet(list)
@@ -286,33 +290,15 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                     {net ? <Money value={net} signed /> : <span>—</span>}
                   </div>
                   <Card className="gap-0 py-0">
-                    {list.map(({ tx, accountName, color, subName, parentName }) => {
-                      const Icon = tx.kind === "TRANSFER" ? ArrowLeftRight : tx.amount > 0 ? ArrowDownLeft : ArrowUpRight
-                      const c = tx.kind === "TRANSFER" ? "#71717a" : tx.amount > 0 ? "#10b981" : (color ?? "#f59e0b")
-                      return (
-                        <Link key={tx.id} href={txHref(tx.id)} scroll={false} className={cn("flex items-center gap-3 border-b px-3.5 py-3 last:border-0", tx.ignored && "opacity-60")}>
-                          <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ background: `${c}1f`, color: c }}>
-                            <Icon className="size-4" />
-                          </span>
-                          <span className="grid min-w-0 flex-1">
-                            <span className="truncate text-sm font-medium">{tx.description}</span>
-                            <span className={cn("truncate text-xs", !subName && tx.kind !== "TRANSFER" ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
-                              {tx.kind === "TRANSFER" ? "Transferência" : subName ? `${parentName} › ${subName}` : "A categorizar"}
-                            </span>
-                          </span>
-                          <span className="grid shrink-0 justify-items-end">
-                            <Money value={tx.amount} signed={tx.kind !== "TRANSFER"} className={cn("text-sm font-medium", tx.kind === "TRANSFER" && "text-muted-foreground")} />
-                            <span className="text-xs text-muted-foreground">{tx.status === "PENDING" ? "Pendente" : accountName}</span>
-                          </span>
-                        </Link>
-                      )
-                    })}
+                    {list.map((r) => (
+                      <TxSwipe key={r.tx.id} item={r} href={txHref(r.tx.id)} showAccount />
+                    ))}
                   </Card>
                 </section>
               )
             })}
           </div>
-        </>
+        </TxOptions>
       )}
 
       {pages > 1 && (
@@ -377,7 +363,7 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
         <span className="font-medium">{tx.description}</span>
         <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
           <span className="rounded-full border bg-card px-2 py-0.5">{tx.kind === "TRANSFER" ? "Transferência" : tx.kind === "INCOME" ? "Receita" : "Despesa"}</span>
-          <span className={cn("rounded-full px-2 py-0.5", tx.status === "PENDING" ? "bg-sky-500/10 text-sky-700 dark:text-sky-300" : "bg-emerald-500/10 text-income")}>
+          <span className={cn("rounded-full px-2 py-0.5", tx.status === "PENDING" ? "bg-sky-500/10 text-sky-700 dark:text-sky-300" : "bg-income/10 text-income")}>
             {tx.status === "PENDING" ? "Pendente" : "Confirmada"}
           </span>
           {tx.ignored && <span className="rounded-full border bg-card px-2 py-0.5">Ignorada nos relatórios</span>}

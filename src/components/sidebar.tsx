@@ -228,7 +228,7 @@ export function Sidebar({ badges, accounts, user, version, appName, collapsed: i
             </button>
           </Tip>
           <div className="grid min-w-0 flex-1 leading-tight">
-            <span className="truncate font-semibold">{appName}</span>
+            <span className="truncate text-[17px] font-extrabold tracking-[-0.03em]">{appName}</span>
             <span className="truncate text-xs text-muted-foreground">Controle pessoal</span>
           </div>
           {!collapsed && (

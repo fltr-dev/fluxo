@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist_Mono, Manrope } from "next/font/google"
 import { cookies } from "next/headers"
 import { primaryCss, primaryFromCookie, themeFromCookie } from "@/lib/theme"
 import "./globals.css"
 
-const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] })
+// Manrope na interface (algarismos tabulares nos valores); Geist Mono para IDs e versão — DESIGN.md
+const manrope = Manrope({ variable: "--font-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FLTR Financeiro",
+  title: "fluxo",
   description: "Controle financeiro pessoal",
-  applicationName: "FLTR Financeiro",
+  applicationName: "fluxo",
   robots: { index: false, follow: false },
   // Instalado na tela inicial (iOS): abre sem a barra do Safari
-  appleWebApp: { capable: true, title: "FLTR Financeiro", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "fluxo", statusBarStyle: "default" },
   formatDetection: { telephone: false },
 }
 
@@ -40,7 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // "sidebar=collapsed": sidebar recolhida; o atributo dá a largura (--sidebar-w) a toda a página
   const sidebar = jar.get("sidebar")?.value === "collapsed" ? "collapsed" : "expanded"
   return (
-    <html lang="pt-BR" data-sidebar={sidebar} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased ${theme === "system" ? "" : theme} ${privacy ? "privacy" : ""}`}>
+    <html lang="pt-BR" data-sidebar={sidebar} className={`${manrope.variable} ${geistMono.variable} h-full antialiased ${theme === "system" ? "" : theme} ${privacy ? "privacy" : ""}`}>
       <head>
         <style id="app-primary" dangerouslySetInnerHTML={{ __html: primary }} />
       </head>

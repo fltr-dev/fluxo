@@ -24,8 +24,8 @@ export const maxDuration = 60
 
 const TYPES = ACCOUNT_TYPES
 const RUN = {
-  OK: ["OK", "bg-emerald-500/10 text-income", "bg-emerald-500"],
-  PARTIAL: ["Parcial", "bg-amber-500/10 text-amber-700 dark:text-amber-400", "bg-amber-500"],
+  OK: ["OK", "bg-income/10 text-income", "bg-income"],
+  PARTIAL: ["Parcial", "bg-amber-500/10 text-warning", "bg-amber-500"],
   ERROR: ["Erro", "bg-red-500/10 text-red-700 dark:text-red-400", "bg-red-500"],
   RUNNING: ["Rodando", "bg-sky-500/10 text-sky-700 dark:text-sky-300", "bg-sky-500"],
 } as const
@@ -55,7 +55,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
   const sum = (types: string[]) => active.filter((a) => types.includes(a.type)).reduce((t, a) => t + a.balance, 0)
   const summary = [
     { label: "Patrimônio", hint: "Tudo somado", value: active.reduce((t, a) => t + a.balance, 0), icon: Landmark, color: "#0ea5e9" },
-    { label: "Disponível", hint: "Contas correntes e dinheiro", value: sum(["CHECKING", "CASH"]), icon: Wallet, color: "#10b981" },
+    { label: "Disponível", hint: "Contas correntes e dinheiro", value: sum(["CHECKING", "CASH"]), icon: Wallet, color: "#22c55e" },
     { label: "Investido", hint: "Poupança e investimentos", value: sum(["SAVINGS_INVESTMENT"]), icon: PiggyBank, color: "#8b5cf6" },
     { label: "Cartões", hint: "Fatura aberta", value: sum(["CREDIT_CARD"]), icon: CreditCard, color: "#f43f5e" },
   ]
@@ -116,7 +116,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
         {last?.status === "ERROR" ? (
           <span className="grid size-10 place-items-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400"><CircleAlert className="size-5" /></span>
         ) : (
-          <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/10 text-income"><CircleCheck className="size-5" /></span>
+          <span className="grid size-10 place-items-center rounded-xl bg-income/10 text-income"><CircleCheck className="size-5" /></span>
         )}
         <div className="grid min-w-56 flex-1">
           <span className="font-medium">

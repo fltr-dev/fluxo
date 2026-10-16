@@ -52,9 +52,9 @@ export default async function ReservePage() {
               </span>
             </div>
             {missing > 0 ? (
-              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Faltam <span className="tabular-nums">{brl(missing)}</span> para o alvo</span>
+              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-warning">Faltam <span className="tabular-nums">{brl(missing)}</span> para o alvo</span>
             ) : (
-              <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-income">Alvo atingido</span>
+              <span className="rounded-full bg-income/10 px-2.5 py-0.5 text-xs font-medium text-income">Alvo atingido</span>
             )}
           </div>
           <div className="grid gap-1.5">

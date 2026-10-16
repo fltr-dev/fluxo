@@ -68,7 +68,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               </Link>
             ) : (
               <span className="hidden items-center gap-1.5 text-sm text-muted-foreground lg:flex" title={run?.finishedAt?.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
-                <span className="size-2 rounded-full bg-emerald-500" />
+                <span className="size-2 rounded-full bg-income" />
                 {run?.finishedAt ? `Sincronizado ${ago(run.finishedAt)}` : "Nunca sincronizado"}
               </span>
             )}

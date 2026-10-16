@@ -1,4 +1,4 @@
-# FLTR Financeiro — controle financeiro pessoal
+# fluxo — controle financeiro pessoal
 
 MVP do [SPEC.md](SPEC.md): Next.js 16 + Drizzle + Postgres (Neon) + Auth.js (usuário e senha, sessão JWT) + Pluggy (MeuPluggy) + Jev opcional.
 

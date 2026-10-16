@@ -15,8 +15,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <ThemeToggle className="absolute top-4 right-4" />
       <div className="flex w-full max-w-sm flex-col gap-6">
         <div className="flex items-center justify-center gap-2.5">
-          <Logo />
-          <span className="text-lg font-semibold tracking-tight">FLTR Financeiro</span>
+          <Logo className="size-10" />
+          <span className="text-2xl font-extrabold tracking-[-0.03em]">fluxo</span>
         </div>
 
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -44,7 +44,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               </div>
             )}
             {alterado && !error && (
-              <div role="status" className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <div role="status" className="flex gap-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">
                 <CircleCheck className="mt-0.5 size-4 shrink-0" />
                 <span className="font-semibold">Login atualizado. Entre com o novo usuário e a nova senha.</span>
               </div>

@@ -18,6 +18,7 @@
   --color-background: var(--background);
   --color-income: var(--income);
   --color-expense: var(--expense);
+  --color-warning: var(--warning);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
@@ -60,7 +61,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Paleta: base zinc + destaque emerald (cores do Tailwind) */
+/* Paleta fluxo (DESIGN.md): base zinc + Verde fluxo; receita em verde, despesa em rosa, atenção em âmbar */
 :root {
   --background: #fafafa; /* zinc-50: fundo da página */
   --foreground: #09090b; /* zinc-950 */
@@ -68,7 +69,7 @@
   --card-foreground: #09090b;
   --popover: #ffffff;
   --popover-foreground: #09090b;
-  --primary: #047857; /* emerald-700: contraste AA com texto branco */
+  --primary: #08845a; /* verde-600: 4,7:1 com texto branco */
   --primary-foreground: #ffffff;
   --secondary: #f4f4f5; /* zinc-100 */
   --secondary-foreground: #18181b;
@@ -79,10 +80,11 @@
   --destructive: #dc2626; /* red-600 */
   --border: #e4e4e7; /* zinc-200 */
   --input: #e4e4e7;
-  --ring: #10b981; /* emerald-500 */
-  --income: #047857; /* emerald-700 */
+  --ring: #12a06a; /* verde-500 */
+  --income: #15803d; /* green-700 */
   --expense: #e11d48; /* rose-600 */
-  --chart-1: #10b981;
+  --warning: #b45309; /* amber-700 */
+  --chart-1: #12a06a;
   --chart-2: #0ea5e9;
   --chart-3: #8b5cf6;
   --chart-4: #f59e0b;
@@ -90,12 +92,12 @@
   --radius: 0.625rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #3f3f46; /* zinc-700 */
-  --sidebar-primary: #047857;
+  --sidebar-primary: #08845a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ecfdf5; /* emerald-50 */
-  --sidebar-accent-foreground: #047857;
+  --sidebar-accent: #edfaf3; /* verde-50 */
+  --sidebar-accent-foreground: #08845a;
   --sidebar-border: #e4e4e7;
-  --sidebar-ring: #10b981;
+  --sidebar-ring: #12a06a;
 }
 
 :root {
@@ -106,8 +108,8 @@
     --card-foreground: #fafafa;
     --popover: #18181b;
     --popover-foreground: #fafafa;
-    --primary: #10b981; /* emerald-500 */
-    --primary-foreground: #022c22; /* emerald-950 */
+    --primary: #36bc84; /* verde-400 */
+    --primary-foreground: #03261c; /* verde-950 */
     --secondary: #27272a; /* zinc-800 */
     --secondary-foreground: #fafafa;
     --muted: #27272a;
@@ -117,22 +119,23 @@
     --destructive: #ef4444; /* red-500 */
     --border: #27272a;
     --input: #3f3f46; /* zinc-700 */
-    --ring: #10b981;
-    --income: #34d399; /* emerald-400 */
+    --ring: #36bc84;
+    --income: #4ade80; /* green-400 */
     --expense: #fb7185; /* rose-400 */
-    --chart-1: #34d399;
+    --warning: #fbbf24; /* amber-400 */
+    --chart-1: #36bc84;
     --chart-2: #38bdf8;
     --chart-3: #a78bfa;
     --chart-4: #fbbf24;
     --chart-5: #fb7185;
     --sidebar: #09090b;
     --sidebar-foreground: #d4d4d8; /* zinc-300 */
-    --sidebar-primary: #10b981;
-    --sidebar-primary-foreground: #022c22;
-    --sidebar-accent: #022c22; /* emerald-950 */
-    --sidebar-accent-foreground: #34d399;
+    --sidebar-primary: #36bc84;
+    --sidebar-primary-foreground: #03261c;
+    --sidebar-accent: #03261c; /* verde-950 */
+    --sidebar-accent-foreground: #6fd3a6; /* verde-300 */
     --sidebar-border: #27272a;
-    --sidebar-ring: #10b981;
+    --sidebar-ring: #36bc84;
   }
 }
 /* Fundo "Cinza": o tema escuro acima com superfícies mais claras (vence o bloco escuro por especificidade) */

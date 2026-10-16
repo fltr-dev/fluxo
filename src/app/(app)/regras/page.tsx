@@ -103,7 +103,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
       </PageTitle>
 
       {sp.aplicadas && (
-        <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+        <div role="status" className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">
           <CircleCheck className="size-4" />
           {sp.aplicadas} transações recategorizadas.
         </div>
@@ -113,10 +113,10 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
         <span className="text-xs font-medium text-muted-foreground">Ordem da categorização automática</span>
         <ol className="flex flex-wrap items-center gap-2 text-xs font-medium">
           {[
-            ["1 Suas regras", "bg-emerald-500/10 text-income"],
+            ["1 Suas regras", "bg-income/10 text-income"],
             ["2 Inteligência artificial", "bg-violet-500/10 text-violet-700 dark:text-violet-300"],
             ["3 Mapeamento Pluggy", "bg-muted text-muted-foreground"],
-            ["4 A categorizar", "bg-amber-500/10 text-amber-700 dark:text-amber-400"],
+            ["4 A categorizar", "bg-amber-500/10 text-warning"],
           ].map(([l, c], i, all) => (
             <li key={l} className="flex items-center gap-2">
               <span className={cn("rounded-full px-2.5 py-0.5", c)}>{l}</span>
@@ -219,7 +219,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
               <section className="grid gap-3 rounded-xl border bg-muted/40 p-4">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-sm font-medium"><Eye className="size-4" />Prévia</span>
-                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-income tabular-nums">{preview.length} transações</span>
+                  <span className="rounded-full bg-income/10 px-2 py-0.5 text-xs font-medium text-income tabular-nums">{preview.length} transações</span>
                 </div>
                 <ul className="grid text-sm">
                   {preview.slice(0, 8).map((t) => (

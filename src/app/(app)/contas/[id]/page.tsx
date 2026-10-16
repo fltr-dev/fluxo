@@ -1,16 +1,18 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock, Pencil, Search } from "lucide-react"
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Pencil, Search } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { AccountAvatar } from "@/components/account-avatar"
 import { Empty, fieldClass, Money, PageTitle } from "@/components/bits"
 import { BalanceArea } from "@/components/charts"
 import { PeriodMenu } from "@/components/filters"
+import { TxOptions, TxSwipe } from "@/components/tx-row"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ACCOUNT_TYPES } from "@/lib/account-types"
 import { accountLook } from "@/lib/banks"
 import { monthEnd, monthOf, monthStart, today } from "@/lib/domain/dates"
 import { ago, dateBR, dayLabel } from "@/lib/format"
+import { subcategoryOptions } from "@/lib/ledger"
 import { accountBalanceSeries, listAccounts, listTransactions, PAGE_SIZE, parseFilters, totals, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "../account-edit"
@@ -28,10 +30,11 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   const f = parseFilters({ ...sp, periodo: typeof sp.periodo === "string" ? sp.periodo : "3m", conta: String(accountId), categoria: undefined, categorias: undefined, tipo: undefined, ver: undefined })
   const ym = monthOf(today())
   const month = { from: monthStart(ym), to: monthEnd(ym) }
-  const [{ rows, count }, flow, series] = await Promise.all([
+  const [{ rows, count }, flow, series, options] = await Promise.all([
     listTransactions(f),
     totals({ preset: "mes", page: 1, accountId, ...month }),
     accountBalanceSeries(accountId, 12),
+    subcategoryOptions(),
   ])
 
   const look = accountLook({ name: acc.name, bank: acc.bank, color: acc.color, institution: acc.institution })
@@ -85,7 +88,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
           </div>
         </Card>
         {[
-          { label: "Receitas no mês", value: flow.income, icon: ArrowDownLeft, color: "#10b981" },
+          { label: "Receitas no mês", value: flow.income, icon: ArrowDownLeft, color: "#22c55e" },
           { label: "Despesas no mês", value: flow.expense, icon: ArrowUpRight, color: "#f43f5e" },
           { label: "Resultado do mês", value: flow.income - flow.expense, icon: ArrowLeftRight, color: "#0ea5e9", signed: true, wide: true },
         ].map((k) => (
@@ -144,6 +147,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
             Nenhuma transação desta conta em {dateBR(f.from)} a {dateBR(f.to)}.
           </Empty>
         ) : (
+          <TxOptions options={options}>
           <div className="grid gap-4">
             {[...days].map(([day, list]) => {
               const net = dayNet(list)
@@ -154,33 +158,15 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
                     {net ? <Money value={net} signed /> : <span>—</span>}
                   </div>
                   <Card className="gap-0 py-0">
-                    {list.map(({ tx, color, subName, parentName }) => {
-                      const Icon = tx.kind === "TRANSFER" ? ArrowLeftRight : tx.amount > 0 ? ArrowDownLeft : ArrowUpRight
-                      const c = tx.kind === "TRANSFER" ? "#71717a" : tx.amount > 0 ? "#10b981" : (color ?? "#f59e0b")
-                      return (
-                        <Link key={tx.id} href={txHref(tx)} className={cn("flex items-center gap-3 border-b px-3.5 py-3 last:border-0 hover:bg-muted/40", tx.ignored && "opacity-60")}>
-                          <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ background: `${c}1f`, color: c }}>
-                            <Icon className="size-4" />
-                          </span>
-                          <span className="grid min-w-0 flex-1">
-                            <span className="flex min-w-0 items-center gap-1.5">
-                              <span className="truncate text-sm font-medium">{tx.description}</span>
-                              {tx.status === "PENDING" && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 text-xs text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"><Clock className="size-3" />Pendente</span>}
-                              {tx.totalInstallments && tx.totalInstallments > 1 && <span className="shrink-0 rounded-full bg-muted px-2 text-xs text-muted-foreground">{tx.installmentNumber}/{tx.totalInstallments}</span>}
-                            </span>
-                            <span className={cn("truncate text-xs", !subName && tx.kind !== "TRANSFER" ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
-                              {tx.kind === "TRANSFER" ? "Transferência" : subName ? `${parentName} › ${subName}` : "A categorizar"}
-                            </span>
-                          </span>
-                          <Money value={tx.amount} signed={tx.kind !== "TRANSFER"} className={cn("shrink-0 text-sm font-medium", tx.kind === "TRANSFER" && "text-muted-foreground")} />
-                        </Link>
-                      )
-                    })}
+                    {list.map((r) => (
+                      <TxSwipe key={r.tx.id} item={r} href={txHref(r.tx)} />
+                    ))}
                   </Card>
                 </section>
               )
             })}
           </div>
+          </TxOptions>
         )}
 
         {pages > 1 && (
