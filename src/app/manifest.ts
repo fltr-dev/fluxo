@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next"
 // PWA: instalável na tela inicial (Android/iOS/desktop). Sem modo offline: os dados vêm sempre do servidor.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "FLTR Financeiro",
-    short_name: "Financeiro",
+    name: "fluxo",
+    short_name: "fluxo",
     description: "Controle financeiro pessoal",
     lang: "pt-BR",
     start_url: "/",
@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#fafafa",
-    theme_color: "#047857",
+    theme_color: "#08845a",
     categories: ["finance", "productivity"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

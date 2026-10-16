@@ -62,7 +62,7 @@ export function NetWorthArea({ data, current }: { data: { month: string; value: 
           <div className="flex flex-wrap items-baseline gap-2.5">
             <span className="text-3xl font-semibold tracking-tight tabular-nums">{brl(current)}</span>
             {change != null && (
-              <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", change >= 0 ? "bg-emerald-500/10 text-income" : "bg-rose-500/10 text-expense")}>
+              <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", change >= 0 ? "bg-income/10 text-income" : "bg-rose-500/10 text-expense")}>
                 {signedPct(change)} em {range} meses
               </span>
             )}

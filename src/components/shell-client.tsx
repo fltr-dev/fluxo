@@ -38,7 +38,7 @@ export function Breadcrumb({ accounts }: { accounts: { id: number; name: string 
       </nav>
       <div className="flex min-w-0 items-center gap-2.5 md:hidden">
         <Logo small />
-        <span className="truncate text-base font-semibold">{account?.name ?? nav?.item.label ?? "FLTR Financeiro"}</span>
+        <span className="truncate text-base font-semibold">{account?.name ?? nav?.item.label ?? "fluxo"}</span>
       </div>
     </>
   )
@@ -123,7 +123,7 @@ export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen
         <SheetContent side="right" className="w-72 gap-0 p-0">
           <div className="flex h-14 items-center gap-2.5 border-b px-4">
             <Logo />
-            <SheetTitle className="font-semibold">{appName}</SheetTitle>
+            <SheetTitle className="text-[17px] font-extrabold tracking-[-0.03em]">{appName}</SheetTitle>
           </div>
           {/* fechar ao escolher uma tela; o botão de recolher as contas não deve fechar o painel */}
           <div className="flex-1 overflow-y-auto py-2" onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>

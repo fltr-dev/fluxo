@@ -141,7 +141,7 @@ async function Comparisons({ sp }: { sp: SearchParams }) {
                       <td className="px-3 text-right text-muted-foreground tabular-nums">{brl(r.prev)}</td>
                       <td className={cn("px-3 text-right tabular-nums", r.cur > r.prev ? "text-expense" : "text-income")}>{r.cur === r.prev ? "—" : `${r.cur > r.prev ? "+" : "−"}${brl(Math.abs(r.cur - r.prev))}`}</td>
                       <td className="px-5 text-right">
-                        <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", d == null ? "bg-muted text-muted-foreground" : d > 0 ? "bg-rose-500/10 text-expense" : "bg-emerald-500/10 text-income")}>
+                        <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", d == null ? "bg-muted text-muted-foreground" : d > 0 ? "bg-rose-500/10 text-expense" : "bg-income/10 text-income")}>
                           {d == null ? "novo" : signedPct(d)}
                         </span>
                       </td>

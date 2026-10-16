@@ -16,7 +16,7 @@ export const themeFromCookie = (v?: string): ThemeId => (v === "light" || v === 
 
 /** `light` é o tom usado no tema claro (contraste AA com texto branco); `vivid`, nos temas escuros e nos círculos. */
 export const PRIMARIES = [
-  { id: "green", label: "Verde", light: "#047857", vivid: "#10b981" }, // padrão
+  { id: "green", label: "Verde", light: "#08845a", vivid: "#36bc84" }, // padrão: Verde fluxo (DESIGN.md)
   { id: "teal", label: "Turquesa", light: "#0f766e", vivid: "#14b8a6" },
   { id: "blue", label: "Azul", light: "#1d4ed8", vivid: "#3b82f6" },
   { id: "indigo", label: "Índigo", light: "#4338ca", vivid: "#5f62ee" },

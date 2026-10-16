@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { Bar, Empty, Field, fieldClass, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { RouteDialog } from "@/components/route-overlay"
+import { ContextRow, SwipeRow, type RowAction } from "@/components/swipe-row"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { limitStatus } from "@/lib/domain/calc"
@@ -14,8 +15,8 @@ import { cn } from "@/lib/utils"
 import { deleteLimit, saveLimit } from "./actions"
 
 const STATE = {
-  ok: { badge: "bg-emerald-500/10 text-income", text: "" },
-  warn: { badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400", text: "Atenção" },
+  ok: { badge: "bg-income/10 text-income", text: "" },
+  warn: { badge: "bg-amber-500/10 text-warning", text: "Atenção" },
   over: { badge: "bg-red-500/10 text-red-700 dark:text-red-400", text: "Estourado" },
 }
 
@@ -23,6 +24,18 @@ async function saveAndClose(form: FormData) {
   "use server"
   await saveLimit(form)
   redirect("/limites")
+}
+
+/** Gestos: arrastar à direita mostra as transações, à esquerda edita/exclui; pressionar (ou clique direito) abre o painel. */
+function limitActions(id: number, categoryId: number) {
+  const list: RowAction = { label: "Transações", icon: "list", tone: "primary", href: `/transacoes?categoria=${categoryId}&tipo=despesa` }
+  const edit: RowAction = { label: "Editar", icon: "edit", href: `/limites?editar=${id}` }
+  const remove: RowAction = { label: "Excluir", icon: "trash", tone: "danger", run: deleteLimit, id, confirm: "Confirmar" }
+  return {
+    left: [list],
+    right: [edit, remove],
+    menu: [{ ...list, label: "Ver transações" }, { ...edit, label: "Editar limite" }, { ...remove, label: "Excluir limite", confirm: "Toque de novo para excluir" }],
+  }
 }
 
 export default async function LimitsPage({ searchParams }: PageProps<"/limites">) {
@@ -98,7 +111,29 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
                 <span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-red-500" />Estourado · 100%+</span>
               </div>
             </CardHeader>
-            <div className="overflow-x-auto border-t">
+            {/* Celular: lista com gestos (arrastar revela ações, pressionar abre o painel) */}
+            <div className="border-t md:hidden">
+              {rows.map(({ l, s }) => {
+                const over = l.spent - l.limit
+                return (
+                  <SwipeRow key={l.id} {...limitActions(l.id, l.categoryId)} title={l.label} description={`${brl(l.spent)} de ${brl(l.limit)} · ${pct(s.pct)}`} className="border-b last:border-0">
+                    <Link href={`/transacoes?categoria=${l.categoryId}&tipo=despesa`} draggable={false} className="grid gap-2 px-4 py-3">
+                      <span className="flex items-center gap-2.5">
+                        <span className="size-2.5 shrink-0 rounded-full" style={{ background: colorOf.get(l.categoryId) ?? "#a1a1aa" }} />
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.label}</span>
+                        <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", STATE[s.state].badge)}>{pct(s.pct)}</span>
+                      </span>
+                      <Bar value={s.pct} state={s.state} />
+                      <span className="flex justify-between gap-2 text-xs text-muted-foreground tabular-nums">
+                        <span>{brl(l.spent)} de {brl(l.limit)}</span>
+                        <span className={cn(over > 0 && "font-medium text-expense")}>{over > 0 ? `${brl(over)} acima` : `${brl(-over)} disponível`}</span>
+                      </span>
+                    </Link>
+                  </SwipeRow>
+                )
+              })}
+            </div>
+            <div className="overflow-x-auto border-t max-md:hidden">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="text-muted-foreground">
                   <tr className="border-b">
@@ -112,7 +147,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
                 </thead>
                 <tbody>
                   {rows.map(({ l, s }) => (
-                    <tr key={l.id} className="border-b last:border-0">
+                    <ContextRow key={l.id} menu={limitActions(l.id, l.categoryId).menu} title={l.label} description={`${brl(l.spent)} de ${brl(l.limit)} · ${pct(s.pct)}`} className="border-b last:border-0">
                       <td className="h-14 px-5">
                         <Link href={`/transacoes?categoria=${l.categoryId}&tipo=despesa`} className="flex items-center gap-2.5 font-medium hover:underline">
                           <span className="size-2.5 shrink-0 rounded-full" style={{ background: colorOf.get(l.categoryId) ?? "#a1a1aa" }} />
@@ -141,7 +176,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
                           </form>
                         </span>
                       </td>
-                    </tr>
+                    </ContextRow>
                   ))}
                 </tbody>
               </table>

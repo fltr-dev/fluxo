@@ -7,6 +7,7 @@ import { CategoryFields } from "@/components/category-fields"
 import { categoryIcon, CategoryIcon } from "@/components/category-icon"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
+import { SwipeRow, type RowAction } from "@/components/swipe-row"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { db, pluggyCategoryMap, transactions } from "@/db"
@@ -32,6 +33,18 @@ async function mergeAndClose(form: FormData) {
   "use server"
   await mergeSubcategories(form)
   redirect("/categorias")
+}
+
+/** Gestos da categoria: arrastar à direita mostra as transações, à esquerda edita/arquiva; pressionar abre o painel. */
+function categoryActions(id: number, archived: boolean, editHref: string) {
+  const list: RowAction = { label: "Transações", icon: "list", tone: "primary", href: `/transacoes?categoria=${id}` }
+  const edit: RowAction = { label: "Editar", icon: "edit", href: editHref }
+  const archive: RowAction = { label: archived ? "Reativar" : "Arquivar", icon: "archive", tone: "warning", run: toggleArchived, id }
+  return {
+    left: [list],
+    right: [edit, archive],
+    menu: [{ ...list, label: "Ver transações" }, { ...edit, label: "Editar categoria" }, { ...archive, label: archived ? "Reativar categoria" : "Arquivar categoria" }],
+  }
 }
 
 export default async function CategoriesPage({ searchParams }: PageProps<"/categorias">) {
@@ -103,7 +116,9 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
             {visible.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Nada por aqui.</p>}
             {visible.map((p) => (
               <details key={p.id} className="group border-b last:border-0">
-                <summary className="flex cursor-pointer list-none items-center gap-3 py-3 [&::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <SwipeRow {...categoryActions(p.id, p.archived, `/categorias${withParams(sp, { editar: p.id })}`)} title={p.name} description={`${p.subs.length} subcategorias`}>
+                  <div className="flex items-center gap-3 py-3">
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
                   <IconCircle icon={categoryIcon(p.name, p.icon)} color={p.color} soft className="size-9" />
                   <span className="grid min-w-0 flex-1">
@@ -114,6 +129,8 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                   <Link href={`/categorias${withParams(sp, { editar: p.id })}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar ${p.name}`}>
                     <Pencil />
                   </Link>
+                  </div>
+                  </SwipeRow>
                 </summary>
                 <ul className="grid gap-0.5 pb-3 pl-[4.25rem]">
                   {p.subs.map((s) => (
