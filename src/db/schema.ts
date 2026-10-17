@@ -396,6 +396,8 @@ export const chatMessages = pgTable(
     conversationId: integer().notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
     role: chatRole().notNull(),
     content: jsonb().notNull(),
+    // Cartões mostrados na tela para cada ferramenta usada (id do tool_use → cartão); só a interface lê
+    cards: jsonb(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.conversationId, t.id)],

@@ -1,7 +1,8 @@
 import { asc, eq, ne } from "drizzle-orm"
 import { ChevronRight, CircleCheck, Eye, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { Empty, Field, fieldClass, Money, PageTitle } from "@/components/bits"
+import { redirect } from "next/navigation"
+import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -17,11 +18,17 @@ import { applyRulesToExisting, deleteRule, saveRule, toggleRule } from "./action
 const MATCH_LABEL = { CONTAINS: "Descrição contém", STARTS_WITH: "Descrição começa com", REGEX: "Descrição casa com regex" }
 const MATCH_SHORT = { CONTAINS: "Contém", STARTS_WITH: "Começa com", REGEX: "Regex" }
 
+async function deleteAndClose(form: FormData) {
+  "use server"
+  await deleteRule(form)
+  redirect("/regras")
+}
+
 type Rule = typeof categoryRules.$inferSelect
 
 function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: { id: number; name: string }[]; options: Awaited<ReturnType<typeof subcategoryOptions>> }) {
   return (
-    <form action={saveRule} className="grid gap-4">
+    <form id="rule-form" action={saveRule} className="grid gap-4">
       {rule.id && <input type="hidden" name="id" value={rule.id} />}
       <fieldset className="grid gap-1.5">
         <legend className="mb-1.5 text-sm font-medium">Descrição da transação</legend>
@@ -64,7 +71,6 @@ function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: 
       <Field label="Prioridade" hint="Menor número vence quando duas regras casam.">
         <input type="number" name="priority" min={0} max={10000} defaultValue={rule.priority ?? 100} className={cn(fieldClass, "w-28")} />
       </Field>
-      <Button type="submit" className="h-9">{rule.id ? "Salvar regra" : "Criar regra"}</Button>
     </form>
   )
 }
@@ -214,7 +220,17 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
       {sheetOpen && (
         <RouteSheet closeHref="/regras" title={editing ? "Editar regra" : "Nova regra"} description={tx ? `A partir de “${tx.description}”` : editing ? `Prioridade ${editing.priority}` : undefined}>
           <div className="grid gap-6">
-            <RuleForm key={editing?.id ?? fromTx ?? "new"} rule={draft} accounts={accounts.filter((a) => !a.archived)} options={options} />
+            <RuleForm
+              key={editing?.id ?? fromTx ?? "new"}
+              rule={draft}
+              accounts={accounts.filter((a) => !a.archived)}
+              options={options}
+            />
+            {editing && (
+              <form id="delete-rule" action={deleteAndClose}>
+                <input type="hidden" name="id" value={editing.id} />
+              </form>
+            )}
             {editing && (
               <section className="grid gap-3 rounded-xl border bg-muted/40 p-4">
                 <div className="flex items-center justify-between">
@@ -235,6 +251,21 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
                 {userEdited > 0 && <span className="text-xs text-muted-foreground">{userEdited} foram categorizadas por você e serão preservadas.</span>}
               </section>
             )}
+            {/* os botões do rodapé acionam os formulários pelo atributo `form` */}
+            <FormActions
+              start={
+                editing && (
+                  <Button type="submit" form="delete-rule" variant="destructive" size="lg">
+                    Excluir
+                  </Button>
+                )
+              }
+            >
+              <CancelLink href="/regras" />
+              <Button type="submit" form="rule-form" size="lg">
+                {editing ? "Salvar regra" : "Criar regra"}
+              </Button>
+            </FormActions>
           </div>
         </RouteSheet>
       )}

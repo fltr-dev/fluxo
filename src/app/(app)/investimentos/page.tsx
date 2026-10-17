@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Banknote, CalendarDays, ChartColumn, ChartLine, ChartPie, Coins, Landmark, Percent, Plus, Star, Target, TrendingUp, Wallet } from "lucide-react"
 import Link from "next/link"
 import { Empty } from "@/components/bits"
-import { AllocationDonut, EvolutionChart, MonthlyReturnsChart } from "@/components/investment-charts"
+import { AllocationPanel, EvolutionChart, MonthlyReturnsChart } from "@/components/investment-charts"
 import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { addMonths, monthOf, today } from "@/lib/domain/dates"
@@ -146,19 +146,10 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
       <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
         <Card className="gap-4 px-5 py-5">
           <CardHead icon={ChartPie} title="Alocação por categoria" description="Quanto cada classe pesa na carteira" />
-          <div className="flex flex-1 flex-wrap items-center gap-5">
-            <AllocationDonut data={allocation.map((a) => ({ key: a.assetClass, label: CLASS_INFO[a.assetClass].label, color: CLASS_INFO[a.assetClass].color, value: a.value }))} total={summary.total} centerLabel={compact(summary.total)} />
-            <ul className="grid min-w-44 flex-1">
-              {allocation.map((a) => (
-                <li key={a.assetClass} className="flex min-h-9 items-center gap-2.5 border-t py-1 first:border-0">
-                  <ClassDot assetClass={a.assetClass} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{CLASS_INFO[a.assetClass].label}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">{brl0(a.value)}</span>
-                  <b className="w-12 text-right text-sm tabular-nums">{pct1(a.pct)}</b>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <AllocationPanel
+            rows={allocation.map((a) => ({ key: a.assetClass, label: CLASS_INFO[a.assetClass].label, color: CLASS_INFO[a.assetClass].color, value: a.value }))}
+            total={summary.total}
+          />
         </Card>
 
         <Card className="gap-4 px-5 py-5">
@@ -287,4 +278,3 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 const dayMonth = (d: string) => `${+d.slice(8, 10)} ${MONTHS[+d.slice(5, 7) - 1]}`
-const compact = (n: number) => `R$ ${new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(n)}`

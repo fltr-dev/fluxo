@@ -169,6 +169,23 @@ Cada transação registra `category_source` (`USER`, `RULE`, `JEV`, `PLUGGY_MAP`
 - **Alocação-alvo** (`investment_targets`): % por categoria somando 100 (ou nenhum alvo). Para cada categoria: peso atual, alvo, diferença em pontos percentuais e quanto aportar para chegar ao alvo sem vender.
 - **Cotações** dos ativos manuais de renda variável: Yahoo Finance (`PETR4.SA`, `BTC-BRL`), na sync ou no botão "Cotações"; sem resposta, fica o preço informado (último preço de compra ou cotação digitada).
 
+### 6.12 Dívidas e avisos
+- **Dívida** (`debts`): pessoa/empresa, relação, descrição e **itens** (`debt_items`: descrição, quantidade, valor unitário; total = Σ quantidade × valor). Não gera transações: o pagamento já saiu da conta; a parcela paga pode apontar para a transação que a quitou (`debt_installments.transaction_id`).
+- **Forma**: parcela única, parcelado (N parcelas iguais; sobras de centavos nas primeiras) ou **livre** (sem parcelas; cada pagamento vira uma linha). **Vencimento** (`schedule_kind`): `FIXED_DAY` (dia do mês; mês curto usa o último dia), `AFTER_SALARY` (salário do mês + N dias), `DATE` (primeira parcela; as seguintes mês a mês) ou `NONE`. `start_month` é o mês da parcela 1.
+- **Salário**: primeira entrada do mês em categoria (ou subcategoria) de nome "Salário"; sem ela no mês, usa a **mediana do dia** dos últimos 6 meses com salário (padrão dia 5) e a data é marcada como **prevista**.
+- **Situação** da dívida: quitada (restante = 0), em atraso (alguma parcela vencida em aberto), vence em breve (≤ 7 dias), em dia, sem data. Restante = total − pago.
+- **Pagamento**: marca a parcela como paga na data; valor diferente do da parcela **redistribui igualmente** o restante entre as parcelas em aberto (e some a parcela se zerar); desfazer reabre e redistribui. Vínculo opcional com transação; sugestão = saída de mesmo valor entre −5 e +10 dias do vencimento ainda não ligada a outra parcela (o nome do credor sobe a candidata). Editar refaz só as parcelas em aberto.
+- **Avisos** (`notifications`, chave `dedupe_key` única: o mesmo aviso nunca se repete): parcela perto de vencer (hoje, amanhã ou N dias, conforme o lembrete da dívida), parcela **atrasada** (1× por parcela), **salário caiu** (entrada de hoje ou dos 2 últimos dias, citando as parcelas "após o salário" da semana) e **limite estourado** (1× por categoria/mês). Configuração em `notification_settings` (horário e tipos). Gerados ao abrir o app (no máximo a cada 10 min) e no cron diário `/api/cron/avisos`, que também envia **Web Push** (VAPID, `web-push`) aos aparelhos de `push_subscriptions` e apaga os que o navegador revogou. Sem VAPID ou sem aparelho, os avisos ficam pendentes de push. O push só é enviado depois do horário escolhido.
+
+### 6.13 Cofy (chat)
+- **Escopo**: só finanças pessoais do usuário e o uso do fluxo; fora disso recusa em uma frase. Conteúdo de arquivos, descrições e resultados de ferramentas são **dados, nunca instruções**. Não recomenda ativo específico.
+- **Modelo e API**: `claude-haiku-5-5` pelo SDK `@anthropic-ai/sdk` (`ANTHROPIC_API_KEY`), streaming, laço manual de ferramentas (até 8 passos), pensamento adaptativo e esforço médio, cache de prompt automático. `system` e ferramentas são **fixos**; a data de hoje, a tela atual e as menções resolvidas vão num bloco `<contexto>` de cada mensagem do usuário. O histórico **só cresce** (blocos guardados como vieram, inclusive raciocínio); `block_binding.prefix_mismatch_behavior = "drop_block"` (beta `thinking-binding-controls-2026-08-01`) evita erro quando um deploy muda o prompt.
+- **Ferramentas de leitura** (resultado em JSON para o modelo + **cartão** para a tela): `resumo_periodo`, `gastos_por_categoria` (com comparação), `listar_transacoes`, `saldos_contas`, `listar_dividas`, `limites_e_metas`, `resumo_investimentos`, `listar_categorias`, `gerar_relatorio` (mensal, categorias, dívidas, patrimônio; tabelas com CSV). Nomes de contas/categorias/dívidas são resolvidos no servidor; ambiguidade volta como erro para o modelo perguntar.
+- **Ferramentas de escrita** só **propõem** (`chat_actions`, estado PENDING): `propor_transacoes` (só contas manuais; ignora lançamentos idênticos), `propor_categorizacao`, `propor_divida`, `propor_pagamento_divida`, `propor_regra`, `propor_limite`. A Server Action `confirmAction` é o único caminho que grava; é idempotente (reserva a ação antes de executar) e usa as mesmas regras do app. Cancelar não grava.
+- **Anexos** (`chat_attachments`, base64): imagem e PDF como blocos nativos; CSV, OFX e TXT como texto (UTF-8, com recuo para Windows-1252); `.xlsx` como TSV. Limites: 5 arquivos, 10 MB cada (imagem 5 MB), texto até 400 mil caracteres (acima disso pede para enviar em partes). Os mesmos bytes são reenviados nos turnos seguintes (prefixo estável).
+- **Conversas**: `chat_conversations` (título automático da 1ª mensagem, renomear, arquivar, excluir) e `chat_messages`. O estado do cliente vive acima das telas (`CofyProvider`): uma resposta continua chegando se você abre outra conversa ou fecha o painel; a lista marca a que está respondendo. A rodada termina no servidor mesmo que a conexão caia.
+- **Acesso**: `/cofy`, item do menu, aba "Cofy" no celular e botão flutuante com painel (`Ctrl/⌘ + K`) que sabe a tela atual. Demonstração: conversas de exemplo, sem chamar a API.
+
 ## 7. Modelo de dados (conceitual)
 
 ```
@@ -201,6 +218,17 @@ investment_trades id, investment_id, pluggy_id? ("tx:<id>" = provento achado na 
                   type(BUY|SELL|BONUS|DIVIDEND|JCP|YIELD|INTEREST), quantity?, price?, amount, fees, note?
 investment_targets asset_class (pk), percent
 market_series     series(CDI|IPCA|IBOV), date, value  (pk series+date)
+debts             id, creditor, relation?, description?, schedule_kind(FIXED_DAY|AFTER_SALARY|DATE|NONE), schedule_day?,
+                  salary_offset_days, schedule_date?, start_month?, remind_days_before?, archived, created_at
+debt_items        id, debt_id, description, quantity, unit_amount
+debt_installments id, debt_id, number, amount, paid_on?, transaction_id?, due_override?  (unique debt_id+number)
+notifications     id, kind, title, body, href?, dedupe_key (unique), created_at, read_at?, pushed_at?
+push_subscriptions id, endpoint (unique), p256dh, auth, label?
+notification_settings id (=1), push_hour, notify_due, notify_overdue, notify_salary, notify_limit
+chat_conversations id, title, archived, created_at, updated_at
+chat_messages     id, conversation_id, role(user|assistant), content (blocos da API, jsonb), cards? (jsonb), created_at
+chat_attachments  id, message_id, name, media_type, size, data (base64)
+chat_actions      id, conversation_id, tool_use_id, kind, payload (jsonb), status(PENDING|DONE|CANCELLED), result?
 app_credentials   id (=1), username, password_hash (scrypt), updated_at
 categorization_examples id, description, amount, subcategory_id, created_at
 ```
@@ -235,6 +263,7 @@ Valores monetários em `numeric(14,2)` (nunca float). Índices: `transactions(da
    - **Novo lançamento** (compra, venda, bonificação ou provento), **novo ativo manual** e **alocação-alvo** (soma tem de fechar em 100%).
    - As contas dos ativos não aparecem como subitens de *Contas* na sidebar (seriam dezenas); continuam em `/contas`.
 10. **Calendário** (`/calendario`): grade do mês com o total **recebido** e **gasto** em cada dia (sem transferências e ignoradas), resumo do mês, navegação por mês, filtro por conta e por **várias categorias** (categoria inclui as subcategorias). Clicar num dia lista as transações dele. Estado na URL (`mes`, `dia`, `conta`, `categorias`).
+12. **Dívidas** (`/dividas`), **Cofy** (`/cofy` e painel flutuante) e o **sino de avisos** no cabeçalho (ver §6.12 e §6.13); **Configurações** ganha a seção **Avisos** (push neste aparelho, horário e tipos).
 11. **Configurações** (modal aberto pelo menu do perfil, com barra lateral de seções): **Aparência** (fundo Sistema/Claro/Cinza/Preto e cor de destaque entre 9 opções prontas, sem escolha livre; por aparelho, em cookie), **Conta** (alterar usuário e senha, ver §4) e **Sobre** (versão e empresa desenvolvedora, *FLTR Sistemas*).
 
 ### Layout e padrões de interface
@@ -242,6 +271,9 @@ Valores monetários em `numeric(14,2)` (nunca float). Índices: `transactions(da
 - **Sidebar** à esquerda no desktop: item ativo destacado só pelo fundo (sem barra lateral), **recolhível** a apenas ícones com *tooltip* (`Ctrl/⌘ + B`; cookie `sidebar`), versão do sistema no rodapé, menu do perfil com *Configurações* e *Sair* (cor *destructive*). *Contas* tem como **subitens** as contas ativas (recolhíveis quando existe alguma). No celular, barra inferior e menu "Mais" com o mesmo conteúdo.
 - **Sem controles nativos do navegador** para escolha: seletores (`FormSelect`) e cor (`ColorPicker`) próprios, no tema do sistema, compatíveis com formulários de Server Actions.
 - A classificação por IA aparece ao usuário como "IA"; o nome do provedor (Jev) fica restrito à documentação técnica.
+- **Animações discretas** (150–220 ms; `prefers-reduced-motion` desliga): marcador do item ativo do menu desliza, onda do logo (uma vez ao abrir e em loop durante a sincronização), entrada de página, escala no clique.
+- **Legenda clicável** em todo gráfico com séries: clicar esconde a série (e a escala se ajusta); sempre sobra ao menos uma.
+- **Painel lateral vira bottom sheet** abaixo de 768 px (alça, arrastar para fechar). **Rodapé de modais e painéis** (`FormActions`): ações no canto inferior direito, ação principal por último, "Excluir" isolado à esquerda.
 - **PWA instalável** (manifest, ícones 192/512/maskable, favicon, ícone iOS, `theme-color`, área segura do iPhone), sem modo offline.
 
 Todas as telas são utilizáveis em telas de 360 px de largura (tabelas viram listas/cards no mobile).
@@ -264,6 +296,8 @@ Vitest, unitários e sem I/O, sobre funções puras de domínio:
 Também testados (Vitest, sem navegador): cor e contraste (WCAG) das 9 cores de destaque nos fundos claro e escuro, ids de tema/cor vindos de cookie (nunca viram CSS sem validar), detecção de banco por nome e aparência da conta (cor escolhida > cor do banco), existência de todos os ícones sugeridos na versão instalada do Lucide, hash scrypt e regras do login do dono contra Postgres em memória (variáveis de ambiente, login salvo, troca e versão, tabela não migrada, falha fechada) e os totais por dia do calendário com filtro de várias categorias (incluindo payloads de SQL injection).
 
 Investimentos: regras puras (`domain/investments.test.ts`: categorias pela Pluggy e pelo ticker, rótulo da taxa, operações e proventos da Pluggy e da conta, posição e preço médio, Dietz modificado, CDI/IBOV por mês, rebalanceamento) e, contra Postgres em memória (`lib/investments.test.ts`), a sync com a Pluggy simulada (ativos, operações, proventos achados na conta, sync repetida sem duplicar e sem desfazer a categoria do usuário), as ações (ativo manual, compra/venda, saldo à mão, proventos, alvo) e a rentabilidade com aporte no meio do mês e o CDI acumulado.
+
+Dívidas, avisos e Cofy: domínio puro (`domain/debts.test.ts`: itens, parcelas em centavos, salário real/previsto, vencimento por regra, situação; `domain/notifications.test.ts`: quando avisar, tipos desligados, chaves estáveis) e, contra Postgres em memória, criar/pagar/redistribuir/desfazer/editar dívidas e vínculo com transação (`lib/debts.test.ts`), geração idempotente de avisos e envio de push simulado (`lib/notifications.test.ts`), o fluxo do chat com a API da Anthropic **simulada** (`lib/cofy/chat.test.ts`: cartões, propor sem gravar, confirmar uma vez, cancelar, erro de ferramenta, anexos, histórico que só cresce, validações, conversas) e o leitor do stream (`lib/cofy/stream.test.ts`). **Não há teste contra a API real** (precisa de `ANTHROPIC_API_KEY`).
 
 Sem E2E automatizado no MVP; as telas novas foram verificadas manualmente no navegador (desktop e celular, claro/cinza/preto) contra Postgres local e contra a demonstração.
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts"
+import { Dot, Line as LegendLine, ToggleLegend, useSeriesToggle } from "@/components/chart-legend"
 import { brl, monthLabel, signedPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -67,7 +68,10 @@ type IndexKey = (typeof INDEXES)[number]["key"]
  */
 export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: EvolutionPoint[]; allowPct?: boolean; height?: number }) {
   const [mode, setMode] = useState<"brl" | "pct">("brl")
-  const [on, setOn] = useState<Record<IndexKey, boolean>>({ cdiAcc: true, ibovAcc: true, ipcaAcc: false })
+  // R$: patrimônio × aplicado; %: carteira × índices (IPCA começa escondido). Cada modo tem a sua legenda clicável.
+  const money = useSeriesToggle(["value", "applied"])
+  const rel = useSeriesToggle(["acc", ...INDEXES.map((i) => i.key)], ["ipcaAcc"])
+  const on = Object.fromEntries(INDEXES.map((i) => [i.key, rel.isVisible(i.key)])) as Record<IndexKey, boolean>
   const pct = allowPct && mode === "pct"
   const rows = pct ? data.filter((d) => d.acc != null) : data.filter((d) => d.value != null)
   const available = INDEXES.filter((i) => rows.some((d) => d[i.key] != null))
@@ -78,12 +82,12 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
     const p = payload[0].payload as EvolutionPoint
     const items: Row[] = pct
       ? [
-          { label: "Carteira", value: signedPct(p.acc ?? 0), color: "var(--foreground)" },
+          ...(rel.isVisible("acc") ? [{ label: "Carteira", value: signedPct(p.acc ?? 0), color: "var(--foreground)" }] : []),
           ...available.filter((i) => on[i.key] && p[i.key] != null).map((i) => ({ label: i.label, value: signedPct(p[i.key]!), color: i.color, dash: i.dash })),
         ]
       : [
-          { label: "Patrimônio", value: brl(p.value ?? 0), color: "var(--foreground)" },
-          ...(p.applied != null ? [{ label: "Aplicado", value: brl(p.applied), color: "var(--muted-foreground)", dash: "5 4" }, { label: "Ganho", value: `${(p.value ?? 0) - p.applied >= 0 ? "+" : ""}${brl((p.value ?? 0) - p.applied)}` }] : []),
+          ...(money.isVisible("value") ? [{ label: "Patrimônio", value: brl(p.value ?? 0), color: "var(--foreground)" }] : []),
+          ...(money.isVisible("applied") && p.applied != null ? [{ label: "Aplicado", value: brl(p.applied), color: "var(--muted-foreground)", dash: "5 4" }, ...(money.isVisible("value") ? [{ label: "Ganho", value: `${(p.value ?? 0) - p.applied >= 0 ? "+" : ""}${brl((p.value ?? 0) - p.applied)}` }] : [])] : []),
         ]
     return <Bubble title={monthLabel(String(label))} rows={items} />
   }
@@ -92,15 +96,26 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {pct ? (
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Comparar com">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Séries do gráfico">
+            <button
+              type="button"
+              aria-pressed={rel.isVisible("acc")}
+              title={rel.isVisible("acc") ? "Esconder Carteira" : "Mostrar Carteira"}
+              onClick={() => rel.toggle("acc")}
+              className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold text-muted-foreground transition-[opacity,background-color] duration-150", rel.isVisible("acc") ? "border-foreground bg-foreground text-background" : "line-through opacity-60")}
+            >
+              <Swatch color="currentColor" />
+              Carteira
+            </button>
             {available.map((i) => (
               <button
                 key={i.key}
                 type="button"
                 aria-pressed={on[i.key]}
-                onClick={() => setOn((o) => ({ ...o, [i.key]: !o[i.key] }))}
+                title={on[i.key] ? `Esconder ${i.label}` : `Mostrar ${i.label}`}
+                onClick={() => rel.toggle(i.key)}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold text-muted-foreground",
+                  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold text-muted-foreground transition-[opacity,background-color] duration-150",
                   on[i.key] && "border-foreground bg-foreground text-background",
                 )}
               >
@@ -111,10 +126,15 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
             {available.length === 0 && <span className="text-xs text-muted-foreground">Índices ainda não carregados</span>}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-4 text-xs font-semibold text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Swatch color="var(--foreground)" />Patrimônio</span>
-            <span className="flex items-center gap-1.5"><Swatch color="var(--muted-foreground)" dash="5 4" />Valor aplicado</span>
-          </div>
+          <ToggleLegend
+            className="justify-start"
+            isVisible={money.isVisible}
+            onToggle={money.toggle}
+            items={[
+              { key: "value", label: "Patrimônio", swatch: <LegendLine color="var(--foreground)" /> },
+              { key: "applied", label: "Valor aplicado", swatch: <LegendLine color="var(--muted-foreground)" dash="5 4" /> },
+            ]}
+          />
         )}
         {allowPct && (
           <div className="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label="Mostrar em">
@@ -147,12 +167,12 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
             <>
               <ReferenceLine y={0} stroke="var(--border)" />
               {available.map((i) => on[i.key] && <Line key={i.key} dataKey={i.key} type="monotone" stroke={i.color} strokeWidth={2} strokeDasharray={i.dash} dot={false} activeDot={false} isAnimationActive={false} />)}
-              <Line dataKey="acc" type="monotone" stroke="var(--foreground)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} isAnimationActive={false} />
+              {rel.isVisible("acc") && <Line dataKey="acc" type="monotone" stroke="var(--foreground)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} isAnimationActive={false} />}
             </>
           ) : (
             <>
-              <Area dataKey="value" type="monotone" stroke="var(--foreground)" strokeWidth={2.5} fill="var(--foreground)" fillOpacity={0.05} activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} isAnimationActive={false} />
-              <Line dataKey="applied" type="monotone" stroke="var(--muted-foreground)" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={false} isAnimationActive={false} />
+              {money.isVisible("value") && <Area dataKey="value" type="monotone" stroke="var(--foreground)" strokeWidth={2.5} fill="var(--foreground)" fillOpacity={0.05} activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} isAnimationActive={false} />}
+              {money.isVisible("applied") && <Line dataKey="applied" type="monotone" stroke="var(--muted-foreground)" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={false} isAnimationActive={false} />}
             </>
           )}
         </ComposedChart>
@@ -160,7 +180,7 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
 
       {pct && last && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1.5"><Swatch color="var(--foreground)" />Carteira <b className="text-foreground tabular-nums">{signedPct(last.acc ?? 0)}</b></span>
+          {rel.isVisible("acc") && <span className="flex items-center gap-1.5"><Swatch color="var(--foreground)" />Carteira <b className="text-foreground tabular-nums">{signedPct(last.acc ?? 0)}</b></span>}
           {available.filter((i) => on[i.key] && last[i.key] != null).map((i) => (
             <span key={i.key} className="flex items-center gap-1.5"><Swatch color={i.color} dash={i.dash} />{i.label} <b className="text-foreground tabular-nums">{signedPct(last[i.key]!)}</b></span>
           ))}
@@ -210,27 +230,70 @@ export function AllocationDonut({ data, total, size = 168, centerLabel }: { data
   )
 }
 
+export type AllocationRow = Slice
+
+const brl0 = (n: number) => brl(n).replace(/,\d\d$/, "")
+const pct1 = (n: number) => `${(n * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+
+/** Rosca + lista de categorias; clicar numa categoria da lista a tira da rosca e os percentuais passam a valer só para o que ficou. */
+export function AllocationPanel({ rows, total }: { rows: AllocationRow[]; total: number }) {
+  const legend = useSeriesToggle(rows.map((r) => r.key))
+  const shown = rows.filter((r) => legend.isVisible(r.key))
+  const shownTotal = legend.anyHidden ? shown.reduce((t, r) => t + r.value, 0) : total
+  return (
+    <div className="flex flex-1 flex-wrap items-center gap-5">
+      <AllocationDonut data={shown} total={shownTotal} centerLabel={`R$ ${compactNum(shownTotal)}`} />
+      <ul className="grid min-w-44 flex-1" aria-label="Categorias">
+        {rows.map((r) => {
+          const on = legend.isVisible(r.key)
+          return (
+            <li key={r.key} className="border-t first:border-0">
+              <button
+                type="button"
+                aria-pressed={on}
+                title={on ? `Esconder ${r.label}` : `Mostrar ${r.label}`}
+                onClick={() => legend.toggle(r.key)}
+                className={cn("flex min-h-9 w-full items-center gap-2.5 rounded-md py-1 text-left transition-opacity duration-150 outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50", !on && "opacity-50")}
+              >
+                <Dot color={r.color} square />
+                <span className={cn("min-w-0 flex-1 truncate text-sm font-semibold", !on && "line-through")}>{r.label}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{brl0(r.value)}</span>
+                <b className="w-12 text-right text-sm tabular-nums">{on && shownTotal ? pct1(r.value / shownTotal) : "—"}</b>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 /** Rentabilidade de cada mês (barras verdes/vermelhas) com o CDI do mês marcado por um traço. */
 export function MonthlyReturnsChart({ data, height = 200 }: { data: { month: string; ret: number | null; cdi: number | null }[]; height?: number }) {
   const rows = data.filter((d) => d.ret != null)
+  const legend = useSeriesToggle(["ret", "cdi"])
   if (rows.length === 0) return <p className="grid place-items-center rounded-xl border border-dashed text-sm text-muted-foreground" style={{ height }}>Ainda não há meses fechados com saldo registrado.</p>
   const tooltip = ({ active, payload, label }: TipProps) => {
     if (!active || !payload?.length) return null
     const p = payload[0].payload as (typeof rows)[number]
-    return <Bubble title={monthLabel(String(label))} rows={[{ label: "Carteira", value: signedPct(p.ret ?? 0) }, ...(p.cdi != null ? [{ label: "CDI", value: signedPct(p.cdi) }] : [])]} />
+    return <Bubble title={monthLabel(String(label))} rows={[...(legend.isVisible("ret") ? [{ label: "Carteira", value: signedPct(p.ret ?? 0) }] : []), ...(legend.isVisible("cdi") && p.cdi != null ? [{ label: "CDI", value: signedPct(p.cdi) }] : [])]} />
   }
   return (
+    <div className="grid gap-3">
     <ComposedChart responsive style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
       <CartesianGrid {...grid} />
       <XAxis dataKey="month" tickFormatter={monthLabel} tick={axis} axisLine={false} tickLine={false} tickMargin={8} minTickGap={8} />
       <YAxis tickFormatter={pctTick} tick={axis} axisLine={false} tickLine={false} width={48} />
       <Tooltip content={tooltip} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
       <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.5} />
-      <Bar dataKey="ret" radius={[4, 4, 4, 4]} maxBarSize={22} isAnimationActive={false}>
-        {rows.map((d) => (
-          <Cell key={d.month} fill={(d.ret ?? 0) >= 0 ? "var(--income)" : "var(--expense)"} />
-        ))}
-      </Bar>
+      {legend.isVisible("ret") && (
+        <Bar dataKey="ret" radius={[4, 4, 4, 4]} maxBarSize={22} isAnimationActive={false}>
+          {rows.map((d) => (
+            <Cell key={d.month} fill={(d.ret ?? 0) >= 0 ? "var(--income)" : "var(--expense)"} />
+          ))}
+        </Bar>
+      )}
+      {legend.isVisible("cdi") && (
       <Line
         dataKey="cdi"
         stroke="none"
@@ -247,7 +310,17 @@ export function MonthlyReturnsChart({ data, height = 200 }: { data: { month: str
           )
         }
       />
+      )}
     </ComposedChart>
+      <ToggleLegend
+        isVisible={legend.isVisible}
+        onToggle={legend.toggle}
+        items={[
+          { key: "ret", label: "Carteira no mês", swatch: <span className="flex gap-0.5"><Dot color="var(--income)" square /><Dot color="var(--expense)" square /></span> },
+          { key: "cdi", label: "CDI do mês", swatch: <LegendLine color="var(--foreground)" width={14} /> },
+        ]}
+      />
+    </div>
   )
 }
 
@@ -260,7 +333,9 @@ export const INCOME_SERIES = [
 
 /** Proventos por mês, empilhados por tipo. */
 export function IncomeChart({ data, height = 240 }: { data: { month: string; fii: number; dividend: number; jcp: number; interest: number }[]; height?: number }) {
-  const series = INCOME_SERIES.filter((s) => data.some((d) => d[s.key] > 0))
+  const all = INCOME_SERIES.filter((s) => data.some((d) => d[s.key] > 0))
+  const legend = useSeriesToggle(all.map((s) => s.key))
+  const series = all.filter((s) => legend.isVisible(s.key))
   const tooltip = ({ active, payload, label }: TipProps) => {
     if (!active || !payload?.length) return null
     const p = payload[0].payload as (typeof data)[number]
@@ -278,11 +353,7 @@ export function IncomeChart({ data, height = 240 }: { data: { month: string; fii
           <Bar key={s.key} dataKey={s.key} stackId="a" fill={s.color} maxBarSize={28} radius={i === series.length - 1 ? [4, 4, 0, 0] : 0} stroke="var(--card)" strokeWidth={1} isAnimationActive={false} />
         ))}
       </BarChart>
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
-        {series.map((s) => (
-          <span key={s.key} className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px]" style={{ background: s.color }} />{s.label}</span>
-        ))}
-      </div>
+      <ToggleLegend isVisible={legend.isVisible} onToggle={legend.toggle} items={all.map((s) => ({ key: s.key, label: s.label, swatch: <Dot color={s.color} square /> }))} />
     </div>
   )
 }

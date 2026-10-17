@@ -1,7 +1,7 @@
 import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Empty, Field, fieldClass, Money, PageTitle } from "@/components/bits"
+import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
 import { BulkBar, SelectAll } from "@/components/bulk-bar"
 import { Filters } from "@/components/filters"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
@@ -53,13 +53,19 @@ async function deleteAndClose(form: FormData) {
   redirect(backTo(form))
 }
 
-function ManualForm({ action, accounts, options, values, submit, next }: {
+function ManualForm({ action, accounts, options, values, submit, next, start, plain, cancelHref }: {
   action: (f: FormData) => Promise<void>
   accounts: Account[]
   options: Option[]
   values?: Pick<Tx, "id" | "accountId" | "date" | "description" | "amount" | "subcategoryId" | "note">
   submit: string
   next?: string
+  /** botões à esquerda do rodapé (ex.: Excluir) */
+  start?: React.ReactNode
+  /** dentro de um bloco do painel: rodapé simples, sem grudar no fim da área rolável */
+  plain?: boolean
+  /** mostra "Cancelar" (modal de nova transação) */
+  cancelHref?: string
 }) {
   return (
     <form action={action} className="grid gap-4">
@@ -96,7 +102,10 @@ function ManualForm({ action, accounts, options, values, submit, next }: {
       <Field label="Nota (opcional)">
         <input name="note" maxLength={1000} placeholder="Algo para lembrar depois" defaultValue={values?.note ?? ""} className={fieldClass} />
       </Field>
-      <Button type="submit" className="h-9">{submit}</Button>
+      <FormActions start={start} plain={plain}>
+        {cancelHref && <CancelLink href={cancelHref} />}
+        <Button type="submit" size="lg">{submit}</Button>
+      </FormActions>
     </form>
   )
 }
@@ -337,7 +346,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
 
       {sp.nova && activeAccounts.length > 0 && (
         <RouteDialog closeHref={here} title="Nova transação" description="Lançamento manual. Você pode editar ou excluir depois.">
-          <ManualForm action={createAndClose} accounts={activeAccounts} options={options} submit="Salvar transação" next={here} />
+          <ManualForm action={createAndClose} accounts={activeAccounts} options={options} submit="Salvar transação" next={here} cancelHref={here} />
         </RouteDialog>
       )}
 
@@ -453,14 +462,24 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
         <details className="group rounded-xl border p-4">
           <summary className="cursor-pointer text-sm font-medium">Editar lançamento manual</summary>
           <div className="mt-4 grid gap-4">
-            <ManualForm action={updateManual} accounts={accounts} options={options} values={tx} submit="Salvar alterações" />
-            <form action={deleteAndClose}>
+            <ManualForm
+              action={updateManual}
+              accounts={accounts}
+              options={options}
+              values={tx}
+              submit="Salvar alterações"
+              plain
+              start={
+                <Button type="submit" form="delete-tx" variant="destructive" size="lg">
+                  <Trash2 />
+                  Excluir
+                </Button>
+              }
+            />
+            {/* formulário à parte: o botão Excluir do rodapé o aciona pelo atributo `form` */}
+            <form id="delete-tx" action={deleteAndClose}>
               <input type="hidden" name="id" value={tx.id} />
               <input type="hidden" name="next" value={here} />
-              <Button type="submit" variant="destructive">
-                <Trash2 />
-                Excluir transação
-              </Button>
             </form>
           </div>
         </details>

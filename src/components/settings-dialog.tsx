@@ -3,6 +3,7 @@
 import { Bell, Cloud, Info, KeyRound, Monitor, Moon, Palette, Sun, type LucideIcon } from "lucide-react"
 import { createContext, useActionState, useContext, useMemo, useState } from "react"
 import { updateCredentials } from "@/app/(app)/settings-actions"
+import { FormActions } from "@/components/bits"
 import { Logo } from "@/components/logo"
 import { NotificationSettings, type NotifyProps } from "@/components/notification-settings"
 import { Button } from "@/components/ui/button"
@@ -187,7 +188,8 @@ function Account({ user }: { user: Props["user"] }) {
       </div>
     )
   return (
-    <form action={action} className="grid max-w-md gap-4">
+    <form action={action} className="grid gap-5">
+      <div className="grid max-w-md gap-4">
       <Heading title="Conta" value="Altere o usuário de entrada e a senha" />
       <label className="grid gap-1.5 text-sm font-medium">
         Usuário
@@ -214,9 +216,12 @@ function Account({ user }: { user: Props["user"] }) {
         </p>
       )}
       <p className="text-xs text-muted-foreground">Ao salvar, você sai de todos os aparelhos e entra de novo com o login novo. A senha fica guardada só como hash (scrypt).</p>
-      <Button type="submit" disabled={pending} className="h-9 justify-self-start px-4">
-        {pending ? "Salvando…" : "Salvar alterações"}
-      </Button>
+      </div>
+      <FormActions plain>
+        <Button type="submit" size="lg" disabled={pending}>
+          {pending ? "Salvando…" : "Salvar alterações"}
+        </Button>
+      </FormActions>
     </form>
   )
 }

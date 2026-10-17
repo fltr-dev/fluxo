@@ -1,4 +1,6 @@
 import type { LucideIcon } from "lucide-react"
+import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button"
 import { brl } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -84,13 +86,31 @@ export const IconCircle = ({ icon: Icon, color, soft, className }: { icon: Lucid
 
 /**
  * Rodapé padrão de modais e painéis: ações no canto inferior direito, com o botão principal por último;
- * `start` (ex.: "Excluir") fica isolado à esquerda. Fica colado ao fim da área rolável.
+ * `start` (ex.: "Excluir") fica isolado à esquerda. Por padrão fica colado ao fim da área rolável do modal/painel
+ * (ocupa a largura toda, descontando o padding de 24px); com `plain` é só uma linha de botões (formulário dentro de
+ * um bloco, como o "Editar lançamento" que abre dentro do painel).
  */
-export function FormActions({ children, start, className }: { children: React.ReactNode; start?: React.ReactNode; className?: string }) {
+export function FormActions({ children, start, className, plain }: { children: React.ReactNode; start?: React.ReactNode; className?: string; plain?: boolean }) {
   return (
-    <div data-slot="form-actions" className={cn("sticky bottom-0 z-10 -mx-6 -mb-6 flex flex-wrap items-center justify-end gap-2 border-t bg-popover px-6 py-3.5 max-md:pb-[max(0.875rem,env(safe-area-inset-bottom))]", className)}>
+    <div
+      data-slot="form-actions"
+      className={cn(
+        "flex flex-wrap items-center justify-end gap-2",
+        plain ? "border-t pt-4" : "sticky -bottom-6 z-10 -mx-6 -mb-6 border-t bg-popover px-6 py-3.5 max-md:pb-[max(0.875rem,env(safe-area-inset-bottom))]",
+        className,
+      )}
+    >
       {start && <div className="mr-auto flex items-center gap-2">{start}</div>}
       {children}
     </div>
+  )
+}
+
+/** Botão "Cancelar" do rodapé: volta para a tela sem salvar. */
+export function CancelLink({ href, children = "Cancelar" }: { href: string; children?: React.ReactNode }) {
+  return (
+    <Link href={href} scroll={false} className={buttonVariants({ variant: "outline", size: "lg" })}>
+      {children}
+    </Link>
   )
 }

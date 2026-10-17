@@ -36,6 +36,13 @@
       "when": 1792200621424,
       "tag": "0004_dividas_avisos_cofy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792201536270,
+      "tag": "0005_cofy_cards",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { AccountAvatar } from "@/components/account-avatar"
 import { Logo } from "@/components/logo"
 import { useSettings } from "@/components/settings-dialog"
@@ -30,8 +30,40 @@ function Tip({ label, show, children }: { label: string; show: boolean; children
   )
 }
 
-const itemClass = "relative flex h-9 items-center gap-2.5 overflow-hidden rounded-md px-3 text-sm whitespace-nowrap text-sidebar-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-sidebar-ring/50"
-const activeClass = "bg-sidebar-accent font-medium text-sidebar-accent-foreground hover:bg-sidebar-accent"
+const itemClass = "relative flex h-9 items-center gap-2.5 overflow-hidden rounded-md px-3 text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-sidebar-ring/50"
+// o fundo do item ativo é o marcador deslizante do NavList; aqui só o texto
+const activeClass = "font-medium text-sidebar-accent-foreground hover:bg-transparent"
+
+/** Marcador do item ativo: um único fundo que desliza (220ms) até o link com aria-current, com a sidebar aberta, recolhida ou nas contas. */
+function useActiveIndicator(deps: readonly unknown[]) {
+  const nav = useRef<HTMLElement>(null)
+  const [box, setBox] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+  const [ready, setReady] = useState(false)
+  const measure = useCallback(() => {
+    const root = nav.current
+    const el = root?.querySelector<HTMLElement>('a[aria-current="page"]')
+    if (!root || !el) return setBox(null)
+    const r = root.getBoundingClientRect()
+    const e = el.getBoundingClientRect()
+    setBox((b) => {
+      const next = { top: e.top - r.top, left: e.left - r.left, width: e.width, height: e.height }
+      return b && b.top === next.top && b.left === next.left && b.width === next.width && b.height === next.height ? b : next
+    })
+  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(measure, deps)
+  useEffect(() => {
+    // a primeira medida aparece sem deslizar; as seguintes animam
+    const id = requestAnimationFrame(() => setReady(true))
+    const ro = new ResizeObserver(measure)
+    if (nav.current) ro.observe(nav.current)
+    return () => {
+      cancelAnimationFrame(id)
+      ro.disconnect()
+    }
+  }, [measure])
+  return { nav, box, ready }
+}
 
 function BadgeMark({ value, collapsed }: { value?: number | "warn" | "danger"; collapsed: boolean }) {
   if (!value) return null
@@ -60,13 +92,20 @@ export function NavList({
   onAccountsOpenChange: (open: boolean) => void
 }) {
   const path = usePathname()
+  const { nav, box, ready } = useActiveIndicator([path, collapsed, accountsOpen, accounts.length])
   // Entrar numa conta (link, histórico do navegador) abre a lista para mostrar onde você está
   useEffect(() => {
     if (path.startsWith(`${ACCOUNTS_HREF}/`)) onAccountsOpenChange(true)
   }, [path, onAccountsOpenChange])
 
   return (
-    <nav className={cn("flex flex-col gap-1 px-2", collapsed && "items-stretch")} aria-label="Principal">
+    <nav ref={nav} className={cn("relative flex flex-col gap-1 px-2", collapsed && "items-stretch")} aria-label="Principal">
+      <span
+        aria-hidden
+        data-slot="nav-indicator"
+        className={cn("pointer-events-none absolute top-0 left-0 rounded-md bg-sidebar-accent", ready && "transition-[transform,width,height,opacity] duration-220 ease-[cubic-bezier(.2,.7,.2,1)]", !box && "opacity-0")}
+        style={box ? { transform: `translate(${box.left}px, ${box.top}px)`, width: box.width, height: box.height } : { width: 0, height: 0 }}
+      />
       {NAV.map((g, gi) => (
         <div key={g.group} className="flex flex-col gap-0.5 py-1">
           {collapsed ? (
@@ -115,7 +154,7 @@ export function NavList({
                               aria-current={on ? "page" : undefined}
                               aria-label={a.name}
                               className={cn(
-                                "flex items-center gap-2.5 rounded-md text-[0.8125rem] text-sidebar-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-sidebar-ring/50",
+                                "relative flex items-center gap-2.5 rounded-md text-[0.8125rem] text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-sidebar-ring/50",
                                 collapsed ? "size-9 justify-center" : "h-8 px-2",
                                 on && activeClass,
                               )}

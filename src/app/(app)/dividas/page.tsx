@@ -185,10 +185,8 @@ async function DetailSheet({ v }: { v: DebtView }) {
                 <li key={r.id} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
                   <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border-2", r.paidOn ? "border-transparent bg-income/15 text-income" : r.id === ev.next?.id ? "border-primary" : "border-muted-foreground/30")}>{r.paidOn && <Check className="size-3.5" strokeWidth={3} />}</span>
                   <div className="grid min-w-0 flex-1">
-                    <span className={cn("truncate", !r.paidOn && r.status !== "overdue" && r.id !== ev.next?.id && "text-muted-foreground")}>
-                      {v.schedule.kind === "NONE" && r.paidOn ? "Pagamento" : `Parcela ${r.number}`}
-                      {r.paidOn ? ` · paga em ${dateBR(r.paidOn)}` : r.due ? ` · ${dateBR(r.due)}${r.estimated ? " (previsto)" : ""}` : ""}
-                    </span>
+                    <span className={cn("truncate font-medium", !r.paidOn && r.status !== "overdue" && r.id !== ev.next?.id && "font-normal text-muted-foreground")}>{v.schedule.kind === "NONE" && r.paidOn ? "Pagamento" : `Parcela ${r.number}`}</span>
+                    <span className="text-xs text-muted-foreground">{r.paidOn ? `Paga em ${dateBR(r.paidOn)}` : r.due ? `Vence em ${dateBR(r.due)}${r.estimated ? " (previsto)" : ""}` : "Sem data"}</span>
                     {r.transactionId && (
                       <Link href={`/transacoes?tx=${r.transactionId}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
                         <Link2 className="size-3" /> vinculada a uma transação
@@ -217,7 +215,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
           )}
         </section>
 
-        <FormActions className="-mb-5">
+        <FormActions>
           <Link href={`/dividas?editar=${debt.id}`} className={buttonVariants({ variant: "outline", size: "lg" })}>
             <Pencil /> Editar
           </Link>

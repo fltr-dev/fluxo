@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Field, fieldClass } from "@/components/bits"
+import { CancelLink, Field, fieldClass, FormActions } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { Button } from "@/components/ui/button"
 import { CLASS_INFO, CLASS_ORDER, classFromCode, isIncome, isVariable, TRADE_LABEL, type AssetClass, type TradeType } from "@/lib/domain/investments"
@@ -107,7 +107,10 @@ export function NewInvestmentForm({ action, back, today }: { action: Action; bac
           <span className="text-lg font-bold tabular-nums">{brl(num(qty) * num(price))}</span>
         </div>
       )}
-      <Button type="submit" className="h-10">Salvar ativo</Button>
+      <FormActions>
+        <CancelLink href={back} />
+        <Button type="submit" size="lg">Salvar ativo</Button>
+      </FormActions>
     </form>
   )
 }
@@ -171,7 +174,10 @@ export function TradeForm({ action, back, today, assets, defaultId }: { action: 
           <span className="text-lg font-bold tabular-nums">{brl(num(qty) * num(price))}</span>
         </div>
       )}
-      <Button type="submit" className="h-10" disabled={!asset}>Salvar lançamento</Button>
+      <FormActions>
+        <CancelLink href={back} />
+        <Button type="submit" size="lg" disabled={!asset}>Salvar lançamento</Button>
+      </FormActions>
     </form>
   )
 }
@@ -217,8 +223,11 @@ export function TargetsForm({ action, back, current, targets }: { action: Action
             {empty ? "Sem alvo" : ok ? "Fecha em 100%" : sum > 100 ? `Passou ${(sum - 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp` : `Faltam ${(100 - sum).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp`}
           </span>
         </span>
-        <Button type="submit" disabled={!ok}>Salvar alvo</Button>
       </div>
+      <FormActions>
+        <CancelLink href={back} />
+        <Button type="submit" size="lg" disabled={!ok}>Salvar alvo</Button>
+      </FormActions>
     </form>
   )
 }

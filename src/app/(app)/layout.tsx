@@ -4,7 +4,10 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { auth, sessionIsCurrent, signOut } from "@/auth"
 import { NotificationBell, type BellItem } from "@/components/notification-bell"
+import { PageTransition } from "@/components/page-transition"
 import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton, ThemeToggle } from "@/components/shell-client"
+import { CofyFloating } from "@/components/cofy/floating"
+import { CofyProvider } from "@/components/cofy/store"
 import { SettingsProvider } from "@/components/settings-dialog"
 import { Sidebar } from "@/components/sidebar"
 import { buttonVariants } from "@/components/ui/button"
@@ -57,7 +60,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       primary={primaryFromCookie(jar.get("primary")?.value) ?? DEFAULT_PRIMARY}
       notify={{ settings: notify ?? DEFAULT_NOTIFY, configured: pushConfigured(), publicKey: vapidPublicKey(), demo }}
     >
-      <div className="flex min-h-svh">
+      <CofyProvider demo={demo}>
+      <div className="flex min-h-svh" style={demo ? ({ "--demo-bar": "1.875rem" } as React.CSSProperties) : undefined}>
         <Sidebar
           badges={badges}
           accounts={sidebarAccounts}
@@ -104,11 +108,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <ThemeToggle className="hidden md:inline-flex" />
           </header>
           {demo && <div className="border-b bg-amber-500/10 px-4 py-1.5 text-center text-xs font-medium text-amber-700 md:px-6 dark:text-amber-300">Demonstração · dados fictícios · somente leitura</div>}
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">{children}</main>
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">
+            <PageTransition>{children}</PageTransition>
+          </main>
         </div>
 
+        <CofyFloating userName={user.name} demo={demo} />
         <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version} />
       </div>
+      </CofyProvider>
     </SettingsProvider>
   )
 }

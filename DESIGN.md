@@ -35,6 +35,10 @@ Controle financeiro pessoal, **por FLTR Sistemas**. Este arquivo é a fonte de v
 - **Não fazer:** girar ou inclinar, usar gradiente ou cor fora do destaque, trocar a moeda por cifrão, escrever "Fluxo"/"FLUXO" ou em outra fonte, colocar o ícone sobre fotos.
 - **Maskable (Android):** símbolo solto branco dentro do círculo seguro de 80%; fundo `verde-600` sangrando até a borda.
 
+## Mascote: Cofy
+
+Porquinho-cofrinho **de perfil** (focinho à esquerda, fenda nas costas, rabinho enrolado) que guarda a moeda do fluxo. Em `src/components/cofy-mascot.tsx` (`CofyAvatar` e `CofyPose`: padrão, pensando, comemorando). Cores: corpo `#F4A7B9`, orelhas e focinho `#E27F98`, fenda e narinas `#B0485F`, moeda em verde fluxo; fundo do avatar verde 50 (verde 950 no escuro). Aparece no chat, no botão flutuante, no estado vazio, na "dica" de Dívidas e no menu (ícone `PiggyBank`). Tom: calmo, direto, número primeiro, sem exagero; só fala de finanças e do fluxo. Mensagens do usuário no chat usam a cor primária.
+
 ## Cor
 
 ### Escala Verde fluxo (marca)
@@ -132,7 +136,9 @@ Campos de formulário usam **16px no celular** (evita o zoom do iOS) e 14px a pa
 - **Raio:** `--radius: 0.625rem` (10px). `sm 6` (badges), `md 8` (inputs, botões pequenos), `lg 10` (botões, campos), `xl 14` (cards), `2xl 18` (sheets, modais, phone), `full` (chips, barras, avatares).
 - **Borda × sombra:** cards têm só borda `1px var(--border)` e fundo `card`. Sombra só no que flutua: popover/menu `0 8px 24px -8px rgb(0 0 0 / .18)`, sheet/modal `0 24px 48px -12px rgb(0 0 0 / .28)`.
 - **Alvos de toque:** mínimo 44×44px no celular (botão padrão 40px de altura + área extra; ícones-botão 40px). Desktop pode usar 32–36px.
-- **Movimento:** 150ms `cubic-bezier(.2,.7,.2,1)` em hover/press; 220ms para sheets e modais; sem animação de entrada em listas. `prefers-reduced-motion`: tudo instantâneo.
+- **Movimento:** curto e discreto, sem quicar. Rápido (150ms `cubic-bezier(.2,.7,.2,1)`): hover, clique em botão (escala 0,97), legenda, ícone ativo. Padrão (220ms, mesma curva): marcador do item ativo do menu (um fundo que **desliza** de um item ao outro, também recolhido e nas contas), entrada de página (sobe 8px com fade, a cada troca de rota; abrir modal não reanima), sheets e modais. **Onda do logo** (1,4s `ease-in-out`): balança uma vez ao abrir o app e fica em loop enquanto a sincronização roda. Listas não animam item a item. `prefers-reduced-motion`: tudo instantâneo e o logo fica parado.
+- **Legenda de gráfico:** toda legenda é clicável: tocar num item esconde a série (item riscado e a 50% de opacidade, `aria-pressed`); tocar de novo mostra. Sempre sobra ao menos uma série e a escala se ajusta ao que ficou. O estado volta ao padrão ao sair da tela. Implementação: `useSeriesToggle` + `ToggleLegend` (`components/chart-legend.tsx`).
+- **Modais e painéis:** o rodapé de ações (`FormActions`) fica sempre embaixo, **à direita**: "Cancelar" (contorno) e depois a ação principal (verde) por último; "Excluir"/"Arquivar" isolados à esquerda. O rodapé fica colado ao fim da área rolável. Painel de detalhe é lateral no computador e **bottom sheet** no celular (abaixo de 768px): alça, até 90% da altura, cantos de cima arredondados, arrastar a alça para baixo fecha, respeita a área segura do iPhone.
 - **Foco:** `outline: none` + `box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 35%, transparent)` e borda `ring`.
 
 ## Ícones

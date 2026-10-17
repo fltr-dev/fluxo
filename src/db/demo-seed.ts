@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm"
 import type { PgliteDatabase } from "drizzle-orm/pglite"
 import { addDays, addMonths, monthEnd, monthOf, today } from "@/lib/domain/dates"
+import { seedDemoChat } from "./demo-chat"
 import { seedDemoDebts } from "./demo-debts"
 import { seedDemoInvestments } from "./demo-investments"
 import { SEED_CATEGORIES, SEED_PLUGGY_MAP } from "./seed-data"
@@ -222,6 +223,7 @@ export async function seedDemo(db: PgliteDatabase<typeof import("./schema")>) {
     snapshots: [...months.slice(1, -1).map((m, i) => ({ date: monthEnd(m), offset: i - 11 })), { date: now, offset: 0 }],
   })
   await seedDemoDebts(db, { now, thisMonth })
+  await seedDemoChat(db, { now })
   const synced = new Date(Date.now() - 2 * 3600_000)
   await db.insert(s.syncRuns).values({ trigger: "CRON", startedAt: synced, finishedAt: new Date(synced.getTime() + 40_000), status: "OK" })
 }

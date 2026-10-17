@@ -3,7 +3,7 @@
 import { ChevronRight, Eye, EyeOff, House, LogOut, Menu, Moon, PiggyBank, Plus, RefreshCw, Settings, Sun, ArrowLeftRight } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useFormStatus } from "react-dom"
 import { Logo } from "@/components/logo"
 import { useSettings } from "@/components/settings-dialog"
@@ -72,6 +72,13 @@ export function PrivacyToggle({ className }: { className?: string }) {
 /** Botão de sincronizar: o ícone gira enquanto a server action roda. */
 export function SyncButton({ compact }: { compact?: boolean }) {
   const { pending } = useFormStatus()
+  // a onda do logo fica em loop enquanto a sincronização roda (CSS lê o atributo no <html>)
+  useEffect(() => {
+    const root = document.documentElement
+    if (pending) root.dataset.syncing = "1"
+    else delete root.dataset.syncing
+    return () => void delete root.dataset.syncing
+  }, [pending])
   return (
     <Button type="submit" variant={compact ? "ghost" : "outline"} size={compact ? "icon-sm" : "sm"} className={cn(compact && "max-md:size-9")} disabled={pending} aria-label="Sincronizar agora">
       <RefreshCw className={cn(pending && "animate-spin")} />

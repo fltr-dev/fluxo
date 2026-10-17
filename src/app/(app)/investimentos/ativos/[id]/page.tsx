@@ -1,7 +1,7 @@
 import { ArrowLeftRight, ChevronLeft, ChartLine, Coins, Pencil, Plus, Scale, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Field, fieldClass } from "@/components/bits"
+import { CancelLink, Field, fieldClass, FormActions } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { EvolutionChart } from "@/components/investment-charts"
 import { RouteDialog } from "@/components/route-overlay"
@@ -233,15 +233,23 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
                 )}
               </>
             )}
-            <Button type="submit" className="h-10">Salvar</Button>
+            <FormActions
+              start={
+                h.manual && (
+                  <Button type="submit" form="delete-investment" variant="destructive" size="lg">
+                    <Trash2 />
+                    Excluir ativo
+                  </Button>
+                )
+              }
+            >
+              <CancelLink href={path} />
+              <Button type="submit" size="lg">Salvar</Button>
+            </FormActions>
           </form>
           {h.manual && (
-            <form action={deleteInvestment} className="border-t pt-4">
+            <form id="delete-investment" action={deleteInvestment}>
               <input type="hidden" name="id" value={h.id} />
-              <Button type="submit" variant="destructive" className="w-full">
-                <Trash2 />
-                Excluir ativo e lançamentos
-              </Button>
             </form>
           )}
         </RouteDialog>
