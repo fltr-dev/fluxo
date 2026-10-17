@@ -70,6 +70,23 @@ Controle financeiro pessoal, **por FLTR Sistemas**. Este arquivo é a fonte de v
 
 **Gráficos** (`--chart-1..5`): claro `#12A06A #0EA5E9 #8B5CF6 #F59E0B #F43F5E`; escuro `#36BC84 #38BDF8 #A78BFA #FBBF24 #FB7185`. Receita × despesa em gráficos usa `--income` e `--expense`, não a série 1..5.
 
+**Categorias de investimento** (`--inv-*`), sempre nesta ordem nos gráficos (a cor segue a categoria, nunca o ranking); validadas para daltonismo em cada tema, com legenda e % escritos ao lado:
+
+| Categoria | Claro | Escuro |
+|---|---|---|
+| Pós-fixado | `#12A06A` | `#12A06A` |
+| Ações | `#0EA5E9` | `#0284C7` |
+| FII | `#8B5CF6` | `#8B5CF6` |
+| Pré-fixado | `#F59E0B` | `#D97706` |
+| Cripto | `#F43F5E` | `#E11D48` |
+| Inflação | `#2563EB` | `#3B82F6` |
+| BDR | `#CA8A04` | `#A16207` |
+| Fundos | `#9333EA` | `#9333EA` |
+| ETF | `#EA580C` | `#EA580C` |
+| Outros | `#71717A` | `#A1A1AA` |
+
+Nos gráficos de rentabilidade a **carteira** é a linha cheia em `foreground`; os índices (CDI, IBOV, IPCA) ficam em cinza com traços diferentes e o nome escrito, para não competir com as cores das categorias. Ganho/perda do mês usa `--income`/`--expense`.
+
 ### Cores de destaque (Configurações › Aparência)
 
 Escolha por aparelho; `light` vale no tema claro, `vivid` nos escuros. Tons suaves (fundo do item ativo, chips) saem de `color-mix(in oklab, var(--primary) 10%, var(--card))`.
@@ -120,7 +137,7 @@ Campos de formulário usam **16px no celular** (evita o zoom do iOS) e 14px a pa
 
 ## Ícones
 
-Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegação, listas), 24 (vazios). Ícone de categoria sempre num círculo de 40px: fundo `cor 12%` e ícone na cor cheia (modo `soft`), ou fundo cheio com ícone branco em KPIs. Navegação: Dashboard `layout-dashboard` (celular: `house` "Início"), Relatórios `chart-column`, Transações `arrow-left-right`, Calendário `calendar-days`, Limites `gauge`, Metas `target`, Reserva `shield-check`, Categorias `tags`, Regras `list-checks`, Contas `landmark`.
+Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegação, listas), 24 (vazios). Ícone de categoria sempre num círculo de 40px: fundo `cor 12%` e ícone na cor cheia (modo `soft`), ou fundo cheio com ícone branco em KPIs. Navegação: Dashboard `layout-dashboard` (celular: `house` "Início"), Relatórios `chart-column`, Investimentos `trending-up`, Transações `arrow-left-right`, Calendário `calendar-days`, Limites `gauge`, Metas `target`, Reserva `shield-check`, Categorias `tags`, Regras `list-checks`, Contas `landmark`.
 
 ## Componentes
 

@@ -9,6 +9,7 @@ import {
   goalContributions,
   goals,
   institutions,
+  investments,
   reserveSettings,
   syncRuns,
   transactions,
@@ -168,9 +169,12 @@ export const listAccounts = cache(async () => {
       syncedAt: accounts.transactionsSyncedAt,
       institution: institutions.name,
       institutionId: accounts.institutionId,
+      // conta que guarda o saldo de um ativo da tela de Investimentos
+      investmentId: investments.id,
     })
     .from(accounts)
     .leftJoin(institutions, eq(accounts.institutionId, institutions.id))
+    .leftJoin(investments, eq(investments.accountId, accounts.id))
     .orderBy(asc(accounts.archived), asc(institutions.name), asc(accounts.name))
 })
 

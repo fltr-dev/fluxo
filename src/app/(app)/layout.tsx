@@ -31,9 +31,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const demo = session?.user?.role === "demo"
   const run = status.lastRun
   const syncError = status.connectionErrors.length > 0 || run?.status === "ERROR"
-  const sidebarAccounts = accounts
+  const activeAccounts = accounts
     .filter((a) => !a.archived)
-    .map((a) => ({ id: a.id, name: a.name, look: accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution }) }))
+    .map((a) => ({ id: a.id, name: a.name, look: accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution }), investment: a.investmentId != null }))
+  // Cada ativo da carteira tem a sua conta; na lista lateral eles ficariam dezenas: aparecem em Investimentos
+  const sidebarAccounts = activeAccounts.filter((a) => !a.investment)
   const badges = { "/transacoes": status.uncategorized, ...(syncError && { "/contas": "danger" as const }) }
   const accountsOpen = jar.get("sidebar-accounts")?.value !== "closed"
 
@@ -59,7 +61,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background/90 px-4 backdrop-blur md:px-6">
             <div className="min-w-0 flex-1">
-              <Breadcrumb accounts={sidebarAccounts.map((a) => ({ id: a.id, name: a.name }))} />
+              <Breadcrumb accounts={activeAccounts.map((a) => ({ id: a.id, name: a.name }))} />
             </div>
             {syncError ? (
               <Link href="/contas" className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-red-500/10 px-2 text-sm text-red-700 lg:px-2.5 dark:text-red-400" aria-label="Erro na sincronização">

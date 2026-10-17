@@ -1,4 +1,5 @@
 import { daysBetween, toLocalDate } from "./dates"
+import { tradeFromPluggy, type PluggyInvestmentInfo, type PluggyInvestmentTxInfo } from "./investments"
 
 /** Transação da Pluggy (GET /v2/transactions), só os campos usados. */
 export type PluggyTx = {
@@ -86,8 +87,18 @@ export function mergeTransactions(existing: Existing[], incoming: Incoming[], wi
 }
 
 /** Investimento e movimentação da Pluggy (GET /investments, /investments/:id/transactions), só os campos usados. */
-export type PluggyInvestment = { id: string; name: string; balance: number; purchaseDate?: string | null; amountOriginal?: number | null }
-export type PluggyInvestmentTx = { id: string; amount: number; movementType: "CREDIT" | "DEBIT"; date: string }
+export type PluggyInvestment = PluggyInvestmentInfo & {
+  id: string
+  balance: number
+  purchaseDate?: string | null
+  amountOriginal?: number | null
+  quantity?: number | null
+  value?: number | null
+  dueDate?: string | null
+  issuer?: string | null
+  institution?: { name?: string | null } | null
+}
+export type PluggyInvestmentTx = PluggyInvestmentTxInfo & { movementType: "CREDIT" | "DEBIT" }
 
 /**
  * Aplicações (+) e resgates (−) de um investimento. Sem movimentações (ex.: CDB do Nubank), usa a compra
@@ -99,5 +110,22 @@ export function deriveInvestmentMovements(inv: PluggyInvestment, txs: PluggyInve
     return txs.map((t) => ({ pluggyId: t.id, date: t.date.slice(0, 10), amount: t.movementType === "DEBIT" ? -Math.abs(t.amount) : Math.abs(t.amount) }))
   if (inv.balance > 0 && inv.purchaseDate && inv.amountOriginal)
     return [{ pluggyId: `purchase:${inv.id}`, date: inv.purchaseDate.slice(0, 10), amount: inv.amountOriginal }]
+  return []
+}
+
+/**
+ * Operações do ativo (compras, vendas, proventos) pelas movimentações da Pluggy. Sem movimentações, a compra
+ * (`purchaseDate` + `amountOriginal`) vira uma compra única, como em `deriveInvestmentMovements`.
+ */
+export function deriveInvestmentTrades(inv: PluggyInvestment, txs: PluggyInvestmentTx[]) {
+  if (txs.length)
+    return txs.flatMap((t) => {
+      const trade = tradeFromPluggy(t)
+      return trade ? [{ pluggyId: t.id, date: t.date.slice(0, 10), fees: 0, ...trade }] : []
+    })
+  if (inv.balance > 0 && inv.purchaseDate && inv.amountOriginal) {
+    const quantity = inv.quantity || null
+    return [{ pluggyId: `purchase:${inv.id}`, date: inv.purchaseDate.slice(0, 10), type: "BUY" as const, quantity, price: quantity ? inv.amountOriginal / quantity : null, amount: inv.amountOriginal, fees: 0 }]
+  }
   return []
 }

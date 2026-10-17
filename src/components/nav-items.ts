@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Tags,
   Target,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react"
 
@@ -20,6 +21,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/relatorios", label: "Relatórios", icon: ChartColumn },
+      { href: "/investimentos", label: "Investimentos", icon: TrendingUp },
       { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
       { href: "/calendario", label: "Calendário", icon: CalendarDays },
     ],

@@ -1,6 +1,6 @@
 # SPEC — Sistema de Controle Financeiro Pessoal
 
-> Versão 1.1 · 2026-10-15 · Status: MVP implementado; 1.1 acrescenta sidebar retrátil, contas com detalhe, calendário, configurações e PWA instalável
+> Versão 1.2 · 2026-10-17 · Status: MVP implementado; 1.1 acrescenta sidebar retrátil, contas com detalhe, calendário, configurações e PWA instalável; 1.2 acrescenta a tela de **Investimentos** (§6.11)
 
 ## 1. Visão geral
 
@@ -84,13 +84,14 @@ Monólito único. Sem API pública, sem filas, sem cache dedicado.
 - **Campos do banco** (valor, data, descrição, status, parcelas) são atualizados na sync. **Campos do usuário** (categoria definida manualmente, nota, ignorar) **nunca são sobrescritos**.
 - **Pendentes**: entram com `status = PENDING` e selo visual, e contam para limites. Quando confirmadas, a Pluggy entrega o registro definitivo: atualizar o mesmo registro ou remover a pendente órfã, preservando a categoria do usuário quando possível.
 - **Saldos**: a cada sync, gravar snapshot de saldo por conta (alimenta a evolução do patrimônio).
+- **Investimentos**: a cada sync, os ativos da Pluggy (`GET /investments`) e suas movimentações atualizam a tela de Investimentos (§6.11); proventos que caem como crédito na conta da corretora com o ticker na descrição viram proventos do ativo; depois são buscados os índices (CDI, IPCA, IBOV) e as cotações dos ativos lançados à mão. Falha nessas fontes nunca derruba a sync.
 - **Erros**: registrar em `sync_runs` (início, fim, status, mensagem). Mostrar na UI a última sync bem-sucedida e o erro, se houver (ex.: consentimento expirado → instruir a renovar no MeuPluggy).
 - Respeitar o timeout de funções da Vercel Hobby: sincronizar conta por conta e retomar de onde parou se necessário.
 
 ## 6. Regras de domínio
 
 ### 6.1 Contas
-- Tipos: `CHECKING` (corrente), `CREDIT_CARD`, `SAVINGS_INVESTMENT` (só saldo, sem detalhamento), `CASH` (carteira/manual).
+- Tipos: `CHECKING` (corrente), `CREDIT_CARD`, `SAVINGS_INVESTMENT` (saldo; o detalhamento dos investimentos fica em §6.11), `CASH` (carteira/manual).
 - Origem: `PLUGGY` ou `MANUAL`.
 - Flag `is_emergency_reserve`.
 - Moeda única: **BRL**.
@@ -158,6 +159,16 @@ Cada transação registra `category_source` (`USER`, `RULE`, `JEV`, `PLUGGY_MAP`
 - "Mês" = **mês calendário** (dia 1 até o último dia) em relatórios, limites e comparativos.
 - Fuso: `America/Sao_Paulo` para todos os agrupamentos por data.
 
+### 6.11 Investimentos
+- **Ativo** (`investments`): cada um tem a sua conta em `accounts` (tipo `SAVINGS_INVESTMENT`), que guarda o saldo e entra no patrimônio e nos snapshots como qualquer conta. Origem: **Pluggy** (posição, cotação, custo, taxa e vencimento vêm da corretora; só nome e categoria são editáveis) ou **manual** (cripto, corretora sem Open Finance; a posição sai das operações lançadas).
+- **Categorias**: Pós-fixado, Pré-fixado, Inflação, Ações, FII, BDR, ETF, Cripto, Fundos e Outros. Detectadas pelo tipo/subtipo e indexador da Pluggy (ou pelo ticker da B3: final 11 = FII, 32–35 = BDR, 3–8 = ação); a escolha do usuário (`asset_class_override`) vale sobre a detectada e a sync não a toca. Cada categoria tem cor fixa (`--inv-*`, validada para daltonismo nos temas claro e escuro), na mesma ordem em todos os gráficos.
+- **Operações** (`investment_trades`): compra, venda, bonificação e proventos (dividendo, JCP, rendimento de FII, juros). Posição manual: compra soma quantidade e custo (com taxas), venda tira pelo preço médio (diferença = lucro realizado), bonificação soma quantidade com o custo informado; renda fixa manual usa valores em reais e o saldo atual é informado à mão. Data futura = provento anunciado, a receber. Operações da Pluggy são refeitas a cada sync; lançamentos manuais nunca são apagados por ela. Nos ativos da Pluggy, o usuário só lança proventos.
+- **Rentabilidade**: mês a mês pelo **Dietz modificado** — (saldo final − saldo inicial − aportes + proventos) ÷ (saldo inicial + aportes/2), com saldos de fim de mês dos snapshots e o saldo de hoje no mês corrente — e acumulada por produto. Só usa meses com saldo registrado (o histórico começa na primeira sync com a tela); conta que entra sem operação registrada tem o saldo inicial tratado como aporte. Valor aplicado = custo pelas operações. Comparação com **CDI** (série 12 do SGS/BCB, diária, composta por mês), **IPCA** (série 433) e **IBOV** (fechamento mensal do Yahoo Finance), acumulados na mesma janela; "% do CDI" = rentabilidade ÷ CDI.
+- **Resultado do ativo**: saldo − custo; rentabilidade = resultado ÷ custo; o detalhe soma proventos recebidos e lucro em vendas. Renda fixa usa o saldo bruto (antes de IR e IOF).
+- **Proventos**: total e média de 12 meses, por mês e tipo, por ativo, **yield on cost** (12 meses ÷ custo da renda variável, exceto cripto) e a receber.
+- **Alocação-alvo** (`investment_targets`): % por categoria somando 100 (ou nenhum alvo). Para cada categoria: peso atual, alvo, diferença em pontos percentuais e quanto aportar para chegar ao alvo sem vender.
+- **Cotações** dos ativos manuais de renda variável: Yahoo Finance (`PETR4.SA`, `BTC-BRL`), na sync ou no botão "Cotações"; sem resposta, fica o preço informado (último preço de compra ou cotação digitada).
+
 ## 7. Modelo de dados (conceitual)
 
 ```
@@ -183,6 +194,13 @@ goal_accounts     goal_id, account_id
 goal_contributions id, goal_id, date, amount, note
 reserve_settings  target_mode(MONTHS|FIXED), target_months, target_amount
 sync_runs         id, trigger(CRON|MANUAL), started_at, finished_at, status, error
+investment_movements id, account_id, pluggy_id, date, amount (aplicações/resgates; só para reconstruir o patrimônio)
+investments       id, account_id (unique), pluggy_id?, asset_class, asset_class_override?, code?, name, broker?,
+                  quantity?, unit_price?, invested?, rate_label?, due_date?, price_updated_at, created_at
+investment_trades id, investment_id, pluggy_id? ("tx:<id>" = provento achado na conta), date,
+                  type(BUY|SELL|BONUS|DIVIDEND|JCP|YIELD|INTEREST), quantity?, price?, amount, fees, note?
+investment_targets asset_class (pk), percent
+market_series     series(CDI|IPCA|IBOV), date, value  (pk series+date)
 app_credentials   id (=1), username, password_hash (scrypt), updated_at
 categorization_examples id, description, amount, subcategory_id, created_at
 ```
@@ -209,6 +227,13 @@ Valores monetários em `numeric(14,2)` (nunca float). Índices: `transactions(da
 7. **Metas**: CRUD, aportes, progresso e aporte mensal necessário.
 8. **Reserva**: contas marcadas, configuração de alvo e indicadores.
 9. **Contas** (`/contas`, antes "Conexões"): **resumo geral** (patrimônio, disponível, investido, cartões), items Pluggy, contas, contas manuais, botão "Sincronizar agora", histórico de `sync_runs`. Cada conta tem **apelido**, **banco** e **cor** editáveis; bancos conhecidos (Nubank, Itaú, Inter, Bradesco, Santander, Banco do Brasil, Caixa, C6, BTG, XP, Mercado Pago, PicPay, PagBank, Sicredi, Sicoob, Will Bank, Original) são detectados pelo nome da conexão/conta e trazem cor e logo em SVG. `/contas/[id]` mostra o **detalhe da conta**: saldo (ou fatura aberta), receitas/despesas do mês, evolução do saldo, detalhes e histórico de transações (período, busca, paginação). `/conexoes` redireciona para `/contas`.
+9a. **Investimentos** (`/investimentos`, no menu logo após Relatórios), com abas e modais pela URL (`?lancar=`, `?novo=1`, `?alvo=1`):
+   - **Resumo**: período 6M/12M/no ano/tudo; indicadores (patrimônio e variação do mês, valor aplicado, lucro, rentabilidade e % do CDI, proventos de 12 meses); **evolução da carteira** num gráfico só, alternando *R$ Patrimônio* (patrimônio × aplicado) e *% Rentabilidade* (carteira × CDI/IBOV/IPCA, liga e desliga); **alocação por categoria** (rosca + lista) ao lado de **atual × alvo**; **rentabilidade mês a mês** (barras + traço do CDI) ao lado de **proventos** (12 meses, a receber, próximos pagamentos); **destaques** (maiores altas e baixas).
+   - **Ativos** (`/investimentos/ativos`): composição da carteira, busca, filtro por categoria e tabela agrupada por categoria (renda variável: quantidade, preço médio, cotação; renda fixa: taxa, vencimento, instituição; ambos: aplicado, saldo, rentabilidade, % da carteira); exportar CSV (`/api/investimentos/csv`).
+   - **Proventos** (`/investimentos/proventos`): indicadores, gráfico mensal por tipo, ranking por ativo e lista de pagamentos (a receber e recebidos, filtro por tipo).
+   - **Ativo** (`/investimentos/ativos/[id]`): cotação/saldo, posição, evolução (saldo × aplicado ou rentabilidade × índices), resultado (valorização + proventos + vendas), movimentações e proventos; editar (nome, categoria; nos manuais também ticker, corretora, cotação ou saldo, taxa e vencimento) e excluir (só manual).
+   - **Novo lançamento** (compra, venda, bonificação ou provento), **novo ativo manual** e **alocação-alvo** (soma tem de fechar em 100%).
+   - As contas dos ativos não aparecem como subitens de *Contas* na sidebar (seriam dezenas); continuam em `/contas`.
 10. **Calendário** (`/calendario`): grade do mês com o total **recebido** e **gasto** em cada dia (sem transferências e ignoradas), resumo do mês, navegação por mês, filtro por conta e por **várias categorias** (categoria inclui as subcategorias). Clicar num dia lista as transações dele. Estado na URL (`mes`, `dia`, `conta`, `categorias`).
 11. **Configurações** (modal aberto pelo menu do perfil, com barra lateral de seções): **Aparência** (fundo Sistema/Claro/Cinza/Preto e cor de destaque entre 9 opções prontas, sem escolha livre; por aparelho, em cookie), **Conta** (alterar usuário e senha, ver §4) e **Sobre** (versão e empresa desenvolvedora, *FLTR Sistemas*).
 
@@ -238,11 +263,13 @@ Vitest, unitários e sem I/O, sobre funções puras de domínio:
 
 Também testados (Vitest, sem navegador): cor e contraste (WCAG) das 9 cores de destaque nos fundos claro e escuro, ids de tema/cor vindos de cookie (nunca viram CSS sem validar), detecção de banco por nome e aparência da conta (cor escolhida > cor do banco), existência de todos os ícones sugeridos na versão instalada do Lucide, hash scrypt e regras do login do dono contra Postgres em memória (variáveis de ambiente, login salvo, troca e versão, tabela não migrada, falha fechada) e os totais por dia do calendário com filtro de várias categorias (incluindo payloads de SQL injection).
 
+Investimentos: regras puras (`domain/investments.test.ts`: categorias pela Pluggy e pelo ticker, rótulo da taxa, operações e proventos da Pluggy e da conta, posição e preço médio, Dietz modificado, CDI/IBOV por mês, rebalanceamento) e, contra Postgres em memória (`lib/investments.test.ts`), a sync com a Pluggy simulada (ativos, operações, proventos achados na conta, sync repetida sem duplicar e sem desfazer a categoria do usuário), as ações (ativo manual, compra/venda, saldo à mão, proventos, alvo) e a rentabilidade com aporte no meio do mês e o CDI acumulado.
+
 Sem E2E automatizado no MVP; as telas novas foram verificadas manualmente no navegador (desktop e celular, claro/cinza/preto) contra Postgres local e contra a demonstração.
 
 ## 11. Fora do MVP
 
-- Investimentos detalhados (ativos, rentabilidade, IR). No MVP entra apenas o saldo.
+- Imposto de renda de investimentos (apuração mensal, DARF, come-cotas) e histórico de cotações por ativo.
 - Recorrências e previsão/projeção de saldo.
 - Importação OFX/CSV.
 - Notificações (e-mail/push).

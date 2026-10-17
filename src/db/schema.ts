@@ -78,6 +78,80 @@ export const investmentMovements = pgTable("investment_movements", {
   amount: money("amount").notNull(),
 })
 
+// ---------- Investimentos ----------
+
+export const assetClass = pgEnum("asset_class", ["POS_FIXADO", "PRE_FIXADO", "INFLACAO", "ACOES", "FII", "BDR", "ETF", "CRIPTO", "FUNDOS", "OUTROS"])
+export const tradeType = pgEnum("trade_type", ["BUY", "SELL", "BONUS", "DIVIDEND", "JCP", "YIELD", "INTEREST"])
+
+const qty = (name: string) => numeric(name, { precision: 24, scale: 8, mode: "number" })
+
+/**
+ * Um ativo da carteira. Cada um tem a sua linha em `accounts` (tipo SAVINGS_INVESTMENT), que guarda o saldo e entra no
+ * patrimônio e nos snapshots como qualquer conta. Os da Pluggy vêm do GET /investments; os manuais (cripto, corretora
+ * sem Open Finance) têm posição calculada pelas operações em `investment_trades`.
+ */
+export const investments = pgTable("investments", {
+  id: serial().primaryKey(),
+  accountId: integer().notNull().unique().references(() => accounts.id, { onDelete: "cascade" }),
+  // id do investimento na Pluggy (sem o prefixo "inv:" da conta); null = manual
+  pluggyId: text().unique(),
+  // Categoria detectada (Pluggy ou escolhida ao criar); a escolha do usuário fica em `assetClassOverride` e a sync não toca nela
+  assetClass: assetClass().notNull(),
+  assetClassOverride: assetClass(),
+  code: text(), // ticker ("ITSA4", "BTC") ou código do título
+  name: text().notNull(),
+  broker: text(), // instituição/corretora onde está
+  quantity: qty("quantity"),
+  // Cotação atual (renda variável); renda fixa usa só `value`
+  unitPrice: qty("unit_price"),
+  // Custo (valor aplicado) da posição atual
+  invested: money("invested"),
+  rateLabel: text(), // "110% CDI", "IPCA + 6,5%", "13,2% a.a."
+  dueDate: date({ mode: "string" }),
+  // Cotação e saldo atualizados em
+  priceUpdatedAt: timestamp({ withTimezone: true }),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Operações (compra, venda, bonificação) e proventos de um ativo. Data futura = provento anunciado, a receber. */
+export const investmentTrades = pgTable(
+  "investment_trades",
+  {
+    id: serial().primaryKey(),
+    investmentId: integer().notNull().references(() => investments.id, { onDelete: "cascade" }),
+    pluggyId: text().unique(), // null = lançamento manual (a sync nunca apaga)
+    date: date({ mode: "string" }).notNull(),
+    type: tradeType().notNull(),
+    quantity: qty("quantity"),
+    price: qty("price"),
+    // Total da operação, sempre positivo (compra: quanto saiu; venda e proventos: quanto entrou)
+    amount: money("amount").notNull(),
+    fees: money("fees").notNull().default(0),
+    note: text(),
+  },
+  (t) => [index().on(t.investmentId, t.date), index().on(t.date)],
+)
+
+/** Alocação-alvo por categoria, em % da carteira. */
+export const investmentTargets = pgTable("investment_targets", {
+  assetClass: assetClass().primaryKey(),
+  percent: real().notNull(),
+})
+
+/**
+ * Séries de mercado para comparar a carteira: CDI (taxa diária, % a.d.), IPCA (variação mensal, %, no dia 1 do mês)
+ * e IBOV (pontos no fechamento do mês, no dia 1 do mês).
+ */
+export const marketSeries = pgTable(
+  "market_series",
+  {
+    series: text().notNull(),
+    date: date({ mode: "string" }).notNull(),
+    value: real().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.series, t.date] })],
+)
+
 export const categories = pgTable("categories", {
   id: serial().primaryKey(),
   // null = categoria (nível 1); preenchido = subcategoria (nível 2)

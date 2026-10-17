@@ -116,11 +116,11 @@ export async function detectAndMarkTransfers(since: string | null) {
   return pairs.length * 2 + singles.length
 }
 
-/** Contas manuais: saldo = saldo inicial + soma das transações. */
+/** Contas manuais: saldo = saldo inicial + soma das transações (as de investimentos manuais têm o saldo calculado pela posição). */
 export async function refreshManualBalances() {
   await db.execute(sql`
     update accounts a set balance = a.opening_balance + coalesce((select sum(t.amount) from transactions t where t.account_id = a.id), 0)
-    where a.source = 'MANUAL'`)
+    where a.source = 'MANUAL' and not exists (select 1 from investments i where i.account_id = a.id)`)
 }
 
 export async function snapshotBalances(date: string) {
