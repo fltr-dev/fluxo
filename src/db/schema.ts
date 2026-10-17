@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -26,6 +27,10 @@ export const categorySource = pgEnum("category_source", ["USER", "RULE", "JEV", 
 export const matchType = pgEnum("match_type", ["CONTAINS", "STARTS_WITH", "REGEX"])
 export const goalTracking = pgEnum("goal_tracking", ["ACCOUNT", "CONTRIBUTIONS"])
 export const reserveMode = pgEnum("reserve_mode", ["MONTHS", "FIXED"])
+export const debtSchedule = pgEnum("debt_schedule", ["FIXED_DAY", "AFTER_SALARY", "DATE", "NONE"])
+export const notificationKind = pgEnum("notification_kind", ["DEBT_DUE", "DEBT_OVERDUE", "SALARY", "LIMIT", "SYSTEM"])
+export const chatRole = pgEnum("chat_role", ["user", "assistant"])
+export const chatActionStatus = pgEnum("chat_action_status", ["PENDING", "DONE", "CANCELLED"])
 
 export const institutions = pgTable("institutions", {
   id: serial().primaryKey(),
@@ -77,6 +82,80 @@ export const investmentMovements = pgTable("investment_movements", {
   date: date({ mode: "string" }).notNull(),
   amount: money("amount").notNull(),
 })
+
+// ---------- Investimentos ----------
+
+export const assetClass = pgEnum("asset_class", ["POS_FIXADO", "PRE_FIXADO", "INFLACAO", "ACOES", "FII", "BDR", "ETF", "CRIPTO", "FUNDOS", "OUTROS"])
+export const tradeType = pgEnum("trade_type", ["BUY", "SELL", "BONUS", "DIVIDEND", "JCP", "YIELD", "INTEREST"])
+
+const qty = (name: string) => numeric(name, { precision: 24, scale: 8, mode: "number" })
+
+/**
+ * Um ativo da carteira. Cada um tem a sua linha em `accounts` (tipo SAVINGS_INVESTMENT), que guarda o saldo e entra no
+ * patrimônio e nos snapshots como qualquer conta. Os da Pluggy vêm do GET /investments; os manuais (cripto, corretora
+ * sem Open Finance) têm posição calculada pelas operações em `investment_trades`.
+ */
+export const investments = pgTable("investments", {
+  id: serial().primaryKey(),
+  accountId: integer().notNull().unique().references(() => accounts.id, { onDelete: "cascade" }),
+  // id do investimento na Pluggy (sem o prefixo "inv:" da conta); null = manual
+  pluggyId: text().unique(),
+  // Categoria detectada (Pluggy ou escolhida ao criar); a escolha do usuário fica em `assetClassOverride` e a sync não toca nela
+  assetClass: assetClass().notNull(),
+  assetClassOverride: assetClass(),
+  code: text(), // ticker ("ITSA4", "BTC") ou código do título
+  name: text().notNull(),
+  broker: text(), // instituição/corretora onde está
+  quantity: qty("quantity"),
+  // Cotação atual (renda variável); renda fixa usa só `value`
+  unitPrice: qty("unit_price"),
+  // Custo (valor aplicado) da posição atual
+  invested: money("invested"),
+  rateLabel: text(), // "110% CDI", "IPCA + 6,5%", "13,2% a.a."
+  dueDate: date({ mode: "string" }),
+  // Cotação e saldo atualizados em
+  priceUpdatedAt: timestamp({ withTimezone: true }),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Operações (compra, venda, bonificação) e proventos de um ativo. Data futura = provento anunciado, a receber. */
+export const investmentTrades = pgTable(
+  "investment_trades",
+  {
+    id: serial().primaryKey(),
+    investmentId: integer().notNull().references(() => investments.id, { onDelete: "cascade" }),
+    pluggyId: text().unique(), // null = lançamento manual (a sync nunca apaga)
+    date: date({ mode: "string" }).notNull(),
+    type: tradeType().notNull(),
+    quantity: qty("quantity"),
+    price: qty("price"),
+    // Total da operação, sempre positivo (compra: quanto saiu; venda e proventos: quanto entrou)
+    amount: money("amount").notNull(),
+    fees: money("fees").notNull().default(0),
+    note: text(),
+  },
+  (t) => [index().on(t.investmentId, t.date), index().on(t.date)],
+)
+
+/** Alocação-alvo por categoria, em % da carteira. */
+export const investmentTargets = pgTable("investment_targets", {
+  assetClass: assetClass().primaryKey(),
+  percent: real().notNull(),
+})
+
+/**
+ * Séries de mercado para comparar a carteira: CDI (taxa diária, % a.d.), IPCA (variação mensal, %, no dia 1 do mês)
+ * e IBOV (pontos no fechamento do mês, no dia 1 do mês).
+ */
+export const marketSeries = pgTable(
+  "market_series",
+  {
+    series: text().notNull(),
+    date: date({ mode: "string" }).notNull(),
+    value: real().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.series, t.date] })],
+)
 
 export const categories = pgTable("categories", {
   id: serial().primaryKey(),
@@ -208,4 +287,139 @@ export const appCredentials = pgTable("app_credentials", {
   username: text().notNull(),
   passwordHash: text().notNull(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+
+// ---------- Dívidas (pendências que não são fatura de cartão) ----------
+
+/**
+ * Uma dívida com uma pessoa ou empresa (amigo, psicólogo…). O app só acompanha: o pagamento já saiu da conta,
+ * então nada aqui vira transação; a parcela paga pode apontar para a transação (Pix) que a quitou.
+ */
+export const debts = pgTable("debts", {
+  id: serial().primaryKey(),
+  creditor: text().notNull(),
+  relation: text(), // "Amigo", "Profissional", "Família"…
+  description: text(),
+  color: text(),
+  scheduleKind: debtSchedule().notNull().default("NONE"),
+  // FIXED_DAY: dia do mês (1–31; em meses curtos vale o último dia)
+  scheduleDay: integer(),
+  // AFTER_SALARY: quantos dias depois da entrada do salário
+  salaryOffsetDays: integer().notNull().default(1),
+  // DATE: vencimento da primeira parcela
+  scheduleDate: date({ mode: "string" }),
+  // Mês ("AAAA-MM") da primeira parcela em FIXED_DAY e AFTER_SALARY
+  startMonth: text(),
+  // Avisar N dias antes (0 = só no dia); null = sem aviso
+  remindDaysBefore: integer().default(1),
+  archived: boolean().notNull().default(false),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+
+export const debtItems = pgTable("debt_items", {
+  id: serial().primaryKey(),
+  debtId: integer().notNull().references(() => debts.id, { onDelete: "cascade" }),
+  description: text().notNull(),
+  quantity: integer().notNull().default(1),
+  unitAmount: money("unit_amount").notNull(),
+})
+
+export const debtInstallments = pgTable(
+  "debt_installments",
+  {
+    id: serial().primaryKey(),
+    debtId: integer().notNull().references(() => debts.id, { onDelete: "cascade" }),
+    number: integer().notNull(),
+    amount: money("amount").notNull(),
+    paidOn: date({ mode: "string" }),
+    // Transação (Pix, transferência) que pagou a parcela, quando vinculada
+    transactionId: integer().references(() => transactions.id, { onDelete: "set null" }),
+    // Vencimento escolhido à mão, no lugar do calculado pela regra
+    dueOverride: date({ mode: "string" }),
+  },
+  (t) => [unique().on(t.debtId, t.number), index().on(t.debtId)],
+)
+
+// ---------- Avisos ----------
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial().primaryKey(),
+    kind: notificationKind().notNull(),
+    title: text().notNull(),
+    body: text().notNull(),
+    href: text(),
+    // Evita repetir o mesmo aviso (ex.: "debt-due:12:2026-11-07")
+    dedupeKey: text().notNull().unique(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp({ withTimezone: true }),
+    pushedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index().on(t.createdAt)],
+)
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial().primaryKey(),
+  endpoint: text().notNull().unique(),
+  p256dh: text().notNull(),
+  auth: text().notNull(),
+  label: text(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+
+// Linha única (id = 1)
+export const notificationSettings = pgTable("notification_settings", {
+  id: integer().primaryKey().default(1),
+  pushHour: integer().notNull().default(9),
+  notifyDue: boolean().notNull().default(true),
+  notifyOverdue: boolean().notNull().default(true),
+  notifySalary: boolean().notNull().default(true),
+  notifyLimit: boolean().notNull().default(true),
+})
+
+// ---------- Cofy (chat) ----------
+
+export const chatConversations = pgTable("chat_conversations", {
+  id: serial().primaryKey(),
+  title: text().notNull().default("Nova conversa"),
+  archived: boolean().notNull().default(false),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+
+/** `content` guarda os blocos da API como vieram (texto, tool_use, tool_result, thinking): o histórico é reenviado sem editar. */
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: serial().primaryKey(),
+    conversationId: integer().notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+    role: chatRole().notNull(),
+    content: jsonb().notNull(),
+    // Cartões mostrados na tela para cada ferramenta usada (id do tool_use → cartão); só a interface lê
+    cards: jsonb(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.conversationId, t.id)],
+)
+
+export const chatAttachments = pgTable("chat_attachments", {
+  id: serial().primaryKey(),
+  messageId: integer().notNull().references(() => chatMessages.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  mediaType: text().notNull(),
+  size: integer().notNull(),
+  data: text().notNull(), // base64
+})
+
+/** Escrita proposta pela IA; só vira dado do app quando o usuário confirma (ver lib/cofy/actions.ts). */
+export const chatActions = pgTable("chat_actions", {
+  id: serial().primaryKey(),
+  conversationId: integer().notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+  toolUseId: text().notNull(),
+  kind: text().notNull(),
+  payload: jsonb().notNull(),
+  status: chatActionStatus().notNull().default("PENDING"),
+  result: text(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })

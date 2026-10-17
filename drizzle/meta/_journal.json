@@ -22,6 +22,27 @@
       "when": 1792098579679,
       "tag": "0002_aparencia_e_credenciais",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792194661352,
+      "tag": "0003_investimentos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792200621424,
+      "tag": "0004_dividas_avisos_cofy",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792201536270,
+      "tag": "0005_cofy_cards",
+      "breakpoints": true
     }
   ]
 }

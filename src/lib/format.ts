@@ -7,6 +7,8 @@ export const pct = (n: number) => pctFmt.format(n)
 export const num1 = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 /** "2026-03-05" → "05/03/2026" */
 export const dateBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`
+/** "2026-11-06" → "6 nov" */
+export const dayMonth = (d: string) => `${+d.slice(8, 10)} ${months[+d.slice(5, 7) - 1]}`
 /** "2026-03" → "mar/26" */
 export const monthLabel = (ym: string) => `${months[+ym.slice(5, 7) - 1]}/${ym.slice(2, 4)}`
 const rel = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" })

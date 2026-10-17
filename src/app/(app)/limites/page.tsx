@@ -1,7 +1,7 @@
 import { Gauge, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Bar, Empty, Field, fieldClass, PageTitle } from "@/components/bits"
+import { Bar, CancelLink, Empty, Field, fieldClass, FormActions, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { RouteDialog } from "@/components/route-overlay"
 import { ContextRow, SwipeRow, type RowAction } from "@/components/swipe-row"
@@ -20,6 +20,11 @@ const STATE = {
   over: { badge: "bg-red-500/10 text-red-700 dark:text-red-400", text: "Estourado" },
 }
 
+async function deleteAndClose(form: FormData) {
+  "use server"
+  await deleteLimit(form)
+  redirect("/limites")
+}
 async function saveAndClose(form: FormData) {
   "use server"
   await saveLimit(form)
@@ -222,8 +227,24 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
             <Field label="Valor mensal (R$)" hint="Salvar de novo para a mesma categoria atualiza o valor.">
               <input type="number" name="monthlyAmount" required min="0.01" step="0.01" inputMode="decimal" defaultValue={editing?.limit} className={cn(fieldClass, "h-11 text-lg font-semibold tabular-nums")} />
             </Field>
-            <Button type="submit" className="h-9">{editing ? "Salvar limite" : "Criar limite"}</Button>
+            <FormActions
+              start={
+                editing && (
+                  <Button type="submit" form="delete-limit" variant="destructive" size="lg">
+                    Excluir
+                  </Button>
+                )
+              }
+            >
+              <CancelLink href="/limites" />
+              <Button type="submit" size="lg">{editing ? "Salvar limite" : "Criar limite"}</Button>
+            </FormActions>
           </form>
+          {editing && (
+            <form id="delete-limit" action={deleteAndClose}>
+              <input type="hidden" name="id" value={editing.id} />
+            </form>
+          )}
         </RouteDialog>
       )}
     </div>

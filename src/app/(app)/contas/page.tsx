@@ -4,7 +4,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { AccountAvatar } from "@/components/account-avatar"
 import { AccountFields } from "@/components/account-fields"
-import { Empty, Field, fieldClass, IconCircle, Money, PageTitle } from "@/components/bits"
+import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, Money, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { RouteDialog } from "@/components/route-overlay"
 import { SyncButton } from "@/components/shell-client"
@@ -248,7 +248,10 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                 <li>No menu ⋮ do Demo, use “Copiar Item ID”, cole aqui e clique em “Sincronizar”. O ID que aparece no site meu.pluggy.ai não funciona (HTTP 404).</li>
               </ol>
             </details>
-            <Button type="submit" className="h-9">Adicionar conexão</Button>
+            <FormActions>
+              <CancelLink href="/contas" />
+              <Button type="submit" size="lg">Adicionar conexão</Button>
+            </FormActions>
           </form>
         </RouteDialog>
       )}
@@ -265,7 +268,10 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                 <input type="number" name="openingBalance" step="0.01" placeholder="0,00" className={fieldClass} />
               </Field>
             </div>
-            <Button type="submit" className="h-9">Criar conta</Button>
+            <FormActions>
+              <CancelLink href="/contas" />
+              <Button type="submit" size="lg">Criar conta</Button>
+            </FormActions>
           </form>
         </RouteDialog>
       )}

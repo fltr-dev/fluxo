@@ -1,7 +1,7 @@
 import { Pencil, Plus, Target, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Bar, Empty, Field, fieldClass, IconCircle, Money, PageTitle } from "@/components/bits"
+import { Bar, CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, Money, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { SwipeRow, type RowAction } from "@/components/swipe-row"
@@ -38,9 +38,10 @@ async function archiveAndClose(form: FormData) {
   redirect("/metas")
 }
 
-function GoalForm({ goal, accounts, action }: { goal?: Goal; accounts: { id: number; name: string }[]; action: (f: FormData) => Promise<void> }) {
+/** `footer: false` quando o rodapé fica no fim do painel (edição), acionando este formulário pelo id. */
+function GoalForm({ goal, accounts, action, footer = true }: { goal?: Goal; accounts: { id: number; name: string }[]; action: (f: FormData) => Promise<void>; footer?: boolean }) {
   return (
-    <form action={action} className="grid gap-4">
+    <form id="goal-form" action={action} className="grid gap-4">
       {goal && <input type="hidden" name="id" value={goal.id} />}
       <Field label="Nome">
         <input name="name" required maxLength={200} defaultValue={goal?.name} placeholder="Ex.: Viagem ao Japão" className={fieldClass} />
@@ -77,7 +78,12 @@ function GoalForm({ goal, accounts, action }: { goal?: Goal; accounts: { id: num
           ))}
         </div>
       </fieldset>
-      <Button type="submit" className="h-9">{goal ? "Salvar meta" : "Criar meta"}</Button>
+      {footer && (
+        <FormActions>
+          <CancelLink href="/metas" />
+          <Button type="submit" size="lg">{goal ? "Salvar meta" : "Criar meta"}</Button>
+        </FormActions>
+      )}
     </form>
   )
 }
@@ -224,7 +230,10 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
             <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
               Faltam <span className="tabular-nums">{brl(contributeTo.p.remaining)}</span> · hoje o aporte necessário é <span className="tabular-nums">{brl(contributeTo.p.monthlyNeeded)}</span>/mês.
             </p>
-            <Button type="submit" className="h-9">Registrar aporte</Button>
+            <FormActions>
+              <CancelLink href="/metas" />
+              <Button type="submit" size="lg">Registrar aporte</Button>
+            </FormActions>
           </form>
         </RouteDialog>
       )}
@@ -232,7 +241,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
       {editing && (
         <RouteSheet closeHref="/metas" title="Editar meta" description={editing.g.name}>
           <div className="grid gap-6">
-            <GoalForm goal={editing.g} accounts={active} action={saveAndClose} />
+            <GoalForm goal={editing.g} accounts={active} action={saveAndClose} footer={false} />
             {editing.g.contributions.length > 0 && (
               <section className="grid gap-2">
                 <h3 className="text-sm font-medium">Aportes</h3>
@@ -252,10 +261,20 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                 </ul>
               </section>
             )}
-            <form action={archiveAndClose} className="border-t pt-4">
+            <form id="archive-goal" action={archiveAndClose}>
               <input type="hidden" name="id" value={editing.g.id} />
-              <Button type="submit" variant="destructive">Arquivar meta</Button>
             </form>
+            {/* os botões do rodapé acionam os formulários acima pelo atributo `form` */}
+            <FormActions
+              start={
+                <Button type="submit" form="archive-goal" variant="destructive" size="lg">
+                  Arquivar meta
+                </Button>
+              }
+            >
+              <CancelLink href="/metas" />
+              <Button type="submit" form="goal-form" size="lg">Salvar meta</Button>
+            </FormActions>
           </div>
         </RouteSheet>
       )}

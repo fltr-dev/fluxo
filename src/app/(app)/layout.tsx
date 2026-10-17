@@ -3,14 +3,21 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { auth, sessionIsCurrent, signOut } from "@/auth"
+import { NotificationBell, type BellItem } from "@/components/notification-bell"
+import { PageTransition } from "@/components/page-transition"
 import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton, ThemeToggle } from "@/components/shell-client"
+import { CofyFloating } from "@/components/cofy/floating"
+import { CofyProvider } from "@/components/cofy/store"
 import { SettingsProvider } from "@/components/settings-dialog"
 import { Sidebar } from "@/components/sidebar"
 import { buttonVariants } from "@/components/ui/button"
 import { APP } from "@/lib/app-info"
 import { accountLook } from "@/lib/banks"
 import { ago } from "@/lib/format"
+import { ensureNotifications, getNotifySettings, listNotifications } from "@/lib/notifications"
+import { pushConfigured, vapidPublicKey } from "@/lib/push"
 import { listAccounts, shellStatus } from "@/lib/queries"
+import { DEFAULT_NOTIFY } from "@/lib/domain/notifications"
 import { DEFAULT_PRIMARY, primaryFromCookie, themeFromCookie } from "@/lib/theme"
 import { syncNow } from "./contas/actions"
 
@@ -29,11 +36,19 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   const user = { name: session?.user?.name || "Você", email: session?.user?.email ?? "" }
   const demo = session?.user?.role === "demo"
+  // Sino: gera os avisos que faltam e lê os recentes; um erro aqui nunca derruba a tela
+  const [bell, notify] = await Promise.all([
+    ensureNotifications().then(() => listNotifications(15)).catch(() => ({ items: [], unread: 0 })),
+    getNotifySettings().catch(() => undefined),
+  ])
+  const bellItems: BellItem[] = bell.items.map((n) => ({ id: n.id, kind: n.kind, title: n.title, body: n.body, href: n.href, createdAt: n.createdAt.toISOString(), read: n.readAt != null }))
   const run = status.lastRun
   const syncError = status.connectionErrors.length > 0 || run?.status === "ERROR"
-  const sidebarAccounts = accounts
+  const activeAccounts = accounts
     .filter((a) => !a.archived)
-    .map((a) => ({ id: a.id, name: a.name, look: accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution }) }))
+    .map((a) => ({ id: a.id, name: a.name, look: accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution }), investment: a.investmentId != null }))
+  // Cada ativo da carteira tem a sua conta; na lista lateral eles ficariam dezenas: aparecem em Investimentos
+  const sidebarAccounts = activeAccounts.filter((a) => !a.investment)
   const badges = { "/transacoes": status.uncategorized, ...(syncError && { "/contas": "danger" as const }) }
   const accountsOpen = jar.get("sidebar-accounts")?.value !== "closed"
 
@@ -43,8 +58,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       app={APP}
       theme={themeFromCookie(jar.get("theme")?.value)}
       primary={primaryFromCookie(jar.get("primary")?.value) ?? DEFAULT_PRIMARY}
+      notify={{ settings: notify ?? DEFAULT_NOTIFY, configured: pushConfigured(), publicKey: vapidPublicKey(), demo }}
     >
-      <div className="flex min-h-svh">
+      <CofyProvider demo={demo}>
+      <div className="flex min-h-svh" style={demo ? ({ "--demo-bar": "1.875rem" } as React.CSSProperties) : undefined}>
         <Sidebar
           badges={badges}
           accounts={sidebarAccounts}
@@ -59,16 +76,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background/90 px-4 backdrop-blur md:px-6">
             <div className="min-w-0 flex-1">
-              <Breadcrumb accounts={sidebarAccounts.map((a) => ({ id: a.id, name: a.name }))} />
+              <Breadcrumb accounts={activeAccounts.map((a) => ({ id: a.id, name: a.name }))} />
             </div>
             {syncError ? (
-              <Link href="/contas" className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-red-500/10 px-2 text-sm text-red-700 lg:px-2.5 dark:text-red-400" aria-label="Erro na sincronização">
+              <Link href="/contas" className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-red-500/10 px-2 text-xs text-red-700 lg:px-2.5 dark:text-red-400" aria-label="Erro na sincronização">
                 <TriangleAlert className="size-4" />
                 <span className="hidden lg:inline">Erro na sincronização</span>
               </Link>
             ) : (
-              <span className="hidden items-center gap-1.5 text-sm text-muted-foreground lg:flex" title={run?.finishedAt?.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
-                <span className="size-2 rounded-full bg-income" />
+              <span className="hidden items-center gap-1.5 text-xs text-muted-foreground lg:flex" title={run?.finishedAt?.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
+                <span className="size-1.5 rounded-full bg-income" />
                 {run?.finishedAt ? `Sincronizado ${ago(run.finishedAt)}` : "Nunca sincronizado"}
               </span>
             )}
@@ -80,21 +97,26 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
                 <form action={syncNow} className="md:hidden">
                   <SyncButton compact />
                 </form>
-                <Link href="/transacoes?nova=1" className={buttonVariants({ className: "max-md:hidden" })} aria-label="Nova transação">
+                <Link href="/transacoes?nova=1" className={buttonVariants({ size: "sm", className: "max-md:hidden" })} aria-label="Nova transação">
                   <Plus />
                   <span className="hidden lg:inline">Transação</span>
                 </Link>
               </>
             )}
             <PrivacyToggle />
+            <NotificationBell items={bellItems} unread={bell.unread} />
             <ThemeToggle className="hidden md:inline-flex" />
           </header>
           {demo && <div className="border-b bg-amber-500/10 px-4 py-1.5 text-center text-xs font-medium text-amber-700 md:px-6 dark:text-amber-300">Demonstração · dados fictícios · somente leitura</div>}
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">{children}</main>
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">
+            <PageTransition>{children}</PageTransition>
+          </main>
         </div>
 
+        <CofyFloating userName={user.name} demo={demo} />
         <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version} />
       </div>
+      </CofyProvider>
     </SettingsProvider>
   )
 }

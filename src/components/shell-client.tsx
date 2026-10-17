@@ -1,9 +1,9 @@
 "use client"
 
-import { ChevronRight, Eye, EyeOff, House, LogOut, Menu, Moon, Plus, RefreshCw, Settings, Sun, ArrowLeftRight, ChartColumn } from "lucide-react"
+import { ChevronRight, Eye, EyeOff, House, LogOut, Menu, Moon, PiggyBank, Plus, RefreshCw, Settings, Sun, ArrowLeftRight } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useFormStatus } from "react-dom"
 import { Logo } from "@/components/logo"
 import { useSettings } from "@/components/settings-dialog"
@@ -47,7 +47,7 @@ export function Breadcrumb({ accounts }: { accounts: { id: number; name: string 
 /** Alterna claro ↔ escuro na barra do topo (as outras opções, como "Cinza" e "Sistema", ficam em Configurações). */
 export function ThemeToggle({ className }: { className?: string }) {
   return (
-    <Button variant="ghost" size="icon" className={className} aria-label="Alternar tema" onClick={() => applyTheme(isDark() ? "light" : "dark")}>
+    <Button variant="ghost" size="icon-sm" className={cn("max-md:size-9", className)} aria-label="Alternar tema" onClick={() => applyTheme(isDark() ? "light" : "dark")}>
       {/* os dois ícones ficam no DOM; o CSS escolhe, sem depender do tema na hidratação */}
       <Moon className="dark:hidden" />
       <Sun className="hidden dark:block" />
@@ -62,7 +62,7 @@ export function PrivacyToggle({ className }: { className?: string }) {
     setCookie("privacy", on ? "1" : "0")
   }
   return (
-    <Button variant="ghost" size="icon" className={className} aria-label="Mostrar ou esconder valores" title="Mostrar/esconder valores" onClick={toggle}>
+    <Button variant="ghost" size="icon-sm" className={cn("max-md:size-9", className)} aria-label="Mostrar ou esconder valores" title="Mostrar/esconder valores" onClick={toggle}>
       <Eye className="in-[.privacy]:hidden" />
       <EyeOff className="hidden in-[.privacy]:block" />
     </Button>
@@ -72,8 +72,15 @@ export function PrivacyToggle({ className }: { className?: string }) {
 /** Botão de sincronizar: o ícone gira enquanto a server action roda. */
 export function SyncButton({ compact }: { compact?: boolean }) {
   const { pending } = useFormStatus()
+  // a onda do logo fica em loop enquanto a sincronização roda (CSS lê o atributo no <html>)
+  useEffect(() => {
+    const root = document.documentElement
+    if (pending) root.dataset.syncing = "1"
+    else delete root.dataset.syncing
+    return () => void delete root.dataset.syncing
+  }, [pending])
   return (
-    <Button type="submit" variant={compact ? "ghost" : "outline"} size={compact ? "icon" : "default"} disabled={pending} aria-label="Sincronizar agora">
+    <Button type="submit" variant={compact ? "ghost" : "outline"} size={compact ? "icon-sm" : "sm"} className={cn(compact && "max-md:size-9")} disabled={pending} aria-label="Sincronizar agora">
       <RefreshCw className={cn(pending && "animate-spin")} />
       {!compact && (pending ? "Sincronizando…" : "Sincronizar")}
     </Button>
@@ -83,7 +90,7 @@ export function SyncButton({ compact }: { compact?: boolean }) {
 const MOBILE = [
   { href: "/", label: "Início", icon: House },
   { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
-  { href: "/relatorios", label: "Relatórios", icon: ChartColumn },
+  { href: "/cofy", label: "Cofy", icon: PiggyBank },
 ]
 
 /** Barra inferior do celular; "Mais" abre o restante do menu (com as contas) num painel lateral. */

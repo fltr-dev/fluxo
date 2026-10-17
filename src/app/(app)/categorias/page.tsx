@@ -2,7 +2,7 @@ import { asc, isNotNull, sql } from "drizzle-orm"
 import { ArrowRight, ChevronRight, Lock, Merge, Pencil, Plus, Tag, Tags } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Empty, Field, fieldClass, IconCircle, PageTitle } from "@/components/bits"
+import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, PageTitle } from "@/components/bits"
 import { CategoryFields } from "@/components/category-fields"
 import { categoryIcon, CategoryIcon } from "@/components/category-icon"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
@@ -190,7 +190,10 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                 ]}
               />
             </Field>
-            <Button type="submit" className="h-9">Criar categoria</Button>
+            <FormActions>
+              <CancelLink href={close} />
+              <Button type="submit" size="lg">Criar categoria</Button>
+            </FormActions>
           </form>
         </RouteDialog>
       )}
@@ -204,7 +207,10 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
             <Field label="Para">
               <SubcategorySelect name="targetId" options={options} required placeholder="Escolha o destino…" />
             </Field>
-            <Button type="submit" variant="destructive" className="h-9">Mesclar e apagar origem</Button>
+            <FormActions>
+              <CancelLink href={close} />
+              <Button type="submit" variant="destructive" size="lg">Mesclar e apagar origem</Button>
+            </FormActions>
           </form>
         </RouteDialog>
       )}
@@ -212,7 +218,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
       {editing && (
         <RouteSheet closeHref={close} title="Editar categoria" description={editing.kind === "INCOME" ? "Receita" : "Despesa"}>
           <div className="grid gap-6">
-            <form action={updateCategory} className="grid gap-4">
+            <form id="edit-category" action={updateCategory} className="grid gap-4">
               <input type="hidden" name="id" value={editing.id} />
               <CategoryFields
                 key={editing.id}
@@ -222,7 +228,6 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                 currentIcon={<CategoryIcon name={editing.name} icon={editing.icon} />}
                 fallbackIcon={<CategoryIcon name={editing.name} />}
               />
-              <Button type="submit" variant="outline" className="justify-self-start">Salvar</Button>
             </form>
 
             <section className="grid gap-2">
@@ -252,11 +257,22 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
               </form>
             </section>
 
-            <form action={toggleArchived} className="border-t pt-4">
+            <form id="archive-category" action={toggleArchived}>
               <input type="hidden" name="id" value={editing.id} />
-              <Button type="submit" variant={editing.archived ? "outline" : "destructive"}>{editing.archived ? "Reativar categoria" : "Arquivar categoria"}</Button>
-              <p className="mt-2 text-xs text-muted-foreground">Arquivar não apaga nada: some dos seletores e fica no histórico.</p>
+              <p className="text-xs text-muted-foreground">Arquivar não apaga nada: some dos seletores e fica no histórico.</p>
             </form>
+
+            {/* os botões do rodapé acionam os formulários acima pelo atributo `form` */}
+            <FormActions
+              start={
+                <Button type="submit" form="archive-category" variant={editing.archived ? "outline" : "destructive"} size="lg">
+                  {editing.archived ? "Reativar categoria" : "Arquivar categoria"}
+                </Button>
+              }
+            >
+              <CancelLink href={close} />
+              <Button type="submit" form="edit-category" size="lg">Salvar</Button>
+            </FormActions>
           </div>
         </RouteSheet>
       )}

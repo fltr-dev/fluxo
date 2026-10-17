@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { AccountFields } from "@/components/account-fields"
-import { Field, Money } from "@/components/bits"
+import { CancelLink, Field, FormActions, Money } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { RouteSheet } from "@/components/route-overlay"
 import { Button } from "@/components/ui/button"
@@ -57,7 +57,10 @@ export function AccountEditSheet({ account, closeHref }: { account: Account; clo
           </span>
           <input type="checkbox" name="archived" defaultChecked={account.archived} className="size-4 accent-primary" />
         </label>
-        <Button type="submit" className="h-9">Salvar</Button>
+        <FormActions>
+          <CancelLink href={closeHref} />
+          <Button type="submit" size="lg">Salvar</Button>
+        </FormActions>
       </form>
     </RouteSheet>
   )

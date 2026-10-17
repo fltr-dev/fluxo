@@ -18,6 +18,7 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts"
+import { Dot, ToggleLegend, useSeriesToggle } from "@/components/chart-legend"
 import { brl, monthLabel, signedPct } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -119,14 +120,17 @@ export function BalanceArea({ data, color }: { data: { month: string; value: num
   )
 }
 
-/** Meio-donut com o total no centro e legenda em percentuais. */
+/** Meio-donut com o total no centro e legenda em percentuais; clicar numa categoria da legenda a tira do gráfico. */
 export function ExpenseGauge({ data, total }: { data: { name: string; value: number; color: string }[]; total: number }) {
+  const legend = useSeriesToggle(data.map((d) => d.name))
+  const shown = data.filter((d) => legend.isVisible(d.name))
+  const shownTotal = legend.anyHidden ? shown.reduce((t, d) => t + d.value, 0) : total
   return (
     <div className="grid justify-items-center gap-4">
       <div className="relative w-full max-w-60">
         <PieChart responsive style={{ width: "100%", aspectRatio: 2 }} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <Pie
-            data={data.length ? data : [{ name: "—", value: 1, color: "var(--muted)" }]}
+            data={shown.length ? shown : [{ name: "—", value: 1, color: "var(--muted)" }]}
             dataKey="value"
             cx="50%"
             cy="100%"
@@ -138,37 +142,50 @@ export function ExpenseGauge({ data, total }: { data: { name: string; value: num
             stroke="none"
             isAnimationActive={false}
           >
-            {(data.length ? data : [{ color: "var(--muted)" }]).map((d, i) => (
+            {(shown.length ? shown : [{ color: "var(--muted)" }]).map((d, i) => (
               <Cell key={i} fill={d.color} />
             ))}
           </Pie>
-          {data.length > 0 && <Tooltip content={<Bubble />} />}
+          {shown.length > 0 && <Tooltip content={<Bubble />} />}
         </PieChart>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 grid justify-items-center">
-          <span className="text-xs text-muted-foreground">Total no período</span>
-          <span className="text-xl font-semibold tabular-nums">{brl(total)}</span>
+          <span className="text-xs text-muted-foreground">{legend.anyHidden ? "Total selecionado" : "Total no período"}</span>
+          <span className="text-xl font-semibold tabular-nums">{brl(shownTotal)}</span>
         </div>
       </div>
-      <ul className="grid w-full grid-cols-3 gap-x-2 gap-y-3">
-        {data.map((d) => (
-          <li key={d.name} className="grid min-w-0 gap-0.5">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="size-2 shrink-0 rounded-full" style={{ background: d.color }} />
-              <span className="truncate">{d.name}</span>
-            </span>
-            <span className="pl-3.5 text-sm font-semibold tabular-nums">
-              {total ? ((d.value / total) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : 0}%
-            </span>
-          </li>
-        ))}
+      <ul className="grid w-full grid-cols-3 gap-x-1 gap-y-1" aria-label="Categorias">
+        {data.map((d) => {
+          const on = legend.isVisible(d.name)
+          return (
+            <li key={d.name} className="min-w-0">
+              <button
+                type="button"
+                aria-pressed={on}
+                title={on ? `Esconder ${d.name}` : `Mostrar ${d.name}`}
+                onClick={() => legend.toggle(d.name)}
+                className={cn(
+                  "grid w-full min-w-0 gap-0.5 rounded-md px-1.5 py-1 text-left transition-opacity duration-150 ease-[cubic-bezier(.2,.7,.2,1)] outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50",
+                  !on && "opacity-50",
+                )}
+              >
+                <span className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", !on && "line-through")}>
+                  <span className="size-2 shrink-0 rounded-full" style={{ background: d.color }} />
+                  <span className="truncate">{d.name}</span>
+                </span>
+                <span className="pl-3.5 text-sm font-semibold tabular-nums">{on && shownTotal ? ((d.value / shownTotal) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : 0}%</span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
 }
 
-/** Receitas x despesas por mês, com o último mês em destaque. */
+/** Receitas x despesas por mês, com o último mês em destaque; a legenda liga e desliga cada série. */
 export function IncomeExpenseChart({ data, height = 200 }: { data: { month: string; income: number; expense: number }[]; height?: number }) {
   const last = data.length - 1
+  const legend = useSeriesToggle(["income", "expense"])
   return (
     <div className="grid gap-3">
       <BarChart responsive style={{ width: "100%", height }} data={data} barGap={3} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
@@ -187,27 +204,37 @@ export function IncomeExpenseChart({ data, height = 200 }: { data: { month: stri
         />
         <YAxis tickFormatter={compactNum} tick={axis} axisLine={false} tickLine={false} width={64} />
         <Tooltip content={<Bubble />} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
-        <Bar dataKey="income" name="Receitas" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={12}>
-          {data.map((_, i) => (
-            <Cell key={i} fillOpacity={i === last ? 1 : 0.55} />
-          ))}
-        </Bar>
-        <Bar dataKey="expense" name="Despesas" fill="var(--chart-5)" radius={[4, 4, 0, 0]} maxBarSize={12}>
-          {data.map((_, i) => (
-            <Cell key={i} fillOpacity={i === last ? 1 : 0.55} />
-          ))}
-        </Bar>
+        {legend.isVisible("income") && (
+          <Bar dataKey="income" name="Receitas" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={12}>
+            {data.map((_, i) => (
+              <Cell key={i} fillOpacity={i === last ? 1 : 0.55} />
+            ))}
+          </Bar>
+        )}
+        {legend.isVisible("expense") && (
+          <Bar dataKey="expense" name="Despesas" fill="var(--chart-5)" radius={[4, 4, 0, 0]} maxBarSize={12}>
+            {data.map((_, i) => (
+              <Cell key={i} fillOpacity={i === last ? 1 : 0.55} />
+            ))}
+          </Bar>
+        )}
       </BarChart>
-      <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-chart-1" />Receitas</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-chart-5" />Despesas</span>
-      </div>
+      <ToggleLegend
+        isVisible={legend.isVisible}
+        onToggle={legend.toggle}
+        items={[
+          { key: "income", label: "Receitas", swatch: <Dot color="var(--chart-1)" /> },
+          { key: "expense", label: "Despesas", swatch: <Dot color="var(--chart-5)" /> },
+        ]}
+      />
     </div>
   )
 }
 
-/** Barras empilhadas por categoria ao longo dos meses. */
+/** Barras empilhadas por categoria ao longo dos meses; clicar numa categoria da legenda a tira da pilha. */
 export function StackedCategoryChart({ data, series }: { data: Record<string, string | number>[]; series: { key: string; name: string; color: string }[] }) {
+  const legend = useSeriesToggle(series.map((s) => s.key))
+  const shown = series.filter((s) => legend.isVisible(s.key))
   return (
     <div className="grid gap-3">
       <BarChart responsive style={{ width: "100%", height: 280 }} data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
@@ -215,34 +242,53 @@ export function StackedCategoryChart({ data, series }: { data: Record<string, st
         <XAxis dataKey="month" tickFormatter={monthLabel} tick={axis} axisLine={false} tickLine={false} tickMargin={8} />
         <YAxis tickFormatter={compactNum} tick={axis} axisLine={false} tickLine={false} width={64} />
         <Tooltip content={<Bubble />} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
-        {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.name} stackId="a" fill={s.color} maxBarSize={48} radius={i === series.length - 1 ? [4, 4, 0, 0] : 0} />
+        {shown.map((s, i) => (
+          <Bar key={s.key} dataKey={s.key} name={s.name} stackId="a" fill={s.color} maxBarSize={48} radius={i === shown.length - 1 ? [4, 4, 0, 0] : 0} />
         ))}
       </BarChart>
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {series.map((s) => (
-          <span key={s.key} className="flex items-center gap-1.5"><span className="size-2 rounded-sm" style={{ background: s.color }} />{s.name}</span>
-        ))}
-      </div>
+      <ToggleLegend isVisible={legend.isVisible} onToggle={legend.toggle} items={series.map((s) => ({ key: s.key, label: s.name, swatch: <Dot color={s.color} square /> }))} />
     </div>
   )
 }
 
-/** Comparativo por categoria: período atual (cor da categoria) vs referência (cinza). */
+/** Comparativo por categoria: período atual (cor da categoria) vs referência (cinza); a legenda liga e desliga cada um. */
 export function CompareBars({ data, refLabel }: { data: { name: string; color: string; cur: number; prev: number }[]; refLabel: string }) {
+  const legend = useSeriesToggle(["cur", "prev"])
   return (
-    <BarChart responsive style={{ width: "100%", height: 260 }} data={data} barGap={4} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-      <CartesianGrid {...grid} />
-      <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} tickMargin={8} interval={0} />
-      <YAxis tickFormatter={compactNum} tick={axis} axisLine={false} tickLine={false} width={64} />
-      <Tooltip content={<Bubble />} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
-      <Bar dataKey="cur" name="Período" radius={[4, 4, 0, 0]} maxBarSize={22}>
-        {data.map((d) => (
-          <Cell key={d.name} fill={d.color} />
-        ))}
-      </Bar>
-      <Bar dataKey="prev" name={refLabel} fill="var(--border)" radius={[4, 4, 0, 0]} maxBarSize={22} />
-    </BarChart>
+    <div className="grid gap-3">
+      <BarChart responsive style={{ width: "100%", height: 260 }} data={data} barGap={4} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+        <CartesianGrid {...grid} />
+        <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} tickMargin={8} interval={0} />
+        <YAxis tickFormatter={compactNum} tick={axis} axisLine={false} tickLine={false} width={64} />
+        <Tooltip content={<Bubble />} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
+        {legend.isVisible("cur") && (
+          <Bar dataKey="cur" name="Período" radius={[4, 4, 0, 0]} maxBarSize={22}>
+            {data.map((d) => (
+              <Cell key={d.name} fill={d.color} />
+            ))}
+          </Bar>
+        )}
+        {legend.isVisible("prev") && <Bar dataKey="prev" name={refLabel} fill="var(--border)" radius={[4, 4, 0, 0]} maxBarSize={22} />}
+      </BarChart>
+      <ToggleLegend
+        isVisible={legend.isVisible}
+        onToggle={legend.toggle}
+        items={[
+          {
+            key: "cur",
+            label: "Período",
+            swatch: (
+              <span className="flex gap-0.5">
+                {data.slice(0, 3).map((d) => (
+                  <Dot key={d.name} color={d.color} square />
+                ))}
+              </span>
+            ),
+          },
+          { key: "prev", label: refLabel, swatch: <Dot color="var(--muted-foreground)" square /> },
+        ]}
+      />
+    </div>
   )
 }
 

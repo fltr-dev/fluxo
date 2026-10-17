@@ -89,6 +89,17 @@
   --chart-3: #8b5cf6;
   --chart-4: #f59e0b;
   --chart-5: #f43f5e;
+  /* Categorias de investimento, nesta ordem de vizinhança (validada para daltonismo) */
+  --inv-pos: #12a06a;
+  --inv-acoes: #0ea5e9;
+  --inv-fii: #8b5cf6;
+  --inv-pre: #f59e0b;
+  --inv-cripto: #f43f5e;
+  --inv-inflacao: #2563eb;
+  --inv-bdr: #ca8a04;
+  --inv-fundos: #9333ea;
+  --inv-etf: #ea580c;
+  --inv-outros: #71717a;
   --radius: 0.625rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #3f3f46; /* zinc-700 */
@@ -128,6 +139,17 @@
     --chart-3: #a78bfa;
     --chart-4: #fbbf24;
     --chart-5: #fb7185;
+    /* mesmas categorias, com luminosidade validada sobre o fundo escuro */
+    --inv-pos: #12a06a;
+    --inv-acoes: #0284c7;
+    --inv-fii: #8b5cf6;
+    --inv-pre: #d97706;
+    --inv-cripto: #e11d48;
+    --inv-inflacao: #3b82f6;
+    --inv-bdr: #a16207;
+    --inv-fundos: #9333ea;
+    --inv-etf: #ea580c;
+    --inv-outros: #a1a1aa;
     --sidebar: #09090b;
     --sidebar-foreground: #d4d4d8; /* zinc-300 */
     --sidebar-primary: #36bc84;
@@ -202,4 +224,69 @@
 .privacy .recharts-yAxis-tick-labels text {
   filter: url(#privacy-blur);
   user-select: none;
+}
+
+/* Movimento (DESIGN.md): 150ms em hover/press, 220ms em página/sheet/marcador, onda do logo 1,4s */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-enter 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* A onda do logo balança uma vez ao abrir o app e fica em loop enquanto a sincronização roda.
+   Na sincronização usamos outro nome de animação (mesmos quadros) para reiniciá-la. */
+@keyframes logo-wave {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-14px);
+  }
+}
+@keyframes logo-wave-sync {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-14px);
+  }
+}
+.logo-wave {
+  animation: logo-wave 1.4s ease-in-out 1;
+}
+.logo-wave-2 {
+  animation-delay: 120ms;
+}
+html[data-syncing] .logo-wave {
+  animation: logo-wave-sync 1.4s ease-in-out infinite;
+}
+html[data-syncing] .logo-wave-2 {
+  animation-delay: 120ms;
+}
+
+/* Quem pede menos movimento no sistema não vê animação nenhuma: tudo instantâneo e o logo fica parado */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+  .logo-wave {
+    animation: none !important;
+  }
 }

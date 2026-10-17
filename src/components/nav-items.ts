@@ -3,12 +3,15 @@ import {
   CalendarDays,
   ChartColumn,
   Gauge,
+  HandCoins,
   Landmark,
   LayoutDashboard,
   ListChecks,
+  PiggyBank,
   ShieldCheck,
   Tags,
   Target,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react"
 
@@ -19,7 +22,9 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     group: "Visão geral",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/cofy", label: "Cofy", icon: PiggyBank },
       { href: "/relatorios", label: "Relatórios", icon: ChartColumn },
+      { href: "/investimentos", label: "Investimentos", icon: TrendingUp },
       { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
       { href: "/calendario", label: "Calendário", icon: CalendarDays },
     ],
@@ -29,6 +34,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: "/limites", label: "Limites", icon: Gauge },
       { href: "/metas", label: "Metas", icon: Target },
+      { href: "/dividas", label: "Dívidas", icon: HandCoins },
       { href: "/reserva", label: "Reserva", icon: ShieldCheck },
     ],
   },
