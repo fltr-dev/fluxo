@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { ArrowLeftRight, ChevronLeft, ChevronRight, HandCoins, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { AccountAvatar } from "@/components/account-avatar"
 import { Money, PageTitle } from "@/components/bits"
@@ -8,6 +8,8 @@ import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { accountLook } from "@/lib/banks"
 import { addMonths, monthEnd, monthOf, monthStart, today } from "@/lib/domain/dates"
+import { dueBetween, salaryOn } from "@/lib/domain/debts"
+import { loadDebts } from "@/lib/debts"
 import { brl, dateBR, dayLabel } from "@/lib/format"
 import { categoryTree, dailyTotals, listAccounts, listTransactions, parseFilters, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
@@ -38,12 +40,23 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
   // O calendário cobre o mês inteiro; conta e categorias vêm da URL (sem transferências nem ignoradas nos totais)
   const f = parseFilters({ conta: sp.conta, categorias: sp.categorias, periodo: "custom", de: monthStart(ym), ate: monthEnd(ym) })
-  const [totals, accounts, tree, dayList] = await Promise.all([
+  const [totals, accounts, tree, dayList, debtData] = await Promise.all([
     dailyTotals(f),
     listAccounts(),
     categoryTree(),
     day ? listTransactions({ ...f, from: day, to: day, page: 1 }) : undefined,
+    loadDebts(),
   ])
+  // Vencimentos de dívidas e salário previsto entram no mês (cada um pode ser escondido pelo filtro da URL)
+  const showDebts = first(sp.dividas) !== "0"
+  const showSalary = first(sp.salario) !== "0"
+  const debtDue = new Map<string, { debtId: number; creditor: string; amount: number; number: number; estimated: boolean }[]>()
+  if (showDebts)
+    for (const { debt, row } of dueBetween(debtData.views.map((v) => ({ debt: v.debt, ev: v.ev })), monthStart(ym), monthEnd(ym)))
+      debtDue.set(row.due!, [...(debtDue.get(row.due!) ?? []), { debtId: debt.id, creditor: debt.creditor, amount: row.amount, number: row.number, estimated: row.estimated }])
+  const sal = salaryOn(debtData.salary, ym)
+  const salaryDay = showSalary && sal.expected && sal.date >= now ? sal.date : undefined
+  const debtMonthTotal = [...debtDue.values()].flat().reduce((t, d) => t + d.amount, 0)
   const activeAccounts = accounts.filter((a) => !a.archived)
   const looks = new Map(accounts.map((a) => [a.id, accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution })]))
   const catLabel = new Map(tree.flatMap((p) => [[p.id, { name: p.name, color: p.color }] as const, ...p.subs.map((s) => [s.id, { name: `${p.name} › ${s.name}`, color: p.color }] as const)]))
@@ -95,6 +108,17 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         })}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Mostrar no calendário">
+        <Link href={href({ dividas: showDebts ? "0" : undefined, dia: undefined })} aria-pressed={showDebts} className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium", showDebts ? "border-amber-500/40 bg-amber-500/10 text-warning" : "text-muted-foreground hover:bg-muted")}>
+          <HandCoins className="size-3.5" />
+          Dívidas a pagar{showDebts && debtMonthTotal > 0 && <span className="tabular-nums">· {brl(debtMonthTotal)}</span>}
+        </Link>
+        <Link href={href({ salario: showSalary ? "0" : undefined, dia: undefined })} aria-pressed={showSalary} className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium", showSalary ? "border-income/40 bg-income/10 text-income" : "text-muted-foreground hover:bg-muted")}>
+          <Wallet className="size-3.5" />
+          Salário previsto
+        </Link>
+      </div>
+
       <section className="grid grid-cols-3 gap-3" aria-label="Resumo do mês">
         {[
           { label: "Recebido", value: month.income, cls: "text-income" },
@@ -121,6 +145,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           {cells.map((d, i) => {
             if (!d) return <div key={i} className="min-h-[4.5rem] bg-muted/30 sm:min-h-24" role="gridcell" />
             const t = totals.get(d)
+            const dues = debtDue.get(d)
             const isToday = d === now
             const net = t ? t.income - t.expense : 0
             return (
@@ -129,11 +154,24 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                 href={href({ dia: d })}
                 scroll={false}
                 role="gridcell"
-                aria-label={`${dayLabel(d)}${t ? `: recebido ${full(t.income)}, gasto ${full(t.expense)}` : ": sem lançamentos"}`}
+                aria-label={`${dayLabel(d)}${t ? `: recebido ${full(t.income)}, gasto ${full(t.expense)}` : ": sem lançamentos"}${dues ? `, a pagar ${dues.map((x) => `${x.creditor} ${full(x.amount)}`).join(", ")}` : ""}${d === salaryDay ? ", salário previsto" : ""}`}
                 aria-current={isToday ? "date" : undefined}
                 className={cn("group relative flex min-h-[4.5rem] flex-col gap-0.5 bg-card p-1 outline-none hover:bg-muted/60 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring sm:min-h-24 sm:p-2", d === day && "bg-primary/5 ring-2 ring-primary ring-inset")}
               >
                 <span className={cn("grid size-6 place-items-center rounded-full text-xs font-medium tabular-nums", isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>{Number(d.slice(8))}</span>
+                {(dues || d === salaryDay) && (
+                  <span className="grid gap-0.5 text-[10px] leading-tight font-semibold sm:text-[11px]">
+                    {dues?.slice(0, 1).map((x) => (
+                      <span key={x.debtId} className="flex items-center gap-1 truncate rounded bg-amber-500/15 px-1 py-px text-warning">
+                        <HandCoins className="hidden size-3 shrink-0 sm:block" />
+                        <span className="truncate">{x.creditor.split(" ")[0]}</span>
+                        <span className="hidden tabular-nums sm:inline">{full(x.amount)}</span>
+                      </span>
+                    ))}
+                    {dues && dues.length > 1 && <span className="rounded bg-amber-500/15 px-1 py-px text-warning">+{dues.length - 1}</span>}
+                    {d === salaryDay && <span className="truncate rounded border border-dashed border-income/50 px-1 py-px text-income">Salário</span>}
+                  </span>
+                )}
                 {t && (
                   <span className="mt-auto grid gap-0.5 text-[10px] leading-tight font-semibold tabular-nums sm:text-xs">
                     {t.income > 0 && (
@@ -178,6 +216,32 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                 </div>
               ))}
             </div>
+
+            {(debtDue.get(day) || day === salaryDay) && (
+              <section className="grid gap-1.5">
+                <h3 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">A pagar e a receber</h3>
+                <ul className="divide-y rounded-xl border border-amber-500/30 bg-amber-500/5">
+                  {debtDue.get(day)?.map((x) => (
+                    <li key={x.debtId}>
+                      <Link href={`/dividas?ver=${x.debtId}`} className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-amber-500/10">
+                        <HandCoins className="size-4 text-warning" />
+                        <span className="grid min-w-0 flex-1">
+                          <span className="truncate font-medium">{x.creditor}</span>
+                          <span className="text-xs text-muted-foreground">Parcela {x.number}{x.estimated && " · data prevista (depende do salário)"}</span>
+                        </span>
+                        <b className="tabular-nums">{brl(x.amount)}</b>
+                      </Link>
+                    </li>
+                  ))}
+                  {day === salaryDay && (
+                    <li className="flex items-center gap-3 px-3.5 py-2.5 text-sm text-income">
+                      <Wallet className="size-4" />
+                      <span className="flex-1 font-medium">Salário previsto</span>
+                    </li>
+                  )}
+                </ul>
+              </section>
+            )}
 
             {dayList.rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma transação neste dia{f.accountId || selected.length ? " com esses filtros" : ""}.</p>

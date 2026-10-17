@@ -14,7 +14,7 @@ export function RouteDialog({ closeHref, title, description, children, className
   const router = useRouter()
   return (
     <Dialog open onOpenChange={(o) => !o && router.push(closeHref, { scroll: false })}>
-      <DialogContent className={cn("gap-5 p-6 sm:max-w-lg", className)}>
+      <DialogContent className={cn("max-h-[calc(100svh-2rem)] gap-5 overflow-y-auto p-6 sm:max-w-lg", className)}>
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

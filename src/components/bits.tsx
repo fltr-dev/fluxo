@@ -81,3 +81,16 @@ export const IconCircle = ({ icon: Icon, color, soft, className }: { icon: Lucid
     <Icon className="size-[18px]" />
   </span>
 )
+
+/**
+ * Rodapé padrão de modais e painéis: ações no canto inferior direito, com o botão principal por último;
+ * `start` (ex.: "Excluir") fica isolado à esquerda. Fica colado ao fim da área rolável.
+ */
+export function FormActions({ children, start, className }: { children: React.ReactNode; start?: React.ReactNode; className?: string }) {
+  return (
+    <div data-slot="form-actions" className={cn("sticky bottom-0 z-10 -mx-6 -mb-6 flex flex-wrap items-center justify-end gap-2 border-t bg-popover px-6 py-3.5 max-md:pb-[max(0.875rem,env(safe-area-inset-bottom))]", className)}>
+      {start && <div className="mr-auto flex items-center gap-2">{start}</div>}
+      {children}
+    </div>
+  )
+}
