@@ -5,37 +5,45 @@ import { signIn } from "@/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/shell-client"
 import { APP } from "@/lib/app-info"
+import { cn } from "@/lib/utils"
 import { LoginIllustration, WaveEdge } from "./login-art"
 import { LoginFields } from "./login-fields"
+
+function Brand({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center gap-3", className)}>
+      <Logo className="size-10 lg:size-11" />
+      <span className="text-2xl font-extrabold tracking-[-0.03em] lg:text-[28px]">fluxo</span>
+    </div>
+  )
+}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error, alterado } = await searchParams
   return (
-    <main className="relative flex min-h-svh flex-col overflow-x-hidden bg-background lg:grid lg:grid-cols-[1fr_minmax(30rem,46%)]">
+    <main className="relative flex min-h-svh flex-col overflow-x-hidden bg-muted lg:grid lg:bg-background dark:bg-background lg:grid-cols-[1fr_minmax(30rem,46%)]">
       {/* no celular fica sobre o fundo claro; no desktop, sobre o painel verde */}
       <ThemeToggle className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 lg:text-primary-foreground lg:hover:bg-primary-foreground/15 lg:hover:text-primary-foreground lg:dark:text-foreground lg:dark:hover:bg-foreground/10 lg:dark:hover:text-foreground" />
 
-      {/* lado da marca: logo, a moeda do fluxo enchendo e o que o fluxo é */}
-      <section className="flex flex-col items-center gap-3 px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-10 lg:items-stretch lg:gap-0 lg:px-12 lg:py-10 xl:px-16">
-        <div className="flex items-center gap-3">
-          <Logo className="size-10 lg:size-11" />
-          <span className="text-2xl font-extrabold tracking-[-0.03em] lg:text-[28px]">fluxo</span>
-        </div>
-        <div className="grid flex-1 place-items-center lg:py-8">
+      {/* lado da marca (só desktop): logo, a moeda do fluxo enchendo e o que o fluxo é */}
+      <section className="flex flex-col px-12 py-10 max-lg:hidden xl:px-16">
+        <Brand />
+        <div className="grid flex-1 place-items-center py-8">
           <LoginIllustration />
         </div>
-        <div className="grid max-w-md gap-2 text-center lg:text-left">
-          <p className="text-[15px] font-semibold text-balance lg:text-[28px] lg:leading-[34px] lg:font-bold lg:tracking-[-0.02em]">Contas, cartões, investimentos e dívidas num lugar só.</p>
-          <p className="text-sm text-muted-foreground max-lg:hidden">Seu controle financeiro pessoal, por {APP.company}.</p>
+        <div className="grid max-w-md gap-2">
+          <p className="text-[28px] leading-[34px] font-bold tracking-[-0.02em] text-balance">Contas, cartões, investimentos e dívidas num lugar só.</p>
+          <p className="text-sm text-muted-foreground">Seu controle financeiro pessoal.</p>
         </div>
       </section>
 
-      {/* painel do login: verde no claro, verde 950 no escuro; as ondas fazem a divisa */}
-      <section className="relative flex flex-1 flex-col bg-primary dark:bg-sidebar-accent">
+      {/* painel do login: no desktop, verde (verde 950 no escuro) com as ondas na divisa; no celular, só o login */}
+      <section className="relative flex flex-1 flex-col lg:bg-primary lg:dark:bg-sidebar-accent">
         <WaveEdge />
 
-        <div className="flex flex-1 items-center justify-center px-4 pt-6 pb-8 lg:px-10">
-          <div className="w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-[0_24px_48px_-12px_rgb(0_0_0/.28)]">
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pt-[max(3.5rem,env(safe-area-inset-top))] pb-8 lg:px-10 lg:pt-8">
+          <Brand className="lg:hidden" />
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border bg-card lg:shadow-[0_24px_48px_-12px_rgb(0_0_0/.28)]">
             <div className="grid gap-1.5 px-5 pt-7 text-center sm:px-6">
               <h1 className="text-xl font-bold tracking-[-0.015em]">Entrar</h1>
               <p className="text-sm text-muted-foreground">Acesso restrito. Informe usuário e senha.</p>
@@ -83,7 +91,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           </div>
         </div>
 
-        <footer className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs font-medium text-primary-foreground dark:text-muted-foreground">
+        <footer className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs font-medium text-muted-foreground lg:text-primary-foreground lg:dark:text-muted-foreground">
           © {new Date().getFullYear()} {APP.company}. Todos os direitos reservados.
         </footer>
       </section>

@@ -248,16 +248,8 @@
     transform: translateY(-50%);
   }
 }
-@keyframes wave-drift-x {
-  to {
-    transform: translateX(-50%);
-  }
-}
 .wave-drift-y {
   animation: wave-drift-y 18s linear infinite;
-}
-.wave-drift-x {
-  animation: wave-drift-x 18s linear infinite;
 }
 .wave-slow {
   animation-duration: 29s;

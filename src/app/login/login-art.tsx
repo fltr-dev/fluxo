@@ -3,37 +3,27 @@ import { cn } from "@/lib/utils"
 
 // Ondas do símbolo do fluxo (a de trás translúcida, a da frente cheia), periódicas: dois ciclos no desenho,
 // para que andar 50% (globals.css) feche o loop sem emenda. preserveAspectRatio="none" estica um ciclo pela faixa.
-const VERTICAL = "M70 0 C30 133 30 267 70 400 C110 533 110 667 70 800 C30 933 30 1067 70 1200 C110 1333 110 1467 70 1600 H120 V0Z"
-const HORIZONTAL = "M0 30 C133 10 267 10 400 30 S667 50 800 30 S1067 10 1200 30 S1467 50 1600 30 V80 H0Z"
+// As duas preenchem até a borda do painel (x=120): sem deslocar o desenho, não sobra fresta entre elas.
+const FRONT_D = "M74 0 C38 133 38 267 74 400 C110 533 110 667 74 800 C38 933 38 1067 74 1200 C110 1333 110 1467 74 1600 H120 V0Z"
+const BACK_D = "M40 0 C76 133 76 267 40 400 C4 533 4 667 40 800 C76 933 76 1067 40 1200 C4 1333 4 1467 40 1600 H120 V0Z"
 
-const BACK = "fill-primary/35 dark:fill-primary/20"
-const FRONT = "fill-primary dark:fill-sidebar-accent"
-
-/**
- * Divisor entre a ilustração e o painel do login: vertical na lateral do painel (desktop), horizontal no topo
- * (celular). Fica fora do painel, colado nele, e ondula devagar.
- */
+/** Divisor entre a ilustração e o painel do login (só desktop): fica fora do painel, colado nele, e ondula devagar. */
 export function WaveEdge() {
   return (
-    <div aria-hidden className="pointer-events-none absolute overflow-hidden max-lg:inset-x-0 max-lg:bottom-[calc(100%-1px)] max-lg:h-12 lg:inset-y-0 lg:right-[calc(100%-1px)] lg:w-28">
+    <div aria-hidden className="pointer-events-none absolute inset-y-0 right-[calc(100%-1px)] w-28 overflow-hidden max-lg:hidden">
       {[
-        { cls: cn(BACK, "wave-slow"), shift: true },
-        { cls: FRONT, shift: false },
-      ].map(({ cls, shift }, i) => (
-        <div key={i} className="absolute inset-0">
-          <svg viewBox="0 0 120 1600" preserveAspectRatio="none" className={cn("wave-drift-y h-[200%] w-full max-lg:hidden", shift && "-translate-x-6")}>
-            <path d={VERTICAL} className={cls} />
-          </svg>
-          <svg viewBox="0 0 1600 80" preserveAspectRatio="none" className={cn("wave-drift-x h-full w-[200%] lg:hidden", shift && "-translate-y-2.5")}>
-            <path d={HORIZONTAL} className={cls} />
-          </svg>
-        </div>
+        { d: BACK_D, motion: "wave-slow", fill: "fill-primary/35 dark:fill-primary/20" },
+        { d: FRONT_D, motion: "", fill: "fill-primary dark:fill-sidebar-accent" },
+      ].map(({ d, motion, fill }) => (
+        <svg key={d} viewBox="0 0 120 1600" preserveAspectRatio="none" className={cn("wave-drift-y absolute inset-x-0 top-0 h-[200%] w-full", motion)}>
+          <path d={d} className={fill} />
+        </svg>
       ))}
     </div>
   )
 }
 
-const card = "float absolute rounded-xl border bg-card shadow-[0_8px_24px_-8px_rgb(0_0_0/.18)] max-sm:hidden"
+const card = "float absolute rounded-xl border bg-card shadow-[0_8px_24px_-8px_rgb(0_0_0/.18)]"
 
 function Chip({ icon, label, value, tone, className }: { icon: React.ReactNode; label: string; value: string; tone: "income" | "expense"; className?: string }) {
   return (
@@ -58,9 +48,9 @@ const COIN_BACK = "M0 96 C33 84 67 84 100 96 S167 108 200 96 S267 84 300 96 S367
  */
 export function LoginIllustration() {
   return (
-    <div aria-hidden className="relative grid size-[164px] place-items-center sm:size-[380px]">
+    <div aria-hidden className="relative grid size-[380px] place-items-center">
       <div className="float relative">
-        <svg viewBox="0 0 200 200" className="size-[132px] sm:size-[240px]">
+        <svg viewBox="0 0 200 200" className="size-[240px]">
           <clipPath id="login-coin">
             <circle cx="100" cy="100" r="72" />
           </clipPath>
@@ -75,7 +65,7 @@ export function LoginIllustration() {
         </svg>
       </div>
       {/* sombra no chão, respirando com a flutuação */}
-      <div className="float-shadow absolute bottom-[6%] h-3 w-[44%] rounded-[50%] bg-foreground/8 blur-[2px] max-sm:bottom-0" />
+      <div className="float-shadow absolute bottom-[6%] h-3 w-[44%] rounded-[50%] bg-foreground/8 blur-[2px]" />
 
       <Chip icon={<BriefcaseBusiness className="size-4" />} label="Salário" value="+R$ 5.200,00" tone="income" className="top-[10%] -left-[10%]" />
       <Chip icon={<ShoppingCart className="size-4" />} label="Mercado" value="-R$ 84,90" tone="expense" className="bottom-[16%] -left-[16%] [animation-delay:-2s]" />
