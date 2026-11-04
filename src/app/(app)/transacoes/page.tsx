@@ -269,7 +269,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                               </form>
                             )}
                           </td>
-                          <td className="max-w-40 truncate px-3 text-muted-foreground">{accountName}</td>
+                          <td className="truncate px-3 text-muted-foreground" title={accountName}>{accountName}</td>
                           <td className={cn("px-3 text-right font-medium whitespace-nowrap tabular-nums", tx.kind === "TRANSFER" && "text-muted-foreground")}>
                             {tx.kind === "TRANSFER" ? <Money value={tx.amount} className="text-muted-foreground" /> : <Money value={tx.amount} signed />}
                           </td>

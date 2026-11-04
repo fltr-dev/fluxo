@@ -231,10 +231,10 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
                 <span className="w-12 text-[13px] font-bold tabular-nums">{dayMonth(r.date)}</span>
                 <AssetBadge code={r.code} name={r.name} assetClass={r.override ?? r.autoClass} size={32} />
                 <span className="grid min-w-0 flex-1">
-                  <b className="truncate text-sm">{r.code ?? r.name}</b>
+                  <b className="truncate text-sm" title={r.code ? `${r.code} · ${r.name}` : r.name}>{r.code ?? r.name}</b>
                   <span className="text-xs text-muted-foreground">{TRADE_LABEL[r.type]}</span>
                 </span>
-                <b className="text-sm tabular-nums">{brl(r.amount)}</b>
+                <b className="text-sm whitespace-nowrap tabular-nums">{brl(r.amount)}</b>
               </div>
             ))}
             {income.count === 0 && <p className="border-t py-3 text-sm text-muted-foreground">Nenhum provento registrado ainda.</p>}
@@ -258,10 +258,10 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
                   <Link key={h.id} href={`/investimentos/ativos/${h.id}`} className="flex min-h-13 items-center gap-3 rounded-lg border-t py-2 hover:bg-muted/50">
                     <AssetBadge code={h.code} name={h.name} assetClass={h.assetClass} />
                     <span className="grid min-w-0 flex-1">
-                      <b className="truncate text-sm">{h.code ?? h.name}</b>
-                      <span className="truncate text-xs text-muted-foreground">{h.code ? `${h.name} · ` : ""}{CLASS_INFO[h.assetClass].label}{h.manual ? " · manual" : ""}</span>
+                      <b className="truncate text-sm" title={h.code ?? h.name}>{h.code ?? h.name}</b>
+                      <span className="truncate text-xs text-muted-foreground" title={h.code ? h.name : undefined}>{h.code ? `${h.name} · ` : ""}{CLASS_INFO[h.assetClass].label}{h.manual ? " · manual" : ""}</span>
                     </span>
-                    <b className={cn("text-sm tabular-nums", h.profitPct! >= 0 ? "text-income" : "text-expense")}>{signedPct(h.profitPct!)}</b>
+                    <b className={cn("text-sm whitespace-nowrap tabular-nums", h.profitPct! >= 0 ? "text-income" : "text-expense")}>{signedPct(h.profitPct!)}</b>
                   </Link>
                 ))}
                 {g.list.length === 0 && <p className="border-t py-3 text-sm text-muted-foreground">Nenhum ativo aqui.</p>}

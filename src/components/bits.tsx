@@ -48,7 +48,7 @@ export function Empty({ icon: Icon, title, children, action }: { icon?: LucideIc
 }
 
 export const Money = ({ value, className, signed }: { value: number; className?: string; signed?: boolean }) => (
-  <span className={cn("tabular-nums", value < 0 && "text-expense", signed && value > 0 && "text-income", className)}>
+  <span className={cn("whitespace-nowrap tabular-nums", value < 0 && "text-expense", signed && value > 0 && "text-income", className)}>
     {signed && value > 0 && "+"}
     {brl(value)}
   </span>
