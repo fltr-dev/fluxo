@@ -15,14 +15,15 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-export type NavItem = { href: string; label: string; icon: LucideIcon }
+/** `disabled`: aparece no menu, mas inativo (recurso escondido por enquanto) */
+export type NavItem = { href: string; label: string; icon: LucideIcon; disabled?: boolean }
 
 export const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Visão geral",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/cofy", label: "Cofy", icon: PiggyBank },
+      { href: "/cofy", label: "Cofy", icon: PiggyBank, disabled: true },
       { href: "/relatorios", label: "Relatórios", icon: ChartColumn },
       { href: "/investimentos", label: "Investimentos", icon: TrendingUp },
       { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },

@@ -422,11 +422,8 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                       ? "Sem dívidas em aberto. Que bom!"
                       : payoff
                         ? `Mantendo os pagamentos agendados, você zera tudo em ${monthLabel(payoff)}.`
-                        : `Faltam ${brl(remainingSum)}. Algumas dívidas são de pagamento livre: combine um valor mensal e eu monto o plano.`}
+                        : `Faltam ${brl(remainingSum)}. Algumas dívidas são de pagamento livre: combine um valor mensal para elas.`}
                   </p>
-                  <Link href={`/cofy?q=${encodeURIComponent("Monte um plano para quitar minhas dívidas")}`} className="font-semibold text-primary hover:underline">
-                    Montar um plano com o Cofy
-                  </Link>
                 </div>
               </Card>
             </aside>
