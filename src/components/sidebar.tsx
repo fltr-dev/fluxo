@@ -113,11 +113,16 @@ export function NavList({
           ) : (
             <span className="flex h-7 items-center px-3 text-xs font-medium text-muted-foreground">{g.group}</span>
           )}
-          {g.items.map(({ href, label, icon: Icon }) => {
+          {g.items.map(({ href, label, icon: Icon, disabled }) => {
             const hasAccounts = href === ACCOUNTS_HREF
             // "Contas" só fica ativo no resumo; dentro de uma conta o destaque vai para ela
             const active = hasAccounts ? path === href : isActive(href, path)
-            const link = (
+            const link = disabled ? (
+              <span aria-disabled="true" title="Em breve" className={cn(itemClass, "cursor-not-allowed opacity-50 hover:bg-transparent")}>
+                <Icon className="size-4 shrink-0" />
+                <span className="truncate">{label}</span>
+              </span>
+            ) : (
               <Link href={href} aria-current={active ? "page" : undefined} className={cn(itemClass, hasAccounts && accounts.length > 0 && !collapsed && "pr-9", active && activeClass)}>
                 <Icon className="size-4 shrink-0" />
                 <span className="truncate">{label}</span>

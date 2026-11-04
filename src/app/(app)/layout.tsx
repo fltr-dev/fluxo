@@ -6,7 +6,6 @@ import { auth, sessionIsCurrent, signOut } from "@/auth"
 import { NotificationBell, type BellItem } from "@/components/notification-bell"
 import { PageTransition } from "@/components/page-transition"
 import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton, ThemeToggle } from "@/components/shell-client"
-import { CofyFloating } from "@/components/cofy/floating"
 import { CofyProvider } from "@/components/cofy/store"
 import { SettingsProvider } from "@/components/settings-dialog"
 import { Sidebar } from "@/components/sidebar"
@@ -113,7 +112,6 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </main>
         </div>
 
-        <CofyFloating userName={user.name} demo={demo} />
         <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version} />
       </div>
       </CofyProvider>

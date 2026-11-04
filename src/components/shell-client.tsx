@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, Eye, EyeOff, House, LogOut, Menu, Moon, PiggyBank, Plus, RefreshCw, Settings, Sun, ArrowLeftRight } from "lucide-react"
+import { ChartColumn, ChevronRight, Eye, EyeOff, House, LogOut, Menu, Moon, Plus, RefreshCw, Settings, Sun, ArrowLeftRight } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
@@ -90,7 +90,7 @@ export function SyncButton({ compact }: { compact?: boolean }) {
 const MOBILE = [
   { href: "/", label: "Início", icon: House },
   { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
-  { href: "/cofy", label: "Cofy", icon: PiggyBank },
+  { href: "/relatorios", label: "Relatórios", icon: ChartColumn },
 ]
 
 /** Barra inferior do celular; "Mais" abre o restante do menu (com as contas) num painel lateral. */
