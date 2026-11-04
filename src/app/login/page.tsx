@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       {/* no celular fica sobre o fundo claro; no desktop, sobre o painel verde */}
       <ThemeToggle className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 lg:text-primary-foreground lg:hover:bg-primary-foreground/15 lg:hover:text-primary-foreground lg:dark:text-foreground lg:dark:hover:bg-foreground/10 lg:dark:hover:text-foreground" />
 
-      {/* lado da marca: logo, Cofy e o que o fluxo é */}
+      {/* lado da marca: logo, a moeda do fluxo enchendo e o que o fluxo é */}
       <section className="flex flex-col items-center gap-3 px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-10 lg:items-stretch lg:gap-0 lg:px-12 lg:py-10 xl:px-16">
         <div className="flex items-center gap-3">
           <Logo className="size-10 lg:size-11" />

@@ -1,5 +1,4 @@
 import { BriefcaseBusiness, ShoppingCart } from "lucide-react"
-import { CofyPose } from "@/components/cofy-mascot"
 import { cn } from "@/lib/utils"
 
 // Ondas do símbolo do fluxo (a de trás translúcida, a da frente cheia), periódicas: dois ciclos no desenho,
@@ -34,9 +33,11 @@ export function WaveEdge() {
   )
 }
 
+const card = "float absolute rounded-xl border bg-card shadow-[0_8px_24px_-8px_rgb(0_0_0/.18)] max-sm:hidden"
+
 function Chip({ icon, label, value, tone, className }: { icon: React.ReactNode; label: string; value: string; tone: "income" | "expense"; className?: string }) {
   return (
-    <div className={cn("float absolute flex items-center gap-2.5 rounded-xl border bg-card py-2 pr-4 pl-2 shadow-[0_8px_24px_-8px_rgb(0_0_0/.18)]", className)}>
+    <div className={cn(card, "flex items-center gap-2.5 py-2 pr-4 pl-2", className)}>
       <span className={cn("grid size-9 place-items-center rounded-full", tone === "income" ? "bg-income/12 text-income" : "bg-expense/12 text-expense")}>{icon}</span>
       <span className="grid leading-tight">
         <span className="text-[13px] font-semibold">{label}</span>
@@ -46,20 +47,48 @@ function Chip({ icon, label, value, tone, className }: { icon: React.ReactNode; 
   )
 }
 
+// mesma onda do símbolo, em dois ciclos de 200 (a moeda tem 200 de largura): andar 200 fecha o loop
+const COIN_FRONT = "M0 112 C33 100 67 100 100 112 S167 124 200 112 S267 100 300 112 S367 124 400 112 V200 H0Z"
+const COIN_BACK = "M0 96 C33 84 67 84 100 96 S167 108 200 96 S267 84 300 96 S367 108 400 96 V200 H0Z"
+
 /**
- * Cofy guardando a moeda do fluxo, entre um salário que entra e uma compra que sai: o que o app faz, sem texto.
- * Decorativo: fica fora da árvore de acessibilidade.
+ * A moeda do fluxo em escala de ilustração: o nível sobe ao abrir e as duas ondas correm dentro dela, entre um
+ * salário que entra, uma compra que sai e a reserva enchendo. O que o app faz, sem texto. Decorativo: fica fora
+ * da árvore de acessibilidade.
  */
 export function LoginIllustration() {
   return (
-    <div aria-hidden className="login-art relative grid size-[164px] place-items-center sm:size-[360px]">
-      {/* o anel da moeda do logo, ao fundo */}
-      <div className="absolute inset-[6%] rounded-full border-[12px] border-primary/10 sm:border-[22px]" />
-      <div className="cofy-gulp">
-        <CofyPose size={300} className="size-[148px] sm:size-[300px]" />
+    <div aria-hidden className="relative grid size-[164px] place-items-center sm:size-[380px]">
+      <div className="float relative">
+        <svg viewBox="0 0 200 200" className="size-[132px] sm:size-[240px]">
+          <clipPath id="login-coin">
+            <circle cx="100" cy="100" r="72" />
+          </clipPath>
+          <circle cx="100" cy="100" r="72" className="fill-primary/8" />
+          <g clipPath="url(#login-coin)">
+            <g className="coin-fill">
+              <path d={COIN_BACK} className="coin-wave coin-wave-back fill-primary/45" />
+              <path d={COIN_FRONT} className="coin-wave fill-primary" />
+            </g>
+          </g>
+          <circle cx="100" cy="100" r="86" fill="none" strokeWidth="20" className="stroke-primary" />
+        </svg>
       </div>
-      <Chip icon={<BriefcaseBusiness className="size-4" />} label="Salário" value="+R$ 5.200,00" tone="income" className="top-[14%] -left-[12%] max-sm:hidden" />
-      <Chip icon={<ShoppingCart className="size-4" />} label="Mercado" value="-R$ 84,90" tone="expense" className="-right-[10%] bottom-[12%] [animation-delay:-3s] max-sm:hidden" />
+      {/* sombra no chão, respirando com a flutuação */}
+      <div className="float-shadow absolute bottom-[6%] h-3 w-[44%] rounded-[50%] bg-foreground/8 blur-[2px] max-sm:bottom-0" />
+
+      <Chip icon={<BriefcaseBusiness className="size-4" />} label="Salário" value="+R$ 5.200,00" tone="income" className="top-[10%] -left-[10%]" />
+      <Chip icon={<ShoppingCart className="size-4" />} label="Mercado" value="-R$ 84,90" tone="expense" className="bottom-[16%] -left-[16%] [animation-delay:-2s]" />
+      <div className={cn(card, "bottom-[34%] left-[75%] grid w-44 gap-2 p-3 [animation-delay:-4s]")}>
+        <div className="flex items-baseline justify-between text-[13px] font-semibold">
+          <span>Reserva</span>
+          <span className="text-primary tabular-nums">72%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="bar-fill h-full w-[72%] rounded-full bg-primary" />
+        </div>
+        <span className="text-xs text-muted-foreground tabular-nums">R$ 7.200 de R$ 10.000</span>
+      </div>
     </div>
   )
 }

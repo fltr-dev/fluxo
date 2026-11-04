@@ -242,7 +242,7 @@
 }
 
 /* Login. As ondas do divisor são periódicas e têm o dobro do tamanho da faixa: andar 50% fecha o ciclo sem
-   emenda. A moeda cai na fenda do Cofy e ele "engole"; os cartões flutuam. Com menos movimento, tudo parado. */
+   emenda. A moeda e os cartões flutuam. Com menos movimento, tudo parado. */
 @keyframes wave-drift-y {
   to {
     transform: translateY(-50%);
@@ -263,46 +263,45 @@
   animation-duration: 29s;
   animation-direction: reverse;
 }
-@keyframes coin-drop {
-  0% {
-    transform: translateY(-28px);
-    opacity: 0;
-  }
-  14%,
-  58% {
-    transform: none;
-    opacity: 1;
-  }
-  74% {
-    transform: translateY(34px);
-    opacity: 1;
-  }
-  80%,
-  100% {
-    transform: translateY(44px);
-    opacity: 0;
+/* A moeda da ilustração enche ao abrir (o nível sobe) e a meta enche junto; dentro dela as ondas correm
+   (desenho de 2 ciclos de 200 unidades: andar 200 fecha o loop) */
+@keyframes coin-fill {
+  from {
+    transform: translateY(64px);
   }
 }
-@keyframes cofy-gulp {
-  0%,
-  74%,
-  92%,
-  100% {
-    transform: none;
-  }
-  80% {
-    transform: scale(1.03, 0.96);
-  }
-  86% {
-    transform: scale(0.99, 1.02);
+@keyframes bar-fill {
+  from {
+    transform: scaleX(0);
   }
 }
-.login-art .cofy-coin {
-  animation: coin-drop 4.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+@keyframes coin-wave {
+  to {
+    transform: translateX(-200px);
+  }
 }
-.cofy-gulp {
-  transform-origin: 50% 92%;
-  animation: cofy-gulp 4.2s ease-out infinite;
+.coin-fill {
+  animation: coin-fill 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.bar-fill {
+  transform-origin: left;
+  animation: bar-fill 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.coin-wave {
+  animation: coin-wave 7s linear infinite;
+}
+.coin-wave-back {
+  animation-duration: 11s;
+  animation-direction: reverse;
+}
+@keyframes float-shadow {
+  50% {
+    transform: scaleX(0.86);
+    opacity: 0.6;
+  }
+}
+.float-shadow {
+  animation: float-shadow 6s ease-in-out infinite;
 }
 @keyframes float {
   50% {

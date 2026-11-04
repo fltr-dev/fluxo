@@ -19,8 +19,7 @@ const POSES: Record<CofyPoseName, React.ReactNode> = {
     <>
       <ellipse cx="108" cy="182" rx="70" ry="6" fill="#09090B" opacity=".08" />
         <g><rect x="60" y="140" width="24" height="32" rx="9" fill="#E27F98" /><rect x="132" y="140" width="24" height="32" rx="9" fill="#E27F98" /><path d="M172 108 c15 -2 17 15 6 15 c-8 0 -8 -10 0 -10" stroke="#E27F98" strokeWidth="5" fill="none" strokeLinecap="round" /><path d="M64 74 L72 36 L102 62Z" fill="#E27F98" /><path d="M72 66 L76 48 L90 61Z" fill="#F9C9D4" /><ellipse cx="108" cy="110" rx="66" ry="50" fill="#F4A7B9" /><path d="M84 74 C104 62 140 62 160 82 C140 74 106 72 84 80Z" fill="#F9C9D4" opacity=".9" /><rect x="22" y="94" width="32" height="38" rx="11" fill="#E27F98" /><ellipse cx="31" cy="113" rx="3.6" ry="6" fill="#B0485F" /><rect x="104" y="72" width="36" height="7" rx="3.5" fill="#B0485F" /><ellipse cx="72" cy="122" rx="9" ry="5.5" fill="#F07C9A" opacity=".55" /><circle cx="72" cy="98" r="6" fill="#21160E" /><circle cx="74.2" cy="95.8" r="2" fill="#FFFFFF" /><path d="M57 135 q7 5 14 0" stroke="#B0485F" strokeWidth="3" fill="none" strokeLinecap="round" /></g>
-        {/* cofy-coin: o login anima a moeda caindo na fenda (globals.css); nas outras telas fica parada */}
-        <g className="cofy-coin"><circle cx="122" cy="34" r="20" fill="#08845A" /><circle cx="122" cy="34" r="14" fill="none" stroke="#FFFFFF" strokeOpacity=".4" strokeWidth="2" /><text x="122" y="42" textAnchor="middle" fontFamily="inherit" fontWeight="800" fontSize="22" fill="#FFFFFF">$</text></g>
+        <circle cx="122" cy="34" r="20" fill="#08845A" /><circle cx="122" cy="34" r="14" fill="none" stroke="#FFFFFF" strokeOpacity=".4" strokeWidth="2" /><text x="122" y="42" textAnchor="middle" fontFamily="inherit" fontWeight="800" fontSize="22" fill="#FFFFFF">$</text>
     </>
   ),
   pensando: (
