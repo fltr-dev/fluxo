@@ -5,40 +5,37 @@ import { signIn } from "@/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/shell-client"
 import { APP } from "@/lib/app-info"
+import { LoginIllustration, WaveEdge } from "./login-art"
 import { LoginFields } from "./login-fields"
-
-/**
- * As duas ondas do símbolo do fluxo, em escala de tela: a de trás (dinheiro que entra) translúcida, a da frente
- * (o que fica guardado) cheia. Mesmas curvas do logo, esticadas; "slice" corta as laterais no celular em vez de
- * espremer a onda.
- */
-function Tide() {
-  return (
-    <svg viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[clamp(200px,34svh,360px)] w-full">
-      <path className="tide fill-primary/40 dark:fill-primary/15" d="M0 80 C 316 32 562 120 878 64 S 1300 16 1440 32 V320 H0Z" />
-      <path className="tide tide-2 fill-primary dark:fill-primary/30" d="M0 128 C 316 80 562 176 878 112 S 1300 72 1440 88 V320 H0Z" />
-    </svg>
-  )
-}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error, alterado } = await searchParams
   return (
-    <main className="relative isolate flex min-h-svh flex-col overflow-hidden bg-muted dark:bg-background">
-      <Tide />
-      <ThemeToggle className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4" />
+    <main className="relative flex min-h-svh flex-col overflow-x-hidden bg-background lg:grid lg:grid-cols-[1fr_minmax(30rem,46%)]">
+      {/* no celular fica sobre o fundo claro; no desktop, sobre o painel verde */}
+      <ThemeToggle className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 lg:text-primary-foreground lg:hover:bg-primary-foreground/15 lg:hover:text-primary-foreground lg:dark:text-foreground lg:dark:hover:bg-foreground/10 lg:dark:hover:text-foreground" />
 
-      <div className="flex flex-1 items-center justify-center px-4 pt-16 pb-8">
-        <div className="flex w-full max-w-sm flex-col gap-8">
-          <div className="grid justify-items-center gap-3 text-center">
-            <div className="flex items-center gap-3">
-              <Logo className="size-12" />
-              <span className="text-3xl font-extrabold tracking-[-0.03em]">fluxo</span>
-            </div>
-            <p className="text-sm text-balance text-muted-foreground">Contas, cartões, investimentos e dívidas num lugar só.</p>
-          </div>
+      {/* lado da marca: logo, Cofy e o que o fluxo é */}
+      <section className="flex flex-col items-center gap-3 px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-10 lg:items-stretch lg:gap-0 lg:px-12 lg:py-10 xl:px-16">
+        <div className="flex items-center gap-3">
+          <Logo className="size-10 lg:size-11" />
+          <span className="text-2xl font-extrabold tracking-[-0.03em] lg:text-[28px]">fluxo</span>
+        </div>
+        <div className="grid flex-1 place-items-center lg:py-8">
+          <LoginIllustration />
+        </div>
+        <div className="grid max-w-md gap-2 text-center lg:text-left">
+          <p className="text-[15px] font-semibold text-balance lg:text-[28px] lg:leading-[34px] lg:font-bold lg:tracking-[-0.02em]">Contas, cartões, investimentos e dívidas num lugar só.</p>
+          <p className="text-sm text-muted-foreground max-lg:hidden">Seu controle financeiro pessoal, por {APP.company}.</p>
+        </div>
+      </section>
 
-          <div className="overflow-hidden rounded-xl border bg-card shadow-[0_8px_24px_-8px_rgb(0_0_0/.18)]">
+      {/* painel do login: verde no claro, verde 950 no escuro; as ondas fazem a divisa */}
+      <section className="relative flex flex-1 flex-col bg-primary dark:bg-sidebar-accent">
+        <WaveEdge />
+
+        <div className="flex flex-1 items-center justify-center px-4 pt-6 pb-8 lg:px-10">
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-[0_24px_48px_-12px_rgb(0_0_0/.28)]">
             <div className="grid gap-1.5 px-5 pt-7 text-center sm:px-6">
               <h1 className="text-xl font-bold tracking-[-0.015em]">Entrar</h1>
               <p className="text-sm text-muted-foreground">Acesso restrito. Informe usuário e senha.</p>
@@ -85,12 +82,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* fica sobre a onda da frente: primary-foreground no claro, foreground no escuro */}
-      <footer className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs font-medium text-primary-foreground dark:text-foreground">
-        © {new Date().getFullYear()} {APP.company}. Todos os direitos reservados.
-      </footer>
+        <footer className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs font-medium text-primary-foreground dark:text-muted-foreground">
+          © {new Date().getFullYear()} {APP.company}. Todos os direitos reservados.
+        </footer>
+      </section>
     </main>
   )
 }
