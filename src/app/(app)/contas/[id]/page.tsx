@@ -77,12 +77,13 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
         </Link>
       </PageTitle>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4" aria-label="Resumo da conta">
-        <Card className="col-span-2 flex-row items-center gap-4 px-5 py-4 lg:col-span-1">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,4fr)_repeat(3,minmax(0,3fr))] lg:gap-4" aria-label="Resumo da conta">
+        {/* Sem min-w-0 no bloco do saldo: se o valor não couber ao lado do avatar, ele desce em vez de ser cortado */}
+        <Card className="col-span-2 flex-row flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 lg:col-span-1">
           <AccountAvatar look={look} size={48} className="rounded-xl" />
-          <div className="grid min-w-0">
+          <div className="grid">
             <span className="text-sm font-medium text-muted-foreground">{card ? "Fatura aberta" : "Saldo atual"}</span>
-            <span className="truncate text-2xl font-semibold tracking-tight tabular-nums">
+            <span className="text-2xl font-semibold tracking-tight tabular-nums">
               <Money value={card ? Math.abs(acc.balance) : acc.balance} />
             </span>
           </div>

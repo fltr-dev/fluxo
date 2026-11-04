@@ -150,7 +150,7 @@ const chip = (on: boolean) =>
 
 function Result({ value, pct }: { value: number; pct: number | null }) {
   return (
-    <span className="grid justify-items-end leading-[18px] tabular-nums">
+    <span className="grid justify-items-end leading-[18px] whitespace-nowrap tabular-nums">
       <b className={value >= 0 ? "text-income" : "text-expense"}>{pct != null ? signedPct(pct) : "—"}</b>
       <span className="text-xs text-muted-foreground">{value >= 0 ? "+" : "−"}{brl(Math.abs(value))}</span>
     </span>
@@ -164,11 +164,11 @@ function AssetRow({ h, total, variable }: { h: Holding; total: number; variable:
       <span className="flex min-w-0 items-center gap-3">
         <AssetBadge code={h.code} name={h.name} assetClass={h.assetClass} />
         <span className="grid min-w-0">
-          <span className="flex items-center gap-1.5">
-            <b className="truncate">{h.code ?? h.name}</b>
-            {h.manual && <span className="rounded-md bg-amber-500/10 px-1.5 text-[11px] font-semibold text-warning">Manual</span>}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <b className="truncate" title={h.code ?? h.name}>{h.code ?? h.name}</b>
+            {h.manual && <span className="shrink-0 rounded-md bg-amber-500/10 px-1.5 text-[11px] font-semibold text-warning">Manual</span>}
           </span>
-          <span className="truncate text-xs text-muted-foreground">{h.code ? h.name : (h.broker ?? "")}</span>
+          <span className="truncate text-xs text-muted-foreground" title={h.code ? h.name : (h.broker ?? undefined)}>{h.code ? h.name : (h.broker ?? "")}</span>
         </span>
       </span>
       {variable ? (
@@ -180,13 +180,13 @@ function AssetRow({ h, total, variable }: { h: Holding; total: number; variable:
         </>
       ) : (
         <>
-          <span className="truncate">{h.rateLabel ?? "—"}</span>
+          <span className="truncate" title={h.rateLabel ?? undefined}>{h.rateLabel ?? "—"}</span>
           <span className="tabular-nums">{h.dueDate ? dateBR(h.dueDate) : "—"}</span>
-          <span className="truncate">{h.broker ?? "—"}</span>
+          <span className="truncate" title={h.broker ?? undefined}>{h.broker ?? "—"}</span>
           <span className="tabular-nums">{h.invested != null ? brl(h.invested) : "—"}</span>
         </>
       )}
-      <b className="tabular-nums">{brl(h.value)}</b>
+      <b className="whitespace-nowrap tabular-nums">{brl(h.value)}</b>
       {h.profit != null ? <Result value={h.profit} pct={h.profitPct} /> : <span className="text-muted-foreground">—</span>}
       <span className="grid gap-1">
         <span className="font-semibold tabular-nums">{pct1(weight)}</span>

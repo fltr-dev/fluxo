@@ -67,7 +67,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
         <Link href={`/contas/${a.id}`} className="group flex min-w-40 flex-1 items-center gap-3 rounded-lg py-1 pr-2 hover:bg-muted/50">
           <AccountAvatar look={look} size={36} />
           <span className="grid min-w-0 flex-1">
-            <span className="truncate text-sm font-medium group-hover:underline">{a.name}</span>
+            <span className="truncate text-sm font-medium group-hover:underline" title={a.name}>{a.name}</span>
             <span className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
               {TYPES[a.type]}
               {a.isEmergencyReserve && <span className="rounded-full bg-violet-500/10 px-1.5 text-violet-700 dark:text-violet-300">reserva</span>}
@@ -146,8 +146,8 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                   <div className="flex min-w-0 items-center gap-3">
                     <AccountAvatar look={accountLook({ name: i.name })} size={40} className="rounded-xl" />
                     <div className="grid min-w-0">
-                      <span className="flex items-center gap-2">
-                        <CardTitle className="truncate font-semibold">{i.name}</CardTitle>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <CardTitle className="truncate font-semibold" title={i.name}>{i.name}</CardTitle>
                         <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", i.error ? RUN.ERROR[1] : RUN.OK[1])}>{i.error ? "Com erro" : "Ativa"}</span>
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
@@ -162,7 +162,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                     </Button>
                   </form>
                 </CardHeader>
-                <CardContent className="grid">
+                <CardContent className="grid grid-cols-1">
                   {i.error && (
                     <div className="mb-2 flex flex-wrap items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
                       <CircleAlert className="mt-0.5 size-4 shrink-0" />
@@ -184,7 +184,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
               <CardHeader>
                 <CardTitle className="font-semibold">Contas de conexões removidas</CardTitle>
               </CardHeader>
-              <CardContent className="grid">{orphan.map((a) => <AccountRow key={a.id} a={a} />)}</CardContent>
+              <CardContent className="grid grid-cols-1">{orphan.map((a) => <AccountRow key={a.id} a={a} />)}</CardContent>
             </Card>
           )}
         </div>
@@ -200,7 +200,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                 <Plus />
               </Link>
             </CardHeader>
-            <CardContent className="grid">
+            <CardContent className="grid grid-cols-1">
               {manual.length === 0 && <p className="py-3 text-sm text-muted-foreground">Nenhuma conta manual.</p>}
               {manual.map((a) => <AccountRow key={a.id} a={a} />)}
             </CardContent>
@@ -210,7 +210,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
             <CardHeader>
               <CardTitle className="font-semibold">Histórico de sincronizações</CardTitle>
             </CardHeader>
-            <CardContent className="grid">
+            <CardContent className="grid grid-cols-1">
               {runs.length === 0 && <p className="py-3 text-sm text-muted-foreground">Nenhuma sincronização ainda.</p>}
               {runs.map((r) => {
                 const [label, badge, dot] = RUN[r.status as keyof typeof RUN] ?? RUN.RUNNING

@@ -81,9 +81,9 @@ export default async function IncomePage({ searchParams }: PageProps<"/investime
                 {inc.byAsset.slice(0, 8).map((a) => (
                   <Link key={a.id} href={`/investimentos/ativos/${a.id}`} className="flex min-h-11 items-center gap-3 border-t py-1.5 first:border-0 hover:bg-muted/40">
                     <AssetBadge code={a.code} name={a.name} assetClass={a.assetClass} size={30} />
-                    <b className="w-20 truncate text-sm">{a.code ?? a.name}</b>
+                    <b className="w-20 shrink-0 truncate text-sm" title={a.code ? `${a.code} · ${a.name}` : a.name}>{a.code ?? a.name}</b>
                     <span className="relative h-2 min-w-12 flex-1 rounded-full bg-muted"><span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(a.total / top.total) * 100}%`, background: CLASS_INFO[a.assetClass].color }} /></span>
-                    <b className="w-24 text-right text-sm tabular-nums">{brl(a.total)}</b>
+                    <b className="w-24 shrink-0 text-right text-sm whitespace-nowrap tabular-nums">{brl(a.total)}</b>
                   </Link>
                 ))}
                 {inc.byAsset.length === 0 && <p className="py-3 text-sm text-muted-foreground">Nada recebido nos últimos 12 meses.</p>}
@@ -157,15 +157,15 @@ function PaymentRow({ r, upcoming, path }: { r: TradeRow; upcoming?: boolean; pa
       <Link href={`/investimentos/ativos/${r.investmentId}`} className="flex min-w-0 items-center gap-2.5 hover:underline">
         <AssetBadge code={r.code} name={r.name} assetClass={cls} size={32} />
         <span className="grid min-w-0">
-          <b className="truncate">{r.code ?? r.name}</b>
-          <span className="truncate text-xs text-muted-foreground">{r.code ? r.name : CLASS_INFO[cls].label}</span>
+          <b className="truncate" title={r.code ?? r.name}>{r.code ?? r.name}</b>
+          <span className="truncate text-xs text-muted-foreground" title={r.code ? r.name : undefined}>{r.code ? r.name : CLASS_INFO[cls].label}</span>
         </span>
       </Link>
       <span>
         <span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", upcoming ? "bg-amber-500/10 text-warning" : "bg-muted text-muted-foreground")}>{TRADE_LABEL[r.type]}</span>
       </span>
       <span className="text-right text-xs text-muted-foreground tabular-nums">{unit(r) ?? "—"}</span>
-      <b className={cn("text-right tabular-nums", !upcoming && "text-income")}>{upcoming ? "" : "+"}{brl(r.amount)}</b>
+      <b className={cn("text-right whitespace-nowrap tabular-nums", !upcoming && "text-income")}>{upcoming ? "" : "+"}{brl(r.amount)}</b>
       <span className="text-right">
         {!r.pluggyId && (
           <form action={deleteTrade}>

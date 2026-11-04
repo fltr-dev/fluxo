@@ -53,35 +53,36 @@ function DebtCard({ v }: { v: DebtView }) {
   const { debt, ev } = v
   const pctPaid = ev.total ? ev.paid / ev.total : 0
   const next = ev.next
+  const summary = debt.description || v.items.map((i) => i.description).join(", ")
   return (
-    <article className={cn("grid gap-3 rounded-2xl border bg-card p-4 transition-shadow hover:shadow-sm", ev.status === "overdue" && "border-expense/30")}>
+    <article className={cn("grid min-w-0 grid-cols-1 gap-3 rounded-2xl border bg-card p-4 transition-shadow hover:shadow-sm", ev.status === "overdue" && "border-expense/30")}>
       <div className="flex items-start gap-3">
         <DebtAvatar creditor={debt.creditor} />
-        <div className="grid min-w-0 flex-1 gap-0.5">
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-0.5">
           <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/dividas?ver=${debt.id}`} className="truncate font-semibold hover:underline">
+            <Link href={`/dividas?ver=${debt.id}`} className="truncate font-semibold hover:underline" title={debt.creditor}>
               {debt.creditor}
             </Link>
             {debt.relation && <span className="inline-flex h-5 items-center rounded-md bg-muted px-2 text-xs font-medium text-muted-foreground">{debt.relation}</span>}
             <StatusBadge status={ev.status} />
           </div>
-          <p className="truncate text-sm text-muted-foreground">{debt.description || v.items.map((i) => i.description).join(", ")}</p>
+          <p className="truncate text-sm text-muted-foreground" title={summary}>{summary}</p>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right whitespace-nowrap">
           <div className="font-semibold tabular-nums">{brl(ev.remaining)}</div>
           <div className="text-xs text-muted-foreground tabular-nums">{ev.paid > 0 ? `de ${brl(ev.total)}` : "em aberto"}</div>
         </div>
       </div>
 
       {v.items.length > 1 && (
-        <ul className="grid gap-0.5 rounded-xl bg-muted/50 px-3 py-2 text-sm">
+        <ul className="grid grid-cols-1 gap-0.5 rounded-xl bg-muted/50 px-3 py-2 text-sm">
           {v.items.map((i) => (
             <li key={i.id} className="flex justify-between gap-3">
-              <span className="truncate">
+              <span className="truncate" title={i.description}>
                 {i.quantity > 1 && <span className="tabular-nums">{i.quantity}× </span>}
                 {i.description}
               </span>
-              <span className="text-muted-foreground tabular-nums">{brl(i.quantity * i.unitAmount)}</span>
+              <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums">{brl(i.quantity * i.unitAmount)}</span>
             </li>
           ))}
         </ul>
@@ -124,7 +125,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
   const suggestion = nextOpen && v.schedule.kind !== "NONE" ? (await matchPayments({ amount: nextOpen.amount, due: nextOpen.due }, debt.creditor, 1))[0] : undefined
   return (
     <RouteSheet closeHref="/dividas" title={debt.creditor} description={[debt.relation, debt.description].filter(Boolean).join(" · ") || undefined}>
-      <div className="grid gap-5">
+      <div className="grid grid-cols-1 gap-5">
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border">
           {[
             ["Restante", brl(ev.remaining), ""],
@@ -145,11 +146,11 @@ async function DetailSheet({ v }: { v: DebtView }) {
             <ul className="divide-y rounded-xl border text-sm">
               {v.items.map((i) => (
                 <li key={i.id} className="flex justify-between gap-3 px-3.5 py-2">
-                  <span className="truncate">
+                  <span className="truncate" title={i.description}>
                     {i.quantity > 1 && <span className="tabular-nums">{i.quantity}× </span>}
                     {i.description}
                   </span>
-                  <span className="tabular-nums">{brl(i.quantity * i.unitAmount)}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums">{brl(i.quantity * i.unitAmount)}</span>
                 </li>
               ))}
             </ul>
@@ -195,7 +196,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
                     {!r.paidOn && r.status === "overdue" && <span className="text-xs font-medium text-expense">Em atraso</span>}
                     {!r.paidOn && r.id === ev.next?.id && r.status !== "overdue" && <span className="text-xs font-medium text-primary">Próxima</span>}
                   </div>
-                  <b className="tabular-nums">{brl(r.amount)}</b>
+                  <b className="whitespace-nowrap tabular-nums">{brl(r.amount)}</b>
                   {r.paidOn ? (
                     <form action={undoDebtPayment}>
                       <input type="hidden" name="debtId" value={debt.id} />
@@ -257,9 +258,9 @@ async function PayDialog({ v, installmentId }: { v: DebtView; installmentId?: nu
             {matches.map((t) => (
               <label key={t.id} className="flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm">
                 <input type="radio" name="transactionId" value={t.id} className="accent-primary" />
-                <span className="min-w-0 flex-1 truncate">{t.description}</span>
+                <span className="min-w-0 flex-1 truncate" title={t.description}>{t.description}</span>
                 <span className="text-muted-foreground tabular-nums">{dateBR(t.date)}</span>
-                <b className="tabular-nums">{brl(-t.amount)}</b>
+                <b className="whitespace-nowrap tabular-nums">{brl(-t.amount)}</b>
               </label>
             ))}
           </fieldset>
@@ -332,8 +333,8 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
             ].map(([label, value, hint, cls], i) => (
               <div key={label} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-l lg:border-t-0", i === 2 && "sm:border-t lg:border-t-0 sm:border-l-0 lg:border-l", i === 1 && "sm:border-t-0")}>
                 <span className="text-sm font-medium text-muted-foreground">{label}</span>
-                <span className={cn("text-xl font-semibold tracking-tight tabular-nums", cls)}>{value}</span>
-                <span className="truncate text-xs text-muted-foreground">{hint}</span>
+                <span className={cn("text-xl font-semibold tracking-tight whitespace-nowrap tabular-nums", cls)}>{value}</span>
+                <span className="truncate text-xs text-muted-foreground" title={hint}>{hint}</span>
               </div>
             ))}
           </Card>
@@ -343,7 +344,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
               <span className="grid size-8 place-items-center rounded-lg bg-expense/10 text-expense">
                 <CircleAlert className="size-4" />
               </span>
-              <p className="min-w-0 flex-1 text-sm">
+              <p className="min-w-0 flex-1 basis-60 text-sm">
                 <b>{brl(overdue[0].row.amount)} para {overdue[0].v.debt.creditor}</b> venceu em {dateBR(overdue[0].row.due!)}
                 {overdue.length > 1 && <span className="text-muted-foreground"> · e mais {overdue.length - 1} em atraso</span>}
               </p>
@@ -389,13 +390,13 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                               {dayMonth(t.date).split(" ")[1]}
                             </span>
                             <span className="grid min-w-0 flex-1">
-                              <span className="truncate font-medium">{t.debt.creditor}</span>
+                              <span className="truncate font-medium" title={t.debt.creditor}>{t.debt.creditor}</span>
                               <span className="text-xs text-muted-foreground">
                                 Parcela {t.row.number}
                                 {t.row.estimated && " · data prevista"}
                               </span>
                             </span>
-                            <b className="tabular-nums">{brl(t.row.amount)}</b>
+                            <b className="whitespace-nowrap tabular-nums">{brl(t.row.amount)}</b>
                           </Link>
                         </li>
                       ) : (

@@ -71,7 +71,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
         <div className="flex min-w-0 items-center gap-3.5">
           <AssetBadge code={h.code} name={h.name} assetClass={h.assetClass} size={52} />
           <div className="grid min-w-0 gap-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight">
+            <h1 className="truncate text-2xl font-bold tracking-tight" title={h.code && h.code !== h.name ? `${h.code} · ${h.name}` : h.name}>
               {h.code ?? h.name}
               {h.code && h.code !== h.name && <span className="font-medium text-muted-foreground"> · {h.name}</span>}
             </h1>
@@ -162,7 +162,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
                   <span><span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", t.type === "BUY" ? "bg-income/10 text-income" : t.type === "SELL" ? "bg-expense/10 text-expense" : "bg-muted text-muted-foreground")}>{TRADE_LABEL[t.type]}</span></span>
                   <span className="text-right tabular-nums">{t.quantity != null ? `${t.type === "SELL" ? "−" : "+"}${qtyFmt(t.quantity)}` : "—"}</span>
                   <span className="text-right tabular-nums">{price(t.price)}</span>
-                  <b className="text-right tabular-nums">{brl(t.amount)}</b>
+                  <b className="text-right whitespace-nowrap tabular-nums">{brl(t.amount)}</b>
                   <span className="text-right text-xs text-muted-foreground">{t.pluggyId ? "Pluggy" : "Manual"}</span>
                   <DeleteTrade t={t} path={path} />
                 </div>
@@ -182,7 +182,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
                 <span className="w-20 tabular-nums font-semibold">{dateBR(t.date)}</span>
                 <span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", t.date > now ? "bg-amber-500/10 text-warning" : "bg-muted text-muted-foreground")}>{t.date > now ? `${TRADE_LABEL[t.type]} · a receber` : TRADE_LABEL[t.type]}</span>
                 <span className="flex-1" />
-                <b className={cn("tabular-nums", t.date <= now && "text-income")}>{t.date <= now ? "+" : ""}{brl(t.amount)}</b>
+                <b className={cn("whitespace-nowrap tabular-nums", t.date <= now && "text-income")}>{t.date <= now ? "+" : ""}{brl(t.amount)}</b>
                 <DeleteTrade t={t} path={path} />
               </div>
             ))}

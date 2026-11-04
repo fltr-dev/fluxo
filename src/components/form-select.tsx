@@ -44,7 +44,7 @@ export function FormSelect({ name, defaultValue, value, onValueChange, options =
     label: (
       <span className="flex min-w-0 items-center gap-2">
         <Dot color={o.color} />
-        <span className="truncate">{o.text ?? o.label}</span>
+        <span className="truncate" title={o.text ?? o.label}>{o.text ?? o.label}</span>
       </span>
     ),
   }))
@@ -61,7 +61,7 @@ export function FormSelect({ name, defaultValue, value, onValueChange, options =
   const item = (o: Option) => (
     <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
       <Dot color={o.color} />
-      <span className="truncate">{o.label}</span>
+      <span className="truncate" title={o.label}>{o.label}</span>
     </SelectItem>
   )
 

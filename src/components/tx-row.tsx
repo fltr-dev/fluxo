@@ -73,16 +73,16 @@ export function TxSwipe({ item, href, showAccount }: { item: TxItem; href: strin
         </span>
         <span className="grid min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-sm font-medium">{tx.description}</span>
+            <span className="truncate text-sm font-medium" title={tx.description}>{tx.description}</span>
             {tx.totalInstallments && tx.totalInstallments > 1 && <span className="shrink-0 rounded-full bg-muted px-2 text-xs text-muted-foreground">{tx.installmentNumber}/{tx.totalInstallments}</span>}
           </span>
-          <span className={cn("truncate text-xs", !subName && tx.kind !== "TRANSFER" ? "font-medium text-warning" : "text-muted-foreground")}>
+          <span title={subName ? `${parentName} › ${subName}` : undefined} className={cn("truncate text-xs", !subName && tx.kind !== "TRANSFER" ? "font-medium text-warning" : "text-muted-foreground")}>
             {tx.kind === "TRANSFER" ? "Transferência" : subName ? `${parentName} › ${subName}` : "A categorizar"}
           </span>
         </span>
-        <span className="grid shrink-0 justify-items-end">
+        <span className="grid max-w-[45%] shrink-0 justify-items-end">
           <Money value={tx.amount} signed={tx.kind !== "TRANSFER"} className={cn("text-sm font-medium", tx.kind === "TRANSFER" && "text-muted-foreground")} />
-          {trailing && <span className="text-xs text-muted-foreground">{trailing}</span>}
+          {trailing && <span className="max-w-full truncate text-xs text-muted-foreground" title={trailing}>{trailing}</span>}
         </span>
       </Link>
     </SwipeRow>
