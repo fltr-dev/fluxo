@@ -241,6 +241,69 @@
   animation: page-enter 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* Login. As ondas do divisor são periódicas e têm o dobro do tamanho da faixa: andar 50% fecha o ciclo sem
+   emenda. A moeda e os cartões flutuam. Com menos movimento, tudo parado. */
+@keyframes wave-drift-y {
+  to {
+    transform: translateY(-50%);
+  }
+}
+.wave-drift-y {
+  animation: wave-drift-y 18s linear infinite;
+}
+.wave-slow {
+  animation-duration: 29s;
+  animation-direction: reverse;
+}
+/* A moeda da ilustração enche ao abrir (o nível sobe) e a meta enche junto; dentro dela as ondas correm
+   (desenho de 2 ciclos de 200 unidades: andar 200 fecha o loop) */
+@keyframes coin-fill {
+  from {
+    transform: translateY(64px);
+  }
+}
+@keyframes bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes coin-wave {
+  to {
+    transform: translateX(-200px);
+  }
+}
+.coin-fill {
+  animation: coin-fill 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.bar-fill {
+  transform-origin: left;
+  animation: bar-fill 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.coin-wave {
+  animation: coin-wave 7s linear infinite;
+}
+.coin-wave-back {
+  animation-duration: 11s;
+  animation-direction: reverse;
+}
+@keyframes float-shadow {
+  50% {
+    transform: scaleX(0.86);
+    opacity: 0.6;
+  }
+}
+.float-shadow {
+  animation: float-shadow 6s ease-in-out infinite;
+}
+@keyframes float {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
 /* A onda do logo balança uma vez ao abrir o app e fica em loop enquanto a sincronização roda.
    Na sincronização usamos outro nome de animação (mesmos quadros) para reiniciá-la. */
 @keyframes logo-wave {

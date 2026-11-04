@@ -4,63 +4,97 @@ import { redirect } from "next/navigation"
 import { signIn } from "@/auth"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/shell-client"
-import { Button } from "@/components/ui/button"
+import { APP } from "@/lib/app-info"
+import { cn } from "@/lib/utils"
+import { LoginIllustration, WaveEdge } from "./login-art"
+import { LoginFields } from "./login-fields"
 
-const field = "h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+function Brand({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center gap-3", className)}>
+      <Logo className="size-10 lg:size-11" />
+      <span className="text-2xl font-extrabold tracking-[-0.03em] lg:text-[28px]">fluxo</span>
+    </div>
+  )
+}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error, alterado } = await searchParams
   return (
-    <main className="relative flex min-h-svh flex-col items-center justify-center bg-muted px-4 py-10 dark:bg-background">
-      <ThemeToggle className="absolute top-4 right-4" />
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center justify-center gap-2.5">
-          <Logo className="size-10" />
-          <span className="text-2xl font-extrabold tracking-[-0.03em]">fluxo</span>
+    <main className="relative flex min-h-svh flex-col overflow-x-hidden bg-muted lg:grid lg:bg-background dark:bg-background lg:grid-cols-[1fr_minmax(30rem,46%)]">
+      {/* no celular fica sobre o fundo claro; no desktop, sobre o painel verde */}
+      <ThemeToggle className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 lg:text-primary-foreground lg:hover:bg-primary-foreground/15 lg:hover:text-primary-foreground lg:dark:text-foreground lg:dark:hover:bg-foreground/10 lg:dark:hover:text-foreground" />
+
+      {/* lado da marca (só desktop): logo, a moeda do fluxo enchendo e o que o fluxo é */}
+      <section className="flex flex-col px-12 py-10 max-lg:hidden xl:px-16">
+        <Brand />
+        <div className="grid flex-1 place-items-center py-8">
+          <LoginIllustration />
+        </div>
+        <div className="grid max-w-md gap-2">
+          <p className="text-[28px] leading-[34px] font-bold tracking-[-0.02em] text-balance">Contas, cartões, investimentos e dívidas num lugar só.</p>
+          <p className="text-sm text-muted-foreground">Seu controle financeiro pessoal.</p>
+        </div>
+      </section>
+
+      {/* painel do login: no desktop, verde (verde 950 no escuro) com as ondas na divisa; no celular, só o login */}
+      <section className="relative flex flex-1 flex-col lg:bg-primary lg:dark:bg-sidebar-accent">
+        <WaveEdge />
+
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pt-[max(3.5rem,env(safe-area-inset-top))] pb-8 lg:px-10 lg:pt-8">
+          <Brand className="lg:hidden" />
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border bg-card lg:shadow-[0_24px_48px_-12px_rgb(0_0_0/.28)]">
+            <div className="grid gap-1.5 px-5 pt-7 text-center sm:px-6">
+              <h1 className="text-xl font-bold tracking-[-0.015em]">Entrar</h1>
+              <p className="text-sm text-muted-foreground">Acesso restrito. Informe usuário e senha.</p>
+            </div>
+            <form
+              className="grid gap-4 px-5 pt-6 pb-6 sm:px-6"
+              action={async (form) => {
+                "use server"
+                try {
+                  await signIn("credentials", { user: form.get("user"), password: form.get("password"), redirectTo: "/" })
+                } catch (e) {
+                  // credencial errada: volta ao formulário com o aviso; o redirect de sucesso passa adiante
+                  if (e instanceof AuthError) redirect("/login?error=1")
+                  throw e
+                }
+              }}
+            >
+              {/* no claro, o texto puxa para o foreground: o token puro sobre o fundo 10% fica abaixo de 4,5:1 */}
+              {error && (
+                <div role="alert" className="flex gap-2.5 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-[color-mix(in_oklab,var(--destructive)_75%,var(--foreground))] dark:text-destructive">
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <span>
+                    {error === "expired" ? (
+                      <span className="font-semibold">O login foi alterado. Entre novamente.</span>
+                    ) : (
+                      <>
+                        <span className="font-semibold">Usuário ou senha incorretos.</span> Confira e tente de novo.
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
+              {alterado && !error && (
+                <div role="status" className="flex gap-2.5 rounded-lg border border-income/25 bg-income/10 p-3 text-sm text-[color-mix(in_oklab,var(--income)_75%,var(--foreground))] dark:text-income">
+                  <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <span className="font-semibold">Login atualizado. Entre com o novo usuário e a nova senha.</span>
+                </div>
+              )}
+              <LoginFields invalid={!!error && error !== "expired"} />
+            </form>
+            <div className="flex items-center justify-center gap-1.5 border-t bg-muted/40 px-6 py-3 text-xs text-muted-foreground">
+              <Lock className="size-3.5" aria-hidden />
+              Sessão criptografada
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="grid gap-1.5 px-6 pt-7 text-center">
-            <h1 className="text-xl font-semibold tracking-tight">Entrar</h1>
-            <p className="text-sm text-muted-foreground">Acesso restrito. Informe usuário e senha.</p>
-          </div>
-          <form
-            className="grid gap-4 p-6"
-            action={async (form) => {
-              "use server"
-              try {
-                await signIn("credentials", { user: form.get("user"), password: form.get("password"), redirectTo: "/" })
-              } catch (e) {
-                // credencial errada: volta ao formulário com o aviso; o redirect de sucesso passa adiante
-                if (e instanceof AuthError) redirect("/login?error=1")
-                throw e
-              }
-            }}
-          >
-            {error && (
-              <div role="alert" className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
-                <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                <span className="font-semibold">{error === "expired" ? "O login foi alterado. Entre novamente." : "Usuário ou senha incorretos"}</span>
-              </div>
-            )}
-            {alterado && !error && (
-              <div role="status" className="flex gap-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">
-                <CircleCheck className="mt-0.5 size-4 shrink-0" />
-                <span className="font-semibold">Login atualizado. Entre com o novo usuário e a nova senha.</span>
-              </div>
-            )}
-            <input name="user" required autoComplete="username" placeholder="Usuário" aria-label="Usuário" className={field} />
-            <input name="password" type="password" required autoComplete="current-password" placeholder="Senha" aria-label="Senha" className={field} />
-            <Button type="submit" className="h-11 w-full text-sm">
-              Entrar
-            </Button>
-          </form>
-          <div className="flex items-center justify-center gap-1.5 border-t bg-muted/40 px-6 py-3 text-xs text-muted-foreground">
-            <Lock className="size-3.5" />
-            Sessão criptografada
-          </div>
-        </div>
-      </div>
+        <footer className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs font-medium text-muted-foreground lg:text-primary-foreground lg:dark:text-muted-foreground">
+          © {new Date().getFullYear()} {APP.company}. Todos os direitos reservados.
+        </footer>
+      </section>
     </main>
   )
 }
