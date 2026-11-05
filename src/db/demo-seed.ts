@@ -4,7 +4,7 @@ import { addDays, addMonths, monthEnd, monthOf, today } from "@/lib/domain/dates
 import { seedDemoChat } from "./demo-chat"
 import { seedDemoDebts } from "./demo-debts"
 import { seedDemoInvestments } from "./demo-investments"
-import { SEED_CATEGORIES, SEED_PLUGGY_MAP } from "./seed-data"
+import { seedCategories } from "./default-categories"
 import * as s from "./schema"
 
 // Dados fictícios da demonstração: fixos (gerador determinístico), só as datas acompanham o dia de hoje.
@@ -123,18 +123,7 @@ export async function seedDemo(db: PgliteDatabase<typeof import("./schema")>) {
   const snapshotDates = [...months.slice(1, -1).map(monthEnd), now]
 
   // categorias (mesmo conjunto inicial do app) e mapeamento da Pluggy
-  const catId = new Map<string, number>()
-  const parentId = new Map<string, number>()
-  for (const c of SEED_CATEGORIES) {
-    const [p] = await db.insert(s.categories).values({ name: c.name, kind: c.kind, color: c.color, icon: c.icon }).returning({ id: s.categories.id })
-    parentId.set(c.name, p.id)
-    const subs = await db
-      .insert(s.categories)
-      .values(c.subs.map((name) => ({ name, kind: c.kind, color: c.color, parentId: p.id })))
-      .returning({ id: s.categories.id, name: s.categories.name })
-    for (const x of subs) catId.set(`${c.name}/${x.name}`, x.id)
-  }
-  await db.insert(s.pluggyCategoryMap).values(Object.entries(SEED_PLUGGY_MAP).map(([pluggyCategory, path]) => ({ pluggyCategory, subcategoryId: catId.get(path)! })))
+  const catId = await seedCategories(db)
 
   const inst = await db
     .insert(s.institutions)
@@ -192,10 +181,10 @@ export async function seedDemo(db: PgliteDatabase<typeof import("./schema")>) {
 
   // limites, regras, metas, reserva e última sincronização
   await db.insert(s.spendingLimits).values([
-    { categoryId: parentId.get("Alimentação")!, monthlyAmount: 1500 },
-    { categoryId: parentId.get("Transporte")!, monthlyAmount: 600 },
-    { categoryId: parentId.get("Lazer")!, monthlyAmount: 500 },
-    { categoryId: parentId.get("Compras")!, monthlyAmount: 700 },
+    { categoryId: catId.get("Alimentação")!, monthlyAmount: 1500 },
+    { categoryId: catId.get("Transporte")!, monthlyAmount: 600 },
+    { categoryId: catId.get("Lazer")!, monthlyAmount: 500 },
+    { categoryId: catId.get("Compras")!, monthlyAmount: 700 },
   ])
   await db.insert(s.categoryRules).values([
     { priority: 10, pattern: "UBER", subcategoryId: catId.get("Transporte/App e táxi")! },

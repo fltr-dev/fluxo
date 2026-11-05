@@ -289,6 +289,13 @@ export const appCredentials = pgTable("app_credentials", {
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })
 
+// Estado do app. Linha única (id = 1)
+export const appState = pgTable("app_state", {
+  id: integer().primaryKey().default(1),
+  // Quando as categorias padrão foram criadas (ou dispensadas por já existirem); preenchido = não criar de novo
+  defaultCategoriesAt: timestamp({ withTimezone: true }),
+})
+
 // ---------- Dívidas (pendências que não são fatura de cartão) ----------
 
 /**
