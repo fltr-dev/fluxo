@@ -8,7 +8,7 @@ import { accounts, db, institutions } from "@/db"
 import { BANKS } from "@/lib/banks"
 import { HEX_RE } from "@/lib/color"
 import { today } from "@/lib/domain/dates"
-import { fd, parseForm } from "@/lib/form"
+import { blankToNull, fd, parseForm } from "@/lib/form"
 import { refreshManualBalances, snapshotBalances } from "@/lib/ledger"
 import { runSync } from "@/lib/sync"
 
@@ -42,7 +42,6 @@ export async function syncNow() {
 }
 
 const accountTypes = z.enum(["CHECKING", "CREDIT_CARD", "SAVINGS_INVESTMENT", "CASH"])
-const blankToNull = (v: unknown) => (v === "" ? null : v)
 // Aparência: banco (null = detectar pelo nome, "none" = nenhum, ou a chave de um banco conhecido) e cor "#rrggbb" (null = a do banco)
 const bank = z.preprocess(blankToNull, z.string().refine((k) => k === "none" || BANKS.some((b) => b.key === k), "Banco inválido").nullable())
 const color = z.preprocess(blankToNull, z.string().regex(HEX_RE).nullable())

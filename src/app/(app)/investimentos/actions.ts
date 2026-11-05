@@ -8,13 +8,12 @@ import { requireUser } from "@/auth"
 import { accounts, db, investments, investmentTargets, investmentTrades } from "@/db"
 import { today } from "@/lib/domain/dates"
 import { ASSET_CLASSES, classFromCode, isIncome, isVariable } from "@/lib/domain/investments"
-import { fd, parseForm } from "@/lib/form"
+import { blankToNull, fd, parseForm } from "@/lib/form"
 import { snapshotBalances } from "@/lib/ledger"
 import { refreshManualPosition, refreshManualQuotes, updateMarketSeries } from "@/lib/market"
 
 const assetClass = z.enum(ASSET_CLASSES)
 const tradeType = z.enum(["BUY", "SELL", "BONUS", "DIVIDEND", "JCP", "YIELD", "INTEREST"])
-const blankToNull = (v: unknown) => (v === "" || v === undefined ? null : v)
 const optNum = z.preprocess(blankToNull, z.coerce.number().finite().nonnegative().nullable())
 const optDate = z.preprocess(blankToNull, fd.date.nullable())
 const code = z.preprocess((v) => (typeof v === "string" && v.trim() ? v.trim().toUpperCase() : null), z.string().max(20).regex(/^[A-Z0-9.\-]+$/).nullable())
