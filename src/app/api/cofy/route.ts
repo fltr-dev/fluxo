@@ -1,7 +1,7 @@
 import { requireUser } from "@/auth"
 import { asOwner } from "@/db"
 import { runChat } from "@/lib/cofy/chat"
-import { MAX_FILE_BYTES, MAX_FILES, type StreamEvent } from "@/lib/cofy/types"
+import { COFY_ENABLED, MAX_FILE_BYTES, MAX_FILES, type StreamEvent } from "@/lib/cofy/types"
 
 export const maxDuration = 60
 
@@ -10,6 +10,7 @@ export const maxDuration = 60
  * uma linha por evento (ver StreamEvent). A rodada termina no servidor mesmo que a tela feche a conexão.
  */
 export async function POST(request: Request) {
+  if (!COFY_ENABLED) return Response.json({ error: "O Cofy está desativado" }, { status: 404 })
   let user
   try {
     user = await requireUser({ allowDemo: true })

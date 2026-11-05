@@ -1,5 +1,8 @@
 // Tipos compartilhados entre o servidor (ferramentas, conversa) e a interface do Cofy.
 
+/** Cofy desligado por enquanto: /cofy dá 404 e /api/cofy recusa. Para religar: `true` aqui e reverter o PR "Esconde o Cofy". */
+export const COFY_ENABLED = false
+
 /** Peças de um cartão: o jeito de mostrar o resultado de uma ferramenta com o visual do fluxo. */
 export type CardBlock =
   | { type: "kpis"; items: { label: string; value: string; tone?: "good" | "bad" | "warn" }[] }
