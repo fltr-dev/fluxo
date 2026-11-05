@@ -157,7 +157,7 @@ Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegaçã
 - **Badge:** 12/500, raio 6, altura 22. Tons: neutro (`muted`), sucesso (`income 12%`), atenção (`warning 14%`), erro (`expense 12%`), destaque (`primary 12%`).
 - **Abas / segmentado:** trilho `muted`, item ativo `card` com borda, 32px (celular 36).
 - **Switch:** 20×36, ligado = primary.
-- **Avatar de conta:** quadrado raio 10, 36px, cor do banco com a logo/monograma branco (Nubank `#820AD1`, Itaú `#EC7000`, Inter `#FF7A00`, C6 `#242424`...).
+- **Avatar de conta:** quadrado raio 10, 36px, cor do banco com o símbolo do banco (`public/banks/*.svg`, centralizado; alguns já trazem o fundo e ocupam o quadrado) ou o monograma/iniciais; contorno interno de 1px (`black/10`, no escuro `white/15`) para o quadrado não sumir no fundo (Nubank `#820AD1`, Itaú `#EC7000`, Inter `#FF7A00`, C6 `#242424`...).
 - **Estado vazio:** borda tracejada, ícone 24 em quadrado `muted` 44px, título 15/600, texto muted, uma ação.
 - **Toast:** canto inferior (celular: acima da barra inferior), fundo `foreground`, texto `background`, 14px, ação em `primary` vivo. "Transação salva", "Desfazer".
 - **Sidebar (desktop):** 256px (recolhida 56px). Grupos com overline; item 36px, ícone 20, ativo = fundo `sidebar-accent` + texto `sidebar-accent-foreground` (sem barra lateral). Rodapé: avatar, usuário, versão.

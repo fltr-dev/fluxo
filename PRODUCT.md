@@ -55,7 +55,7 @@ O Cofy é um recurso importante, mas não foi apontado como o diferencial centra
 ## Evidence on Hand
 
 - Dados fictícios da demo: `src/db/demo-seed.ts`.
-- Logos dos bancos são monogramas simplificados; marcas pertencem aos donos.
+- Logos dos bancos vêm do repositório Tgentil/Bancos-em-SVG (`public/banks/`); marcas pertencem aos donos.
 - **Não há** depoimentos, clientes, métricas de uso, preços ou imprensa. Nada disso pode ser inventado, nem na demo.
 
 ## Product Principles

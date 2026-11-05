@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 import { icons } from "lucide-react"
 import { describe, expect, it } from "vitest"
 import { accountLook, BANKS, detectBank } from "./banks"
@@ -73,10 +75,17 @@ describe("bancos", () => {
       ["Mercado Pago", "mercadopago"],
       ["PicPay", "picpay"],
       ["PagBank", "pagbank"],
+      ["Banco Inter S.A.", "inter"],
+      ["Inter&Co", "inter"],
+      ["Cartão Inter Gold", "inter"],
+      ["Itaucard", "itau"],
+      ["CEF", "caixa"],
+      ["Nu Invest", "nubank"],
+      ["PagSeguro Internet S.A.", "pagbank"],
     ]
     for (const [name, key] of cases) expect(detectBank(name)?.key, name).toBe(key)
     // sem falso positivo em apelidos comuns
-    for (const none of ["Carteira", "Caixinha Reserva", "Conta Corrente (1234)", "Internet", "CDB 110% CDI", "Poupança"]) expect(detectBank(none), none).toBeUndefined()
+    for (const none of ["Carteira", "Caixinha Reserva", "Conta Corrente (1234)", "Internet", "CDB 110% CDI", "Poupança", "Caixa", "Caixa da loja", "Intercâmbio"]) expect(detectBank(none), none).toBeUndefined()
     // instituição vence o apelido
     expect(detectBank("Itaú", "Nubank Mastercard")?.key).toBe("itau")
     expect(detectBank(null, "Nubank Mastercard (5678)")?.key).toBe("nubank")
@@ -95,13 +104,14 @@ describe("bancos", () => {
     // vai do servidor ao cliente: tem de ser serializável (sem RegExp)
     expect(JSON.parse(JSON.stringify(a))).toEqual(a)
   })
-  it("todo banco tem cor, texto legível e logo", () => {
+  it("todo banco tem cor, texto legível e logo (SVG em public/banks ou monograma de até 3 letras)", () => {
     expect(new Set(BANKS.map((b) => b.key)).size).toBe(BANKS.length)
     for (const b of BANKS) {
       expect(b.color, b.key).toMatch(/^#[0-9a-f]{6}$/)
-      // logotipos seguem a identidade da marca (ex.: branco sobre o laranja do Inter, 2,6:1, ou sobre o azul do Mercado Pago, 2,5:1); só impede texto "sumido"
+      // o texto em `fg` (monograma, cartão) segue a marca (ex.: branco sobre o laranja do Inter, 2,6:1); só impede texto "sumido"
       expect(contrast(b.color, b.fg), b.key).toBeGreaterThanOrEqual(2)
-      expect("path" in b.mark ? b.mark.path.length : b.mark.text.length, b.key).toBeGreaterThan(0)
+      if ("src" in b.mark) expect(existsSync(join("public", b.mark.src)), b.key).toBe(true)
+      else expect(b.mark.text, b.key).toMatch(/^.{1,3}$/)
     }
   })
 })

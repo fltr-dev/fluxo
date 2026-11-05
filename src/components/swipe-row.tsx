@@ -46,7 +46,8 @@ const LONG_PRESS = 450
 let closeOpenRow: (() => void) | null = null // só uma linha aberta por vez
 
 // Em produção o Next.js esconde a mensagem das server actions; só as conhecidas passam
-const message = (e: unknown) => {
+/** Mensagem curta para erro de Server Action: só repassa as conhecidas (demonstração, sessão); o resto vira genérico. */
+export const actionError = (e: unknown) => {
   const m = e instanceof Error ? e.message : ""
   return /somente leitura|não autorizado/i.test(m) ? m : "Não deu para concluir. Tente de novo."
 }
@@ -80,7 +81,7 @@ function useRowActions({ title, description, menu, extra }: SheetProps) {
         done?.()
       } catch (e) {
         show()
-        setError(message(e))
+        setError(actionError(e))
       }
     })
 
