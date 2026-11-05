@@ -33,8 +33,8 @@ type Props = {
   children: React.ReactNode
 }
 
-const Ctx = createContext<{ open: (section?: SettingsSection) => void }>({ open: () => {} })
-/** Abre o modal de Configurações de qualquer lugar (menu do perfil, rodapé da sidebar, menu do celular). */
+const Ctx = createContext<{ open: (section?: SettingsSection) => void; demo: boolean }>({ open: () => {}, demo: false })
+/** Abre o modal de Configurações de qualquer lugar (menu do perfil, rodapé da sidebar, menu do celular); `demo`: sessão somente leitura. */
 export const useSettings = () => useContext(Ctx)
 
 export function SettingsProvider({ children, ...props }: Props) {
@@ -46,8 +46,9 @@ export function SettingsProvider({ children, ...props }: Props) {
         setSection(s)
         setOpen(true)
       },
+      demo: props.user.role === "demo",
     }),
-    [],
+    [props.user.role],
   )
   return (
     <Ctx.Provider value={api}>

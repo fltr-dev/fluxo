@@ -64,6 +64,13 @@ export async function updateAccount(form: FormData) {
   refresh()
 }
 
+/** Renomeia a conta direto na lista ou no título (sem abrir o painel de edição). */
+export async function renameAccount(id: number, name: string) {
+  await requireUser()
+  await db.update(accounts).set({ name: fd.text.parse(name) }).where(eq(accounts.id, fd.id.parse(id)))
+  refresh()
+}
+
 export async function createManualAccount(form: FormData) {
   await requireUser()
   const v = parseForm(form, { name: fd.text, type: accountTypes, openingBalance: fd.optMoney, bank, color })

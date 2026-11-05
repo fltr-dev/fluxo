@@ -6,6 +6,7 @@ import { AccountAvatar } from "@/components/account-avatar"
 import { AccountFields } from "@/components/account-fields"
 import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, Money, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
+import { InlineName } from "@/components/inline-name"
 import { RouteDialog } from "@/components/route-overlay"
 import { SyncButton } from "@/components/shell-client"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -17,7 +18,7 @@ import { brl, ago } from "@/lib/format"
 import { listAccounts, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "./account-edit"
-import { addInstitution, createManualAccount, removeInstitution, syncNow } from "./actions"
+import { addInstitution, createManualAccount, removeInstitution, renameAccount, syncNow } from "./actions"
 
 // A sincronização manual roda dentro da Server Action desta página
 export const maxDuration = 60
@@ -61,14 +62,13 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
     { label: "Cartões", hint: "Fatura aberta", value: sum(["CREDIT_CARD"]), icon: CreditCard, color: "#f43f5e" },
   ]
 
-  // Linha inteira abre o detalhe (link "esticado" no nome); o lápis fica por cima (z-10) e abre a edição
+  // A linha inteira é um link para o detalhe; o nome (renomear) e o lápis (editar) ficam por cima (z-10)
   const AccountRow = ({ a }: { a: (typeof accs)[number] }) => (
     <div className="relative flex min-h-14 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/50">
+      <Link href={`/contas/${a.id}`} className="absolute inset-0 rounded-lg focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none" aria-label={`Abrir ${a.name}`} />
       <AccountAvatar look={accountLook(a)} size={36} />
       <span className="grid min-w-0 flex-1">
-        <Link href={`/contas/${a.id}`} className="truncate text-sm font-medium after:absolute after:inset-0 after:rounded-lg" title={a.name}>
-          {a.name}
-        </Link>
+        <InlineName id={a.id} value={a.name} action={renameAccount} label="conta" className="text-sm font-medium" />
         <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
           <span className="truncate">{accountSubline(a)}</span>
           {a.isEmergencyReserve && (

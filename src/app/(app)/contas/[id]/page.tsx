@@ -5,6 +5,7 @@ import { AccountAvatar } from "@/components/account-avatar"
 import { Empty, fieldClass, Money, PageTitle } from "@/components/bits"
 import { BalanceArea } from "@/components/charts"
 import { PeriodMenu } from "@/components/filters"
+import { InlineName } from "@/components/inline-name"
 import { TxOptions, TxSwipe } from "@/components/tx-row"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +17,7 @@ import { subcategoryOptions } from "@/lib/ledger"
 import { accountBalanceSeries, listAccounts, listTransactions, PAGE_SIZE, parseFilters, totals, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "../account-edit"
+import { renameAccount } from "../actions"
 
 export default async function AccountPage({ params, searchParams }: PageProps<"/contas/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams])
@@ -59,7 +61,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   return (
     <div className="grid gap-5">
       <PageTitle
-        title={acc.name}
+        title={<InlineName id={acc.id} value={acc.name} action={renameAccount} label="conta" inputClassName="h-9 text-2xl font-semibold tracking-tight md:text-2xl" />}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {look.bankName ?? ACCOUNT_TYPES[acc.type]}
