@@ -32,10 +32,14 @@ export const notificationKind = pgEnum("notification_kind", ["DEBT_DUE", "DEBT_O
 export const chatRole = pgEnum("chat_role", ["user", "assistant"])
 export const chatActionStatus = pgEnum("chat_action_status", ["PENDING", "DONE", "CANCELLED"])
 
+/** Nome da conexão antes da primeira sync; enquanto for este, a sync troca pelo nome do conector (banco). */
+export const DEFAULT_INSTITUTION_NAME = "Conexão Pluggy"
+
 export const institutions = pgTable("institutions", {
   id: serial().primaryKey(),
   pluggyItemId: text().notNull().unique(),
-  name: text().notNull().default("Conexão Pluggy"),
+  // editável pelo usuário (renomear na tela de Contas); também ajuda a detectar o banco das contas
+  name: text().notNull().default(DEFAULT_INSTITUTION_NAME),
   status: text(),
   error: text(),
   lastSyncedAt: timestamp({ withTimezone: true }),

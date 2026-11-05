@@ -18,7 +18,7 @@ import { brl, ago } from "@/lib/format"
 import { listAccounts, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "./account-edit"
-import { addInstitution, createManualAccount, removeInstitution, renameAccount, syncNow } from "./actions"
+import { addInstitution, createManualAccount, removeInstitution, renameAccount, renameInstitution, syncNow } from "./actions"
 
 // A sincronização manual roda dentro da Server Action desta página
 export const maxDuration = 60
@@ -230,7 +230,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                       <AccountAvatar look={accountLook({ name: i.name })} size={36} />
                       <div className="grid min-w-0 flex-1">
                         <span className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-sm font-medium" title={i.name}>{i.name}</span>
+                          <InlineName id={i.id} value={i.name} action={renameInstitution} label="conexão" className="text-sm font-medium" />
                           <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", i.error ? RUN.ERROR[1] : RUN.OK[1])}>{i.error ? "Com erro" : "Ativa"}</span>
                         </span>
                         <span className="truncate text-xs text-muted-foreground">

@@ -1,6 +1,6 @@
 import "server-only"
 import { and, asc, eq, inArray, isNotNull, notLike, or, sql } from "drizzle-orm"
-import { accounts, db, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
+import { accounts, db, DEFAULT_INSTITUTION_NAME, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
 import { deriveKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
 import { classifyPluggy, detectIncomeFromTransactions, positionFromTrades, rateLabelOf } from "./domain/investments"
@@ -48,7 +48,11 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
   await db
     .update(institutions)
     .set({
-      name: item.connector?.name ?? inst.name,
+      // o nome do conector só preenche o nome padrão; um nome dado pelo usuário fica (comparado no próprio UPDATE,
+      // então um renomear feito durante a sync não se perde)
+      ...(item.connector?.name && {
+        name: sql`case when ${institutions.name} = ${DEFAULT_INSTITUTION_NAME} then ${item.connector.name} else ${institutions.name} end`,
+      }),
       status: item.status,
       error: item.status === "UPDATED" ? null : (item.error?.message ?? item.executionStatus ?? null),
     })

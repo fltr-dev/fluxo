@@ -28,6 +28,13 @@ export async function removeInstitution(form: FormData) {
   refresh()
 }
 
+/** Renomeia a conexão; a sync não sobrescreve mais o nome (só troca o padrão "Conexão Pluggy" pelo do banco). */
+export async function renameInstitution(id: number, name: string) {
+  await requireUser()
+  await db.update(institutions).set({ name: fd.text.parse(name) }).where(eq(institutions.id, fd.id.parse(id)))
+  refresh()
+}
+
 export async function syncNow() {
   await requireUser()
   await runSync("MANUAL")
