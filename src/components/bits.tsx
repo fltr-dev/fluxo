@@ -19,10 +19,10 @@ export function Bar({ value, state, color, className }: { value: number; state?:
   )
 }
 
-export function PageTitle({ title, description, children }: { title: string; description?: React.ReactNode; children?: React.ReactNode }) {
+export function PageTitle({ title, description, children }: { title: React.ReactNode; description?: React.ReactNode; children?: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div className="grid gap-1">
+      <div className="grid min-w-0 gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>

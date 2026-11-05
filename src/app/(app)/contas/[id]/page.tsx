@@ -4,11 +4,13 @@ import { notFound } from "next/navigation"
 import { AccountAvatar } from "@/components/account-avatar"
 import { Empty, fieldClass, Money, PageTitle } from "@/components/bits"
 import { BalanceArea } from "@/components/charts"
+import { CreditCard } from "@/components/credit-card"
 import { PeriodMenu } from "@/components/filters"
+import { InlineName } from "@/components/inline-name"
 import { TxOptions, TxSwipe } from "@/components/tx-row"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ACCOUNT_TYPES } from "@/lib/account-types"
+import { ACCOUNT_TYPES, cardUsage } from "@/lib/account-types"
 import { accountLook } from "@/lib/banks"
 import { monthEnd, monthOf, monthStart, today } from "@/lib/domain/dates"
 import { ago, dateBR, dayLabel } from "@/lib/format"
@@ -16,6 +18,7 @@ import { subcategoryOptions } from "@/lib/ledger"
 import { accountBalanceSeries, listAccounts, listTransactions, PAGE_SIZE, parseFilters, totals, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "../account-edit"
+import { renameAccount } from "../actions"
 
 export default async function AccountPage({ params, searchParams }: PageProps<"/contas/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams])
@@ -47,6 +50,17 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   const txHref = (tx: (typeof rows)[number]["tx"]) => `/transacoes?periodo=custom&de=${tx.date}&ate=${tx.date}&conta=${accountId}&tx=${tx.id}`
   const self = `/contas/${accountId}`
 
+  // Cartão: limite, disponível (da Pluggy ou limite − fatura) e vencimento, quando conhecidos
+  const usage = cardUsage(acc.balance, acc.creditLimit, acc.availableCreditLimit)
+  const cardInfo: [string, React.ReactNode][] = [
+    ...(usage
+      ? ([
+          ["Limite", <Money key="l" value={usage.limit} />],
+          ["Disponível", <Money key="d" value={usage.available} />],
+        ] as [string, React.ReactNode][])
+      : []),
+    ...(acc.billDueDate ? ([["Vencimento", dateBR(acc.billDueDate)]] as [string, React.ReactNode][]) : []),
+  ]
   const info: [string, React.ReactNode][] = [
     ["Tipo", ACCOUNT_TYPES[acc.type]],
     ["Instituição", acc.institution ?? (acc.source === "MANUAL" ? "Conta manual" : "—")],
@@ -54,12 +68,13 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
     ["Última sincronização", acc.source === "PLUGGY" ? (acc.syncedAt ? ago(acc.syncedAt) : "nunca") : "—"],
     ...(acc.source === "MANUAL" ? ([["Saldo inicial", <Money key="o" value={acc.openingBalance} />]] as [string, React.ReactNode][]) : []),
     ["Reserva de emergência", acc.isEmergencyReserve ? "Compõe a reserva" : "Não"],
+    ...(card ? cardInfo : []),
   ]
 
   return (
     <div className="grid gap-5">
       <PageTitle
-        title={acc.name}
+        title={<InlineName id={acc.id} value={acc.name} action={renameAccount} label="conta" inputClassName="h-9 text-2xl font-semibold tracking-tight md:text-2xl" />}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {look.bankName ?? ACCOUNT_TYPES[acc.type]}
@@ -78,16 +93,29 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
       </PageTitle>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,4fr)_repeat(3,minmax(0,3fr))] lg:gap-4" aria-label="Resumo da conta">
-        {/* Sem min-w-0 no bloco do saldo: se o valor não couber ao lado do avatar, ele desce em vez de ser cortado */}
-        <Card className="col-span-2 flex-row flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 lg:col-span-1">
-          <AccountAvatar look={look} size={48} className="rounded-xl" />
-          <div className="grid">
-            <span className="text-sm font-medium text-muted-foreground">{card ? "Fatura aberta" : "Saldo atual"}</span>
-            <span className="text-2xl font-semibold tracking-tight tabular-nums">
-              <Money value={card ? Math.abs(acc.balance) : acc.balance} />
-            </span>
-          </div>
-        </Card>
+        {card ? (
+          <CreditCard
+            look={look}
+            name={<span className="truncate">{acc.name}</span>}
+            label={acc.name}
+            balance={acc.balance}
+            creditLimit={acc.creditLimit}
+            availableCreditLimit={acc.availableCreditLimit}
+            billDueDate={acc.billDueDate}
+            className="col-span-2 lg:col-span-1"
+          />
+        ) : (
+          /* Sem min-w-0 no bloco do saldo: se o valor não couber ao lado do avatar, ele desce em vez de ser cortado */
+          <Card className="col-span-2 flex-row flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 lg:col-span-1">
+            <AccountAvatar look={look} size={48} className="rounded-xl" />
+            <div className="grid">
+              <span className="text-sm font-medium text-muted-foreground">Saldo atual</span>
+              <span className="text-2xl font-semibold tracking-tight tabular-nums">
+                <Money value={acc.balance} />
+              </span>
+            </div>
+          </Card>
+        )}
         {[
           { label: "Receitas no mês", value: flow.income, icon: ArrowDownLeft, color: "#22c55e" },
           { label: "Despesas no mês", value: flow.expense, icon: ArrowUpRight, color: "#f43f5e" },

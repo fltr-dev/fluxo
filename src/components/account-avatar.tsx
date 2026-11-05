@@ -1,27 +1,31 @@
 import type { AccountLook } from "@/lib/banks"
 import { cn } from "@/lib/utils"
 
-/** Quadrado da conta: logo do banco sobre a cor dele (ou a cor escolhida); sem banco, as iniciais. */
+/**
+ * Quadrado da conta: logo do banco sobre a cor dele (ou a cor escolhida); sem logo, monograma/iniciais em HTML
+ * (centra igual em todo navegador). O anel interno separa o quadrado do fundo quando as cores se confundem
+ * (C6 no escuro, Banco do Brasil no claro); `outline-0` no className tira.
+ */
 export function AccountAvatar({ look, size = 32, className }: { look: AccountLook; size?: number; className?: string }) {
   const mark = look.mark
+  const text = mark && "text" in mark ? mark.text : look.initials
   return (
     <span
       aria-hidden
-      className={cn("grid shrink-0 place-items-center overflow-hidden font-semibold select-none", size >= 28 ? "rounded-lg" : "rounded-md", className)}
-      style={{ width: size, height: size, background: look.color, color: look.fg, fontSize: size * 0.38 }}
+      className={cn(
+        // contorno por outline (pintado por cima do logo, ao contrário de um ring inset, que o SVG de fundo cheio cobriria)
+        "grid shrink-0 place-items-center overflow-hidden leading-none font-semibold outline-1 -outline-offset-1 outline-black/10 select-none dark:outline-white/15",
+        size >= 28 ? "rounded-lg" : "rounded-md",
+        mark && "text" in mark && "font-extrabold",
+        className,
+      )}
+      style={{ width: size, height: size, background: look.color, color: look.fg, fontSize: size * (text.length > 2 ? 0.3 : 0.4) }}
     >
-      {mark ? (
-        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: "66%", height: "66%" }}>
-          {"path" in mark ? (
-            <path d={mark.path} />
-          ) : (
-            <text x="12" y="12.6" textAnchor="middle" dominantBaseline="central" fontSize={Math.min(17, 21 / (mark.text.length * 0.62))} fontWeight={800} fontFamily="inherit" letterSpacing="-0.03em">
-              {mark.text}
-            </text>
-          )}
-        </svg>
+      {mark && "src" in mark ? (
+        // eslint-disable-next-line @next/next/no-img-element -- SVG estático e minúsculo; next/image não ajuda aqui
+        <img src={mark.src} alt="" draggable={false} className={mark.full ? "size-full" : "size-[68%]"} />
       ) : (
-        look.initials
+        text
       )}
     </span>
   )

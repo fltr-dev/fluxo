@@ -28,6 +28,13 @@ export async function removeInstitution(form: FormData) {
   refresh()
 }
 
+/** Renomeia a conexão; a sync não sobrescreve mais o nome (só troca o padrão "Conexão Pluggy" pelo do banco). */
+export async function renameInstitution(id: number, name: string) {
+  await requireUser()
+  await db.update(institutions).set({ name: fd.text.parse(name) }).where(eq(institutions.id, fd.id.parse(id)))
+  refresh()
+}
+
 export async function syncNow() {
   await requireUser()
   await runSync("MANUAL")
@@ -51,16 +58,30 @@ export async function updateAccount(form: FormData) {
     openingBalance: fd.optMoney,
     bank,
     color,
+    // cartão manual: limite e vencimento (nas conectadas vêm da Pluggy; o formulário nem mostra)
+    creditLimit: z.preprocess(blankToNull, z.coerce.number().finite().nonnegative().nullable()),
+    billDueDate: z.preprocess(blankToNull, fd.date.nullable()),
   })
-  const { id, openingBalance, ...data } = v
+  const { id, openingBalance, creditLimit, billDueDate, ...data } = v
   const [acc] = await db.select().from(accounts).where(eq(accounts.id, id))
   if (!acc) throw new Error("Conta não encontrada")
   // Saldo inicial só existe para contas manuais; nas conectadas o saldo vem da Pluggy
   await db
     .update(accounts)
-    .set({ ...data, ...(acc.source === "MANUAL" && openingBalance != null && { openingBalance }) })
+    .set({
+      ...data,
+      ...(acc.source === "MANUAL" && openingBalance != null && { openingBalance }),
+      ...(acc.source === "MANUAL" && v.type === "CREDIT_CARD" && { creditLimit, billDueDate }),
+    })
     .where(eq(accounts.id, id))
   await refreshManualBalances()
+  refresh()
+}
+
+/** Renomeia a conta direto na lista ou no título (sem abrir o painel de edição). */
+export async function renameAccount(id: number, name: string) {
+  await requireUser()
+  await db.update(accounts).set({ name: fd.text.parse(name) }).where(eq(accounts.id, fd.id.parse(id)))
   refresh()
 }
 

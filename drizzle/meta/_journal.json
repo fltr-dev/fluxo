@@ -50,6 +50,13 @@
       "when": 1793889034248,
       "tag": "0006_categorias_padrao",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793893006825,
+      "tag": "0007_cartao",
+      "breakpoints": true
     }
   ]
 }
