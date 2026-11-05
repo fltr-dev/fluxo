@@ -1,5 +1,5 @@
 import { desc } from "drizzle-orm"
-import { Banknote, ChevronRight, CircleAlert, CircleCheck, CreditCard, ExternalLink, Landmark, Pencil, PiggyBank, Plus, Trash2, Wallet } from "lucide-react"
+import { Archive, Banknote, ChartPie, ChevronRight, CircleAlert, CircleCheck, CreditCard, ExternalLink, Landmark, Pencil, PiggyBank, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { AccountAvatar } from "@/components/account-avatar"
@@ -11,10 +11,10 @@ import { SyncButton } from "@/components/shell-client"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { db, institutions, syncRuns } from "@/db"
-import { ACCOUNT_TYPES } from "@/lib/account-types"
+import { ACCOUNT_ORDERS, ACCOUNT_TYPES, accountOrder, accountSubline, groupAccounts, type PortfolioRow } from "@/lib/account-types"
 import { accountLook } from "@/lib/banks"
 import { brl, ago } from "@/lib/format"
-import { listAccounts } from "@/lib/queries"
+import { listAccounts, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "./account-edit"
 import { addInstitution, createManualAccount, removeInstitution, syncNow } from "./actions"
@@ -45,10 +45,11 @@ async function createAccountAndClose(form: FormData) {
 export default async function ConnectionsPage({ searchParams }: PageProps<"/contas">) {
   const sp = await searchParams
   const [insts, accs, runs] = await Promise.all([db.select().from(institutions), listAccounts(), db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(8)])
-  const manual = accs.filter((a) => a.source === "MANUAL")
-  const orphan = accs.filter((a) => a.source === "PLUGGY" && !insts.some((i) => i.id === a.institutionId))
   const last = runs[0]
   const editing = accs.find((a) => a.id === Number(sp.editar))
+  const order = accountOrder(sp.ordem)
+  const { groups, archived } = groupAccounts(accs, order)
+  const here = (patch: Record<string, string | number | undefined>) => `/contas${withParams(sp, patch)}`
 
   // Resumo geral: patrimônio e como ele se divide (contas ativas; cartão entra com a fatura aberta como dívida)
   const active = accs.filter((a) => !a.archived)
@@ -60,29 +61,44 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
     { label: "Cartões", hint: "Fatura aberta", value: sum(["CREDIT_CARD"]), icon: CreditCard, color: "#f43f5e" },
   ]
 
-  const AccountRow = ({ a }: { a: (typeof accs)[number] }) => {
-    const look = accountLook({ name: a.name, bank: a.bank, color: a.color, institution: a.institution })
-    return (
-      <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 border-b py-2 last:border-0", a.archived && "opacity-60")}>
-        <Link href={`/contas/${a.id}`} className="group flex min-w-40 flex-1 items-center gap-3 rounded-lg py-1 pr-2 hover:bg-muted/50">
-          <AccountAvatar look={look} size={36} />
-          <span className="grid min-w-0 flex-1">
-            <span className="truncate text-sm font-medium group-hover:underline" title={a.name}>{a.name}</span>
-            <span className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-              {TYPES[a.type]}
-              {a.isEmergencyReserve && <span className="rounded-full bg-violet-500/10 px-1.5 text-violet-700 dark:text-violet-300">reserva</span>}
-              {a.archived && <span className="rounded-full bg-muted px-1.5">arquivada</span>}
+  // Linha inteira abre o detalhe (link "esticado" no nome); o lápis fica por cima (z-10) e abre a edição
+  const AccountRow = ({ a }: { a: (typeof accs)[number] }) => (
+    <div className="relative flex min-h-14 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/50">
+      <AccountAvatar look={accountLook(a)} size={36} />
+      <span className="grid min-w-0 flex-1">
+        <Link href={`/contas/${a.id}`} className="truncate text-sm font-medium after:absolute after:inset-0 after:rounded-lg" title={a.name}>
+          {a.name}
+        </Link>
+        <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="truncate">{accountSubline(a)}</span>
+          {a.isEmergencyReserve && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/10 px-1.5 text-violet-700 dark:text-violet-300">
+              <ShieldCheck className="size-3" />
+              Reserva
             </span>
-          </span>
-          <Money value={a.balance} className="text-sm font-medium" />
-          <ChevronRight className="size-4 text-muted-foreground" />
-        </Link>
-        <Link href={`/contas?editar=${a.id}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar ${a.name}`}>
-          <Pencil />
-        </Link>
-      </div>
-    )
-  }
+          )}
+        </span>
+      </span>
+      <Money value={a.balance} className="text-sm font-medium" />
+      <Link href={here({ editar: a.id })} scroll={false} className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "relative z-10 size-10 md:size-8")} aria-label={`Editar ${a.name}`}>
+        <Pencil />
+      </Link>
+    </div>
+  )
+
+  const PortfolioLine = ({ p }: { p: PortfolioRow }) => (
+    <Link href="/investimentos" className="flex min-h-14 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/50">
+      <IconCircle icon={ChartPie} color="#8b5cf6" soft className="size-9 rounded-lg" />
+      <span className="grid min-w-0 flex-1">
+        <span className="truncate text-sm font-medium">{p.name}</span>
+        <span className="text-xs text-muted-foreground">
+          {p.count} {p.count === 1 ? "ativo" : "ativos"}
+        </span>
+      </span>
+      <Money value={p.balance} className="text-sm font-medium" />
+      <ChevronRight className="size-4 text-muted-foreground" />
+    </Link>
+  )
 
   return (
     <div className="grid gap-5">
@@ -123,7 +139,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
             {last ? `Última sincronização ${last.finishedAt ? ago(last.finishedAt) : "em andamento"} (${last.trigger === "CRON" ? "automática" : "manual"})` : "Nenhuma sincronização ainda"}
           </span>
           <span className="text-sm text-muted-foreground">
-            {insts.length} {insts.length === 1 ? "conexão" : "conexões"} · {accs.filter((a) => !a.archived).length} contas ativas · sincronização automática 1x por dia
+            {insts.length} {insts.length === 1 ? "conexão" : "conexões"} · {active.length} contas ativas · sincronização automática 1x por dia
           </span>
         </div>
         <form action={syncNow}>
@@ -132,77 +148,118 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
       </Card>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <div className="grid gap-4">
-          {insts.length === 0 && (
-            <Empty icon={Landmark} title="Nenhuma conexão cadastrada" action={<Link href="/contas?conexao=1" className={buttonVariants()}><Plus />Adicionar conexão</Link>}>
-              Conecte o MeuPluggy na sua aplicação da Pluggy e cadastre aqui o Item ID gerado.
+        <div className="grid min-w-0 gap-4">
+          {accs.length === 0 ? (
+            <Empty
+              icon={Landmark}
+              title="Nenhuma conta ainda"
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link href="/contas?conexao=1" className={buttonVariants()}><Plus />Adicionar conexão</Link>
+                  <Link href="/contas?conta=1" className={buttonVariants({ variant: "outline" })}><Banknote />Conta manual</Link>
+                </div>
+              }
+            >
+              Conecte um banco pelo MeuPluggy ou crie uma conta manual para dinheiro em espécie e contas sem Open Finance.
             </Empty>
-          )}
-          {insts.map((i) => {
-            const list = accs.filter((a) => a.institutionId === i.id)
-            return (
-              <Card key={i.id}>
-                <CardHeader className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <AccountAvatar look={accountLook({ name: i.name })} size={40} className="rounded-xl" />
-                    <div className="grid min-w-0">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <CardTitle className="truncate font-semibold" title={i.name}>{i.name}</CardTitle>
-                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", i.error ? RUN.ERROR[1] : RUN.OK[1])}>{i.error ? "Com erro" : "Ativa"}</span>
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        Item ID <span className="font-mono">{i.pluggyItemId.slice(0, 8)}…</span> · sincronizado {i.lastSyncedAt ? ago(i.lastSyncedAt) : "nunca"}
-                      </span>
-                    </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-medium text-muted-foreground">Ordenar por</h2>
+                <nav className="inline-flex rounded-lg bg-muted p-[3px]" aria-label="Ordenar contas">
+                  {(Object.keys(ACCOUNT_ORDERS) as (keyof typeof ACCOUNT_ORDERS)[]).map((k) => (
+                    <Link
+                      key={k}
+                      href={here({ ordem: k === "saldo" ? undefined : k })}
+                      scroll={false}
+                      aria-current={k === order ? "true" : undefined}
+                      className={cn("inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold text-muted-foreground hover:text-foreground", k === order && "bg-card text-foreground shadow-sm ring-1 ring-border")}
+                    >
+                      {ACCOUNT_ORDERS[k]}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+              {groups.map((g) => (
+                <Card key={g.type} className="gap-2">
+                  <CardHeader className="flex items-center justify-between gap-3">
+                    <CardTitle className="font-semibold">{g.label}</CardTitle>
+                    <Money value={g.total} className="text-sm font-semibold" />
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 px-2 sm:px-4">
+                    {g.rows.map((r) => ("portfolio" in r ? <PortfolioLine key="portfolio" p={r} /> : <AccountRow key={r.id} a={r} />))}
+                  </CardContent>
+                </Card>
+              ))}
+              {archived.length > 0 && (
+                <details className="group rounded-xl border bg-card">
+                  <summary className="flex min-h-12 cursor-pointer items-center gap-2 px-4 text-sm font-medium text-muted-foreground select-none hover:text-foreground">
+                    <Archive className="size-4" />
+                    Arquivadas ({archived.length})
+                    <ChevronRight className="ml-auto size-4 transition-transform group-open:rotate-90" />
+                  </summary>
+                  <div className="grid grid-cols-1 px-2 pb-2 opacity-70 sm:px-4">
+                    {archived.map((a) => <AccountRow key={a.id} a={a} />)}
                   </div>
-                  <form action={removeInstitution}>
-                    <input type="hidden" name="id" value={i.id} />
-                    <Button type="submit" variant="ghost" size="icon-sm" aria-label={`Remover conexão ${i.name}`} className="text-muted-foreground hover:text-destructive">
-                      <Trash2 />
-                    </Button>
-                  </form>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1">
-                  {i.error && (
-                    <div className="mb-2 flex flex-wrap items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
-                      <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                      <span className="min-w-48 flex-1">{i.error}</span>
-                      <a href="https://meu.pluggy.ai" target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                        Abrir MeuPluggy
-                        <ExternalLink />
-                      </a>
-                    </div>
-                  )}
-                  {list.length === 0 && <p className="py-3 text-sm text-muted-foreground">Nenhuma conta ainda. Sincronize para listar as contas desta conexão.</p>}
-                  {list.map((a) => <AccountRow key={a.id} a={a} />)}
-                </CardContent>
-              </Card>
-            )
-          })}
-          {orphan.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-semibold">Contas de conexões removidas</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1">{orphan.map((a) => <AccountRow key={a.id} a={a} />)}</CardContent>
-            </Card>
+                </details>
+              )}
+            </>
           )}
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           <Card>
             <CardHeader className="flex items-center justify-between">
-              <div className="grid gap-1">
-                <CardTitle className="font-semibold">Contas manuais</CardTitle>
-                <p className="text-sm text-muted-foreground">Saldo = saldo inicial + lançamentos</p>
-              </div>
-              <Link href="/contas?conta=1" className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label="Nova conta manual">
+              <CardTitle className="font-semibold">Conexões</CardTitle>
+              <Link href="/contas?conexao=1" className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "size-10 md:size-8")} aria-label="Adicionar conexão">
                 <Plus />
               </Link>
             </CardHeader>
             <CardContent className="grid grid-cols-1">
-              {manual.length === 0 && <p className="py-3 text-sm text-muted-foreground">Nenhuma conta manual.</p>}
-              {manual.map((a) => <AccountRow key={a.id} a={a} />)}
+              {insts.length === 0 && (
+                <p className="py-2 text-sm text-muted-foreground">
+                  Nenhuma conexão. Conecte o MeuPluggy na sua aplicação da Pluggy e cadastre o Item ID.{" "}
+                  <Link href="/contas?conexao=1" className="font-medium text-primary underline-offset-4 hover:underline">Adicionar conexão</Link>
+                </p>
+              )}
+              {insts.map((i) => {
+                const n = accs.filter((a) => a.institutionId === i.id).length
+                return (
+                  <div key={i.id} className="grid gap-2 border-b py-3 first:pt-0 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <AccountAvatar look={accountLook({ name: i.name })} size={36} />
+                      <div className="grid min-w-0 flex-1">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-medium" title={i.name}>{i.name}</span>
+                          <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", i.error ? RUN.ERROR[1] : RUN.OK[1])}>{i.error ? "Com erro" : "Ativa"}</span>
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {n} {n === 1 ? "conta" : "contas"} · sincronizado {i.lastSyncedAt ? ago(i.lastSyncedAt) : "nunca"}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          Item ID <span className="font-mono">{i.pluggyItemId.slice(0, 8)}…</span>
+                        </span>
+                      </div>
+                      <form action={removeInstitution}>
+                        <input type="hidden" name="id" value={i.id} />
+                        <Button type="submit" variant="ghost" size="icon-sm" aria-label={`Remover conexão ${i.name}`} className="size-10 text-muted-foreground hover:text-destructive md:size-8">
+                          <Trash2 />
+                        </Button>
+                      </form>
+                    </div>
+                    {i.error && (
+                      <div className="flex flex-wrap items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
+                        <CircleAlert className="mt-0.5 size-4 shrink-0" />
+                        <span className="min-w-40 flex-1">{i.error}</span>
+                        <a href="https://meu.pluggy.ai" target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                          Abrir MeuPluggy
+                          <ExternalLink />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </CardContent>
           </Card>
 
@@ -276,7 +333,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
         </RouteDialog>
       )}
 
-      {editing && <AccountEditSheet account={editing} closeHref="/contas" />}
+      {editing && <AccountEditSheet account={editing} closeHref={here({ editar: undefined })} />}
     </div>
   )
 }
