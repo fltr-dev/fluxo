@@ -1,7 +1,6 @@
 import { Calendar, CalendarDays, Check, CircleAlert, HandCoins, Link2, Pencil, Plus, Wallet } from "lucide-react"
 import Link from "next/link"
 import { Bar, Empty, Field, fieldClass, FormActions, PageTitle } from "@/components/bits"
-import { CofyAvatar } from "@/components/cofy-mascot"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -413,10 +412,9 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                 )}
               </Card>
 
-              <Card className="flex-row items-start gap-3 p-4">
-                <CofyAvatar size={36} />
+              <Card className="p-4">
                 <div className="grid gap-1 text-sm">
-                  <b>Dica do Cofy</b>
+                  <b>Dica</b>
                   <p className="text-muted-foreground">
                     {open.length === 0
                       ? "Sem dívidas em aberto. Que bom!"

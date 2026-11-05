@@ -1,10 +1,13 @@
+import { notFound } from "next/navigation"
 import { auth } from "@/auth"
 import { CofyScreen } from "@/components/cofy/screen"
 import { listConversations } from "@/lib/cofy/store"
+import { COFY_ENABLED } from "@/lib/cofy/types"
 
 export const metadata = { title: "Cofy" }
 
 export default async function CofyPage({ searchParams }: PageProps<"/cofy">) {
+  if (!COFY_ENABLED) notFound()
   const sp = await searchParams
   const [session, active, archived] = await Promise.all([auth(), listConversations(false), listConversations(true)])
   const c = Number(typeof sp.c === "string" ? sp.c : "")
