@@ -18,6 +18,8 @@ export type PluggyAccount = {
   marketingName?: string | null
   number?: string
   balance: number
+  // só cartões (type CREDIT); a Pluggy manda outros campos também, só estes interessam
+  creditData?: { creditLimit?: number | null; availableCreditLimit?: number | null; balanceDueDate?: string | null } | null
 }
 
 async function request<T>(apiKey: string | null, path: string, init?: RequestInit): Promise<T> {

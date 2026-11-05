@@ -33,6 +33,9 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
       type: accountType(a),
       // Cartão: fatura aberta é dívida, entra negativa no patrimônio
       balance: a.type === "CREDIT" ? -Math.abs(a.balance) : a.balance,
+      creditLimit: a.creditData?.creditLimit ?? null,
+      availableCreditLimit: a.creditData?.availableCreditLimit ?? null,
+      billDueDate: a.creditData?.balanceDueDate?.slice(0, 10) ?? null,
     })),
     ...invs.map((i) => ({ pluggyId: INVESTMENT_PREFIX + i.id, name: i.name, type: "SAVINGS_INVESTMENT" as const, balance: i.balance })),
   ]
@@ -40,8 +43,17 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
     const saved = await db
       .insert(accounts)
       .values(rows.map((r) => ({ ...r, institutionId: inst.id, source: "PLUGGY" as const })))
-      // nome e tipo são editáveis pelo usuário: só o saldo é atualizado
-      .onConflictDoUpdate({ target: accounts.pluggyId, set: { balance: sql`excluded.balance`, institutionId: inst.id } })
+      // nome e tipo são editáveis pelo usuário: só o saldo (e o limite/vencimento do cartão) é atualizado
+      .onConflictDoUpdate({
+        target: accounts.pluggyId,
+        set: {
+          balance: sql`excluded.balance`,
+          creditLimit: sql`excluded.credit_limit`,
+          availableCreditLimit: sql`excluded.available_credit_limit`,
+          billDueDate: sql`excluded.bill_due_date`,
+          institutionId: inst.id,
+        },
+      })
       .returning({ id: accounts.id, pluggyId: accounts.pluggyId })
     await syncInvestments(pluggy, invs, new Map(saved.map((s) => [s.pluggyId, s.id])), item.connector?.name ?? inst.name)
   }

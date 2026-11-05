@@ -84,7 +84,8 @@ export function InlineName({ id, value, action, label, className, inputClassName
         className={cn("group/name relative z-10 inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/40", className)}
       >
         <span className="truncate">{name}</span>
-        <Pencil aria-hidden className="size-3.5 shrink-0 text-muted-foreground md:opacity-0 md:group-hover/name:opacity-100 md:group-focus-visible/name:opacity-100" />
+        {/* na cor do texto (também sobre o cartão colorido), apagado como o texto secundário */}
+        <Pencil aria-hidden className="size-3.5 shrink-0 opacity-60 md:opacity-0 md:group-hover/name:opacity-60 md:group-focus-visible/name:opacity-60" />
       </button>
       {error && (
         <span role="alert" className="text-xs font-normal text-destructive">

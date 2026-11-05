@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type AccountType, groupAccounts } from "./account-types"
+import { type AccountType, cardUsage, groupAccounts } from "./account-types"
 
 const acc = (name: string, type: AccountType, balance: number, extra: { archived?: boolean; investmentId?: number; institution?: string } = {}) => ({
   name,
@@ -44,5 +44,20 @@ describe("groupAccounts", () => {
     expect(names("nome")).toEqual(["Conta Itaú", "Nubank Conta", "Zeta"])
     // pelo que aparece embaixo do nome: Itaú, "Manual" (sem banco nem instituição), Nubank
     expect(names("banco")).toEqual(["Conta Itaú", "Zeta", "Nubank Conta"])
+  })
+})
+
+describe("cardUsage", () => {
+  it("usa o disponível da Pluggy; sem ele, limite − fatura; sem limite, nada", () => {
+    const u = cardUsage(-338.81, 8000, 6461.19)!
+    expect(u).toMatchObject({ limit: 8000, available: 6461.19 })
+    expect(u.used).toBeCloseTo(1538.81, 2)
+    expect(u.pct).toBeCloseTo(19.24, 2)
+    expect(cardUsage(-2000, 5000, null)).toMatchObject({ available: 3000, used: 2000, pct: 40 })
+    expect(cardUsage(-100, null, null)).toBeNull()
+    expect(cardUsage(-100, 0, 50)).toBeNull()
+  })
+  it("limite flexível: passa do limite com disponível negativo e a barra para em 100%", () => {
+    expect(cardUsage(-5600, 5000, null)).toMatchObject({ available: -600, used: 5600, pct: 100 })
   })
 })

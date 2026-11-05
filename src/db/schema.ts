@@ -62,6 +62,11 @@ export const accounts = pgTable("accounts", {
   // Aparência (editável): cor "#rrggbb" (null = cor do banco) e banco ("nubank"…; null = detectar pelo nome, "none" = nenhum)
   color: text(),
   bank: text(),
+  // Cartão de crédito: limite total e disponível e vencimento da fatura aberta (Pluggy `creditData`; nas contas
+  // manuais, editados à mão, e o disponível fica null: a tela calcula limite − fatura)
+  creditLimit: money("credit_limit"),
+  availableCreditLimit: money("available_credit_limit"),
+  billDueDate: date({ mode: "string" }),
   transactionsSyncedAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })

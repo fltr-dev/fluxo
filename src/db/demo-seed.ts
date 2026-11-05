@@ -136,7 +136,17 @@ export async function seedDemo(db: PgliteDatabase<typeof import("./schema")>) {
 
   const ACCOUNTS: Record<Acc, typeof s.accounts.$inferInsert> = {
     checking: { name: "Conta Corrente (1234)", type: "CHECKING", source: "PLUGGY", institutionId: instId("Itaú"), pluggyId: "demo-checking" },
-    card: { name: "Nubank Mastercard (5678)", type: "CREDIT_CARD", source: "PLUGGY", institutionId: instId("Nubank"), pluggyId: "demo-card" },
+    // limite de R$ 8.000 com ~R$ 1.200 de parcelas futuras já comprometidas; vence dia 10 do mês que vem
+    card: {
+      name: "Nubank Mastercard (5678)",
+      type: "CREDIT_CARD",
+      source: "PLUGGY",
+      institutionId: instId("Nubank"),
+      pluggyId: "demo-card",
+      creditLimit: 8000,
+      availableCreditLimit: round2(8000 + balanceAt("card", now) - 1200),
+      billDueDate: `${addMonths(monthOf(now), 1)}-10`,
+    },
     caixinha: { name: "Caixinha Reserva", type: "SAVINGS_INVESTMENT", source: "PLUGGY", institutionId: instId("Nubank"), pluggyId: "demo-caixinha", isEmergencyReserve: true },
     cdb: { name: "CDB 110% CDI", type: "SAVINGS_INVESTMENT", source: "PLUGGY", institutionId: instId("Itaú"), pluggyId: "inv:demo-cdb" },
     cash: { name: "Carteira", type: "CASH", source: "MANUAL", openingBalance: OPENING.cash },

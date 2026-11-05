@@ -56,7 +56,7 @@ Para mudar o desenho, edite `src/app/icon.svg` (e as variações em `public/icon
 ## Deploy (Vercel Hobby)
 
 1. Importe o repositório na Vercel e configure as variáveis acima.
-2. Rode `npm run db:migrate` apontando para o Neon (migrações 0004 e 0005 criam dívidas, avisos, push e conversas do Cofy) (localmente, com o `DATABASE_URL` de produção).
+2. Rode `npm run db:migrate` apontando para o Neon (migrações 0004 e 0005 criam dívidas, avisos, push e conversas do Cofy; **0006** cria `app_state` para as categorias padrão e **0007** (`0007_cartao`) adiciona limite, limite disponível e vencimento da fatura em `accounts`) (localmente, com o `DATABASE_URL` de produção). **Aplique 0006 e 0007 em produção antes de publicar esta versão**: a lista de contas já lê as colunas novas.
 3. O cron diário está em `vercel.json` (09:00 UTC = 06:00 em Brasília).
 
 

@@ -58,14 +58,21 @@ export async function updateAccount(form: FormData) {
     openingBalance: fd.optMoney,
     bank,
     color,
+    // cartão manual: limite e vencimento (nas conectadas vêm da Pluggy; o formulário nem mostra)
+    creditLimit: z.preprocess(blankToNull, z.coerce.number().finite().nonnegative().nullable()),
+    billDueDate: z.preprocess(blankToNull, fd.date.nullable()),
   })
-  const { id, openingBalance, ...data } = v
+  const { id, openingBalance, creditLimit, billDueDate, ...data } = v
   const [acc] = await db.select().from(accounts).where(eq(accounts.id, id))
   if (!acc) throw new Error("Conta não encontrada")
   // Saldo inicial só existe para contas manuais; nas conectadas o saldo vem da Pluggy
   await db
     .update(accounts)
-    .set({ ...data, ...(acc.source === "MANUAL" && openingBalance != null && { openingBalance }) })
+    .set({
+      ...data,
+      ...(acc.source === "MANUAL" && openingBalance != null && { openingBalance }),
+      ...(acc.source === "MANUAL" && v.type === "CREDIT_CARD" && { creditLimit, billDueDate }),
+    })
     .where(eq(accounts.id, id))
   await refreshManualBalances()
   refresh()

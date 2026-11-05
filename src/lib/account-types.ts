@@ -48,3 +48,14 @@ export function groupAccounts<A extends Groupable>(accs: A[], order: AccountOrde
 
   return { groups, archived: accs.filter((a) => a.archived && a.investmentId == null).sort(by) }
 }
+
+/**
+ * Uso do limite do cartão: `available` vem da Pluggy (já desconta parcelas futuras); sem ele (cartão manual),
+ * é limite − fatura. Limite flexível: o disponível pode ficar negativo e o uso passar de 100%; `pct` fica em 0–100.
+ */
+export function cardUsage(balance: number, creditLimit: number | null, availableCreditLimit: number | null) {
+  if (!creditLimit || creditLimit <= 0) return null
+  const available = availableCreditLimit ?? creditLimit - Math.abs(balance)
+  const used = creditLimit - available
+  return { limit: creditLimit, available, used, pct: Math.min(100, Math.max(0, (used / creditLimit) * 100)) }
+}

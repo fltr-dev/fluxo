@@ -1,9 +1,10 @@
 import { desc } from "drizzle-orm"
-import { Archive, Banknote, ChartPie, ChevronRight, CircleAlert, CircleCheck, CreditCard, ExternalLink, Landmark, Pencil, PiggyBank, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react"
+import { Archive, Banknote, ChartPie, ChevronRight, CircleAlert, CircleCheck, CreditCard as CreditCardIcon, ExternalLink, Landmark, Pencil, PiggyBank, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { AccountAvatar } from "@/components/account-avatar"
 import { AccountFields } from "@/components/account-fields"
+import { CreditCard } from "@/components/credit-card"
 import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, Money, PageTitle } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { InlineName } from "@/components/inline-name"
@@ -59,7 +60,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
     { label: "Patrimônio", hint: "Tudo somado", value: active.reduce((t, a) => t + a.balance, 0), icon: Landmark, color: "#0ea5e9" },
     { label: "Disponível", hint: "Contas correntes e dinheiro", value: sum(["CHECKING", "CASH"]), icon: Wallet, color: "#22c55e" },
     { label: "Investido", hint: "Poupança e investimentos", value: sum(["SAVINGS_INVESTMENT"]), icon: PiggyBank, color: "#8b5cf6" },
-    { label: "Cartões", hint: "Fatura aberta", value: sum(["CREDIT_CARD"]), icon: CreditCard, color: "#f43f5e" },
+    { label: "Cartões", hint: "Fatura aberta", value: sum(["CREDIT_CARD"]), icon: CreditCardIcon, color: "#f43f5e" },
   ]
 
   // A linha inteira é um link para o detalhe; o nome (renomear) e o lápis (editar) ficam por cima (z-10)
@@ -84,6 +85,24 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
         <Pencil />
       </Link>
     </div>
+  )
+
+  // Cartões ativos: o cartão na cor do banco (fatura, limite, vencimento); arquivados continuam como linha
+  const AccountCard = ({ a }: { a: (typeof accs)[number] }) => (
+    <CreditCard
+      look={accountLook(a)}
+      name={<InlineName id={a.id} value={a.name} action={renameAccount} label="conta" />}
+      label={a.name}
+      balance={a.balance}
+      creditLimit={a.creditLimit}
+      availableCreditLimit={a.availableCreditLimit}
+      billDueDate={a.billDueDate}
+      href={`/contas/${a.id}`}
+    >
+      <Link href={here({ editar: a.id })} scroll={false} className="relative z-10 grid size-10 shrink-0 place-items-center rounded-lg hover:bg-black/10 md:size-8 [&_svg]:size-4" aria-label={`Editar ${a.name}`}>
+        <Pencil />
+      </Link>
+    </CreditCard>
   )
 
   const PortfolioLine = ({ p }: { p: PortfolioRow }) => (
@@ -181,14 +200,20 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                 </nav>
               </div>
               {groups.map((g) => (
-                <Card key={g.type} className="gap-2">
+                <Card key={g.type} className="@container gap-2">
                   <CardHeader className="flex items-center justify-between gap-3">
                     <CardTitle className="font-semibold">{g.label}</CardTitle>
                     <Money value={g.total} className="text-sm font-semibold" />
                   </CardHeader>
-                  <CardContent className="grid grid-cols-1 px-2 sm:px-4">
-                    {g.rows.map((r) => ("portfolio" in r ? <PortfolioLine key="portfolio" p={r} /> : <AccountRow key={r.id} a={r} />))}
-                  </CardContent>
+                  {g.type === "CREDIT_CARD" ? (
+                    <CardContent className="grid gap-3 @lg:grid-cols-2">
+                      {g.rows.map((r) => ("portfolio" in r ? null : <AccountCard key={r.id} a={r} />))}
+                    </CardContent>
+                  ) : (
+                    <CardContent className="grid grid-cols-1 px-2 sm:px-4">
+                      {g.rows.map((r) => ("portfolio" in r ? <PortfolioLine key="portfolio" p={r} /> : <AccountRow key={r.id} a={r} />))}
+                    </CardContent>
+                  )}
                 </Card>
               ))}
               {archived.length > 0 && (
