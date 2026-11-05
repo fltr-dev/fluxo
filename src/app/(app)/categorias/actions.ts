@@ -5,7 +5,7 @@ import { refresh } from "next/cache"
 import { z } from "zod"
 import { requireUser } from "@/auth"
 import { categories, categoryRules, db, pluggyCategoryMap, spendingLimits, transactions } from "@/db"
-import { SEED_CATEGORIES, SEED_PLUGGY_MAP } from "@/db/seed-data"
+import { seedCategories } from "@/db/default-categories"
 import { lucideByName } from "@/components/category-icon"
 import { fd, parseForm } from "@/lib/form"
 
@@ -23,20 +23,10 @@ const icon = z.preprocess(
 
 export async function seedDefaults() {
   await requireUser()
-  const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(categories)
-  if (count > 0) return
-  const ids = new Map<string, number>()
-  for (const c of SEED_CATEGORIES) {
-    const [p] = await db.insert(categories).values({ name: c.name, kind: c.kind, color: c.color, icon: c.icon }).returning({ id: categories.id })
-    const subs = await db
-      .insert(categories)
-      .values(c.subs.map((name) => ({ name, kind: c.kind, color: c.color, parentId: p.id })))
-      .returning({ id: categories.id, name: categories.name })
-    for (const s of subs) ids.set(`${c.name}/${s.name}`, s.id)
-  }
-  await db
-    .insert(pluggyCategoryMap)
-    .values(Object.entries(SEED_PLUGGY_MAP).map(([pluggyCategory, path]) => ({ pluggyCategory, subcategoryId: ids.get(path)! })))
+  await db.transaction(async (tx) => {
+    const [{ count }] = await tx.select({ count: sql<number>`count(*)::int` }).from(categories)
+    if (count === 0) await seedCategories(tx)
+  })
   refresh()
 }
 

@@ -43,6 +43,13 @@
       "when": 1792201536270,
       "tag": "0005_cofy_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793889034248,
+      "tag": "0006_categorias_padrao",
+      "breakpoints": true
     }
   ]
 }
