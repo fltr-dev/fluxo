@@ -1,7 +1,8 @@
 import { z } from "zod"
 
 // Validação de FormData nas Server Actions (fronteira de confiança)
-const blankToNull = (v: unknown) => (v === "" || v === undefined ? null : v)
+/** Campo vazio ou ausente do formulário (ex.: só aparece para certos tipos) vira null */
+export const blankToNull = (v: unknown) => (v === "" || v === undefined ? null : v)
 
 export const fd = {
   id: z.coerce.number().int().positive(),

@@ -122,7 +122,7 @@ export default async function ReservePage() {
                   <span className="text-xs text-muted-foreground">Acompanha automaticamente seu custo de vida.</span>
                 </span>
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <input type="number" name="targetMonths" min={1} max={60} defaultValue={r.settings.targetMonths} aria-label="Meses" className={cn(fieldClass, "w-20 text-center tabular-nums")} />
+                  <input type="number" name="targetMonths" required min={1} max={60} defaultValue={r.settings.targetMonths} aria-label="Meses" className={cn(fieldClass, "w-20 text-center tabular-nums")} />
                   meses × <span className="tabular-nums">{brl(r.avgMonthlyExpense)}</span>
                 </span>
               </span>
