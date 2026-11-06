@@ -1,6 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Clock, Gauge, Landmark, Plus, ShieldCheck, Sparkles, Tag, Wallet } from "lucide-react"
 import Link from "next/link"
-import { auth } from "@/auth"
+import { auth, ownerName } from "@/auth"
 import { Bar, Delta, Empty, IconCircle, PageTitle } from "@/components/bits"
 import { categoryIcon } from "@/components/category-icon"
 import { ExpenseGauge, IncomeExpenseChart, NetWorthArea } from "@/components/charts"
@@ -41,7 +41,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const prevPeriod = previousPeriod(f)
   const expenseOnly = { ...f, kind: "EXPENSE" as const }
 
-  const firstName = (await auth())?.user?.name?.split(" ")[0]
+  // Nome salvo em Configurações › Conta; sem ele, o usuário de entrada
+  const firstName = ((await ownerName()) || (await auth())?.user?.name)?.split(" ")[0]
   const [accs, cur, prev, cats, prevCats, flow, nw, limits, goals, reserve, status, recent, options] = await Promise.all([
     listAccounts(),
     totals(f),
@@ -104,7 +105,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
         icon: Gauge,
         color: s.state === "over" ? "#ef4444" : "#f59e0b",
         title: s.state === "over" ? `${l.label} passou do limite` : `${l.label} perto do limite`,
-        desc: <span className="tabular-nums">{`${brl(l.spent)} de ${brl(l.limit)} · ${pct(s.pct)}`}</span>,
+        desc: <span className="tabular-nums sensitive">{`${brl(l.spent)} de ${brl(l.limit)} · ${pct(s.pct)}`}</span>,
       })),
     ...(status.uncategorized > 0
       ? [{ key: "uncat", href: "/transacoes?ver=uncategorized&periodo=12m", icon: Tag, color: "#8b5cf6", title: `${status.uncategorized} transações a categorizar`, desc: "Defina a categoria para entrarem nos relatórios" }]
@@ -148,7 +149,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
             <CardContent className="flex items-start justify-between gap-2">
               <div className="grid min-w-0 gap-1">
                 <span className="text-sm text-muted-foreground">{k.label}</span>
-                <span className={cn("truncate text-lg font-semibold tracking-tight tabular-nums sm:text-xl", k.valueClass)}>{k.value}</span>
+                <span className={cn("truncate text-lg font-semibold tracking-tight tabular-nums sensitive sm:text-xl", k.valueClass)}>{k.value}</span>
               </div>
               <IconCircle icon={k.icon} color={k.color} className="hidden sm:grid" />
             </CardContent>
@@ -193,7 +194,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                   <IconCircle icon={categoryIcon(c.name)} color={c.color ?? "#a1a1aa"} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name ?? "A categorizar"}</span>
                   <span className="grid justify-items-end">
-                    <span className="text-sm font-semibold tabular-nums">{brl(c.total)}</span>
+                    <span className="text-sm font-semibold tabular-nums sensitive">{brl(c.total)}</span>
                     <Delta value={d} upIsGood={false} />
                   </span>
                 </Link>
@@ -281,7 +282,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                     <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", cls)}>{label}</span>
                   </span>
                   <Bar value={p.pct} state={p.state === "late" ? "warn" : "ok"} />
-                  <span className="flex justify-between gap-2 text-xs text-muted-foreground tabular-nums">
+                  <span className="flex justify-between gap-2 text-xs text-muted-foreground tabular-nums sensitive">
                     <span>{brl(g.current)} de {brl(g.targetAmount)}</span>
                     {p.state !== "done" && <span>{brl(p.monthlyNeeded)}/mês</span>}
                   </span>

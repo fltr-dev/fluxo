@@ -264,7 +264,7 @@ Valores monetários em `numeric(14,2)` (nunca float). Índices: `transactions(da
    - As contas dos ativos não aparecem como subitens de *Contas* na sidebar (seriam dezenas); continuam em `/contas`.
 10. **Calendário** (`/calendario`): grade do mês com o total **recebido** e **gasto** em cada dia (sem transferências e ignoradas), resumo do mês, navegação por mês, filtro por conta e por **várias categorias** (categoria inclui as subcategorias). Clicar num dia lista as transações dele. Estado na URL (`mes`, `dia`, `conta`, `categorias`).
 12. **Dívidas** (`/dividas`), **Cofy** (`/cofy` e painel flutuante) e o **sino de avisos** no cabeçalho (ver §6.12 e §6.13); **Configurações** ganha a seção **Avisos** (push neste aparelho, horário e tipos).
-11. **Configurações** (modal aberto pelo menu do perfil, com barra lateral de seções): **Aparência** (fundo Sistema/Claro/Cinza/Preto e cor de destaque entre 9 opções prontas, sem escolha livre; por aparelho, em cookie), **Conta** (alterar usuário e senha, ver §4) e **Sobre** (versão e empresa desenvolvedora, *FLTR Sistemas*).
+11. **Configurações** (modal aberto pelo menu do perfil, com barra lateral de seções): **Aparência** (fundo Sistema/Claro/Cinza/Preto e cor de destaque entre 9 opções prontas, sem escolha livre; por aparelho, em cookie), **Conta** (alterar usuário e senha, ver §4) e **Sobre** (versão e empresa desenvolvedora, *FLTR Systems*).
 
 ### Layout e padrões de interface
 

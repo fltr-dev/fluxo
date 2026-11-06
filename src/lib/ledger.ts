@@ -1,5 +1,6 @@
 import "server-only"
 import { aliasedTable, and, desc, eq, gte, isNotNull, isNull, ne, sql } from "drizzle-orm"
+import { categoryIcon } from "@/components/category-icon"
 import { accounts, balanceSnapshots, categories, categoryRules, db, pluggyCategoryMap, transactions } from "@/db"
 import {
   mapPluggyCategory,
@@ -13,15 +14,19 @@ import { addDays } from "./domain/dates"
 import { detectTransfers } from "./domain/transfers"
 import { classifyWithJev, jevEnabled, jevThresholds } from "./jev"
 
-/** Subcategorias ativas com o nome da categoria-pai ("Alimentação / Mercado"). */
+/**
+ * Subcategorias ativas com o nome da categoria-pai ("Alimentação / Mercado"). `icon` é o ícone efetivo da
+ * categoria-pai já resolvido aqui (nome do Lucide em PascalCase), para o seletor do cliente não precisar do mapa todo.
+ */
 export async function subcategoryOptions() {
   const parent = aliasedTable(categories, "parent")
-  return db
-    .select({ id: categories.id, name: categories.name, kind: categories.kind, parentName: parent.name, color: parent.color })
+  const rows = await db
+    .select({ id: categories.id, name: categories.name, kind: categories.kind, parentId: parent.id, parentName: parent.name, color: parent.color, parentIcon: parent.icon })
     .from(categories)
     .innerJoin(parent, eq(categories.parentId, parent.id))
     .where(and(eq(categories.archived, false), eq(parent.archived, false)))
     .orderBy(categories.kind, parent.name, categories.name)
+  return rows.map(({ parentIcon, ...r }) => ({ ...r, icon: categoryIcon(r.parentName, parentIcon).displayName ?? "Tag" }))
 }
 
 export async function subcategoryKinds() {

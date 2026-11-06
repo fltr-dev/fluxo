@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { checkOwner, credentialVersion, same } from "@/lib/credentials"
+import { cache } from "react"
+import { checkOwner, credentialVersion, readOwnerName, same } from "@/lib/credentials"
 
 export type Role = "owner" | "demo"
 
@@ -85,6 +86,20 @@ export async function sessionIsCurrent(user?: { role: Role; cv?: number }) {
     return false
   }
 }
+
+/**
+ * Nome salvo em Configurações › Conta (só o dono; demonstração e sem banco = null). Quem mostra o nome cai no
+ * usuário de entrada quando não há. Erro ao ler não quebra a tela: é só exibição.
+ */
+export const ownerName = cache(async () => {
+  if ((await auth())?.user?.role !== "owner" || !process.env.DATABASE_URL) return null
+  try {
+    const { db } = await import("@/db")
+    return await readOwnerName(db)
+  } catch {
+    return null
+  }
+})
 
 /**
  * Para Server Actions e Route Handlers: o proxy não é fronteira de segurança suficiente.

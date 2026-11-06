@@ -68,8 +68,8 @@ function DebtCard({ v }: { v: DebtView }) {
           <p className="truncate text-sm text-muted-foreground" title={summary}>{summary}</p>
         </div>
         <div className="shrink-0 text-right whitespace-nowrap">
-          <div className="font-semibold tabular-nums">{brl(ev.remaining)}</div>
-          <div className="text-xs text-muted-foreground tabular-nums">{ev.paid > 0 ? `de ${brl(ev.total)}` : "em aberto"}</div>
+          <div className="font-semibold tabular-nums sensitive">{brl(ev.remaining)}</div>
+          <div className="text-xs text-muted-foreground tabular-nums sensitive">{ev.paid > 0 ? `de ${brl(ev.total)}` : "em aberto"}</div>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ function DebtCard({ v }: { v: DebtView }) {
                 {i.quantity > 1 && <span className="tabular-nums">{i.quantity}× </span>}
                 {i.description}
               </span>
-              <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums">{brl(i.quantity * i.unitAmount)}</span>
+              <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums sensitive">{brl(i.quantity * i.unitAmount)}</span>
             </li>
           ))}
         </ul>
@@ -96,7 +96,7 @@ function DebtCard({ v }: { v: DebtView }) {
         </span>
         {next ? (
           <span>
-            Próxima: <b className="font-semibold text-foreground">{dueText(next)}</b> · {brl(next.amount)} · {installmentOf(v, next)}
+            Próxima: <b className="font-semibold text-foreground">{dueText(next)}</b> · <span className="sensitive">{brl(next.amount)}</span> ·{installmentOf(v, next)}
           </span>
         ) : ev.remaining > 0 ? (
           <span>Pagamento livre</span>
@@ -134,7 +134,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
           ].map(([l, val, cls]) => (
             <div key={l} className="grid gap-0.5 bg-card px-3.5 py-2.5">
               <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{l}</span>
-              <span className={cn("font-semibold tabular-nums", cls)}>{val}</span>
+              <span className={cn("font-semibold tabular-nums", l !== "Vencimento" && "sensitive", cls)}>{val}</span>
             </div>
           ))}
         </div>
@@ -149,7 +149,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
                     {i.quantity > 1 && <span className="tabular-nums">{i.quantity}× </span>}
                     {i.description}
                   </span>
-                  <span className="shrink-0 whitespace-nowrap tabular-nums">{brl(i.quantity * i.unitAmount)}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums sensitive">{brl(i.quantity * i.unitAmount)}</span>
                 </li>
               ))}
             </ul>
@@ -166,7 +166,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
             <Link2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <div className="grid flex-1 gap-1.5">
               <span>
-                Encontramos uma saída de <b className="tabular-nums">{brl(-suggestion.amount)}</b> em {dateBR(suggestion.date)} ({suggestion.description}). Foi o pagamento da parcela {installmentOf(v, nextOpen)}?
+                Encontramos uma saída de <b className="tabular-nums sensitive">{brl(-suggestion.amount)}</b> em {dateBR(suggestion.date)} ({suggestion.description}). Foi o pagamento da parcela {installmentOf(v, nextOpen)}?
               </span>
               <Button type="submit" size="sm" className="justify-self-start">
                 Vincular e marcar como paga
@@ -195,7 +195,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
                     {!r.paidOn && r.status === "overdue" && <span className="text-xs font-medium text-expense">Em atraso</span>}
                     {!r.paidOn && r.id === ev.next?.id && r.status !== "overdue" && <span className="text-xs font-medium text-primary">Próxima</span>}
                   </div>
-                  <b className="whitespace-nowrap tabular-nums">{brl(r.amount)}</b>
+                  <b className="whitespace-nowrap tabular-nums sensitive">{brl(r.amount)}</b>
                   {r.paidOn ? (
                     <form action={undoDebtPayment}>
                       <input type="hidden" name="debtId" value={debt.id} />
@@ -259,7 +259,7 @@ async function PayDialog({ v, installmentId }: { v: DebtView; installmentId?: nu
                 <input type="radio" name="transactionId" value={t.id} className="accent-primary" />
                 <span className="min-w-0 flex-1 truncate" title={t.description}>{t.description}</span>
                 <span className="text-muted-foreground tabular-nums">{dateBR(t.date)}</span>
-                <b className="whitespace-nowrap tabular-nums">{brl(-t.amount)}</b>
+                <b className="whitespace-nowrap tabular-nums sensitive">{brl(-t.amount)}</b>
               </label>
             ))}
           </fieldset>
@@ -332,7 +332,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
             ].map(([label, value, hint, cls], i) => (
               <div key={label} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-l lg:border-t-0", i === 2 && "sm:border-t lg:border-t-0 sm:border-l-0 lg:border-l", i === 1 && "sm:border-t-0")}>
                 <span className="text-sm font-medium text-muted-foreground">{label}</span>
-                <span className={cn("text-xl font-semibold tracking-tight whitespace-nowrap tabular-nums", cls)}>{value}</span>
+                <span className={cn("text-xl font-semibold tracking-tight whitespace-nowrap tabular-nums sensitive", cls)}>{value}</span>
                 <span className="truncate text-xs text-muted-foreground" title={hint}>{hint}</span>
               </div>
             ))}
@@ -344,7 +344,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                 <CircleAlert className="size-4" />
               </span>
               <p className="min-w-0 flex-1 basis-60 text-sm">
-                <b>{brl(overdue[0].row.amount)} para {overdue[0].v.debt.creditor}</b> venceu em {dateBR(overdue[0].row.due!)}
+                <b><span className="sensitive">{brl(overdue[0].row.amount)}</span> para {overdue[0].v.debt.creditor}</b> venceu em {dateBR(overdue[0].row.due!)}
                 {overdue.length > 1 && <span className="text-muted-foreground"> · e mais {overdue.length - 1} em atraso</span>}
               </p>
               <Link href={`/dividas?pagar=${overdue[0].v.debt.id}&parcela=${overdue[0].row.id}`} className={buttonVariants({ size: "sm" })}>
@@ -373,7 +373,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                   </span>
                   <div className="grid">
                     <h2 className="text-sm font-semibold">Próximos 30 dias</h2>
-                    <span className="text-xs text-muted-foreground">{brl(upcoming.reduce((t, u) => t + u.row.amount, 0))} a pagar</span>
+                    <span className="text-xs text-muted-foreground"><span className="sensitive">{brl(upcoming.reduce((t, u) => t + u.row.amount, 0))}</span> a pagar</span>
                   </div>
                 </div>
                 {timeline.length === 0 ? (
@@ -395,7 +395,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                                 {t.row.estimated && " · data prevista"}
                               </span>
                             </span>
-                            <b className="whitespace-nowrap tabular-nums">{brl(t.row.amount)}</b>
+                            <b className="whitespace-nowrap tabular-nums sensitive">{brl(t.row.amount)}</b>
                           </Link>
                         </li>
                       ) : (
@@ -420,7 +420,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                       ? "Sem dívidas em aberto. Que bom!"
                       : payoff
                         ? `Mantendo os pagamentos agendados, você zera tudo em ${monthLabel(payoff)}.`
-                        : `Faltam ${brl(remainingSum)}. Algumas dívidas são de pagamento livre: combine um valor mensal para elas.`}
+                        : <>Faltam <span className="sensitive">{brl(remainingSum)}</span>. Algumas dívidas são de pagamento livre: combine um valor mensal para elas.</>}
                   </p>
                 </div>
               </Card>

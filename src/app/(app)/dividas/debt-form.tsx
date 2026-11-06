@@ -120,7 +120,7 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
             <Plus /> Adicionar item
           </Button>
           <span className="text-sm text-muted-foreground">
-            Total <b className="ml-1 text-base text-foreground tabular-nums">{brl(total)}</b>
+            Total <b className="ml-1 text-base text-foreground tabular-nums sensitive">{brl(total)}</b>
           </span>
         </div>
       </fieldset>
@@ -143,7 +143,7 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
               {editing ? "Parcelas restantes" : "Número de parcelas"}
               <input type="number" min="1" max="120" value={v.installments} onChange={(e) => set("installments", Math.min(120, Math.max(1, Math.round(num(e.target.value)))))} className={cn(fieldClass, "w-20 text-center")} />
             </label>
-            {part > 0 && <span className="text-muted-foreground">de ~{brl(part)}</span>}
+            {part > 0 && <span className="text-muted-foreground">de ~<span className="sensitive">{brl(part)}</span></span>}
           </div>
         )}
         {v.mode === "FLEX" && <p className="text-xs text-muted-foreground">Sem data nem parcelas: você registra cada pagamento quando fizer.</p>}

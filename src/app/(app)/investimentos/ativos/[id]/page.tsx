@@ -84,7 +84,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="grid justify-items-end">
-            <span className="text-3xl font-bold tracking-tight tabular-nums">{h.variable ? price(h.unitPrice) : brl(h.value)}</span>
+            <span className="text-3xl font-bold tracking-tight tabular-nums sensitive">{h.variable ? price(h.unitPrice) : brl(h.value)}</span>
             <span className="text-xs text-muted-foreground">{h.variable ? "cotação" : "saldo bruto"}{h.priceUpdatedAt ? ` · atualizado ${ago(h.priceUpdatedAt)}` : ""}</span>
           </div>
           <Link href={`${path}?editar=1`} scroll={false} className={buttonVariants({ variant: "outline" })}>
@@ -102,8 +102,8 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
         {kpis.map(([label, value, ctx], i) => (
           <div key={label} className={cn("grid content-start gap-1 bg-card px-4 py-3.5", i === 0 && "max-sm:col-span-2")}>
             <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">{label}</span>
-            <span className="text-lg font-bold tabular-nums sm:text-xl">{value}</span>
-            <span className="text-xs text-muted-foreground tabular-nums">{ctx}</span>
+            <span className={cn("text-lg font-bold tabular-nums sm:text-xl", !["Quantidade", "Taxa", "Rentab. 12M"].includes(label) && "sensitive")}>{value}</span>
+            <span className={cn("text-xs text-muted-foreground tabular-nums", ["Preço médio", "Saldo"].includes(label) && "sensitive")}>{ctx}</span>
           </div>
         ))}
       </section>
@@ -161,8 +161,8 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
                   <span className="tabular-nums">{dateBR(t.date)}</span>
                   <span><span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", t.type === "BUY" ? "bg-income/10 text-income" : t.type === "SELL" ? "bg-expense/10 text-expense" : "bg-muted text-muted-foreground")}>{TRADE_LABEL[t.type]}</span></span>
                   <span className="text-right tabular-nums">{t.quantity != null ? `${t.type === "SELL" ? "−" : "+"}${qtyFmt(t.quantity)}` : "—"}</span>
-                  <span className="text-right tabular-nums">{price(t.price)}</span>
-                  <b className="text-right whitespace-nowrap tabular-nums">{brl(t.amount)}</b>
+                  <span className="text-right tabular-nums sensitive">{price(t.price)}</span>
+                  <b className="text-right whitespace-nowrap tabular-nums sensitive">{brl(t.amount)}</b>
                   <span className="text-right text-xs text-muted-foreground">{t.pluggyId ? "Pluggy" : "Manual"}</span>
                   <DeleteTrade t={t} path={path} />
                 </div>
@@ -173,7 +173,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
         </Card>
 
         <Card className="gap-3 px-5 py-5">
-          <CardHead icon={Coins} title="Proventos" description={`12 meses: ${brl(income12)}`}>
+          <CardHead icon={Coins} title="Proventos" description={<>12 meses: <span className="sensitive">{brl(income12)}</span></>}>
             <Link href={`${path}?lancar=${h.id}`} scroll={false} className={buttonVariants({ variant: "ghost", size: "sm" })}>Lançar</Link>
           </CardHead>
           <div className="grid">
@@ -182,7 +182,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
                 <span className="w-20 tabular-nums font-semibold">{dateBR(t.date)}</span>
                 <span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", t.date > now ? "bg-amber-500/10 text-warning" : "bg-muted text-muted-foreground")}>{t.date > now ? `${TRADE_LABEL[t.type]} · a receber` : TRADE_LABEL[t.type]}</span>
                 <span className="flex-1" />
-                <b className={cn("whitespace-nowrap tabular-nums", t.date <= now && "text-income")}>{t.date <= now ? "+" : ""}{brl(t.amount)}</b>
+                <b className={cn("whitespace-nowrap tabular-nums sensitive", t.date <= now && "text-income")}>{t.date <= now ? "+" : ""}{brl(t.amount)}</b>
                 <DeleteTrade t={t} path={path} />
               </div>
             ))}
@@ -263,7 +263,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
 const OPS = "grid grid-cols-[96px_minmax(100px,1fr)_minmax(80px,1fr)_minmax(90px,1fr)_minmax(100px,1fr)_72px_36px] items-center gap-3 px-5"
 
 const Signed = ({ value }: { value: number }) => (
-  <span className={cn("tabular-nums", value > 0 ? "text-income" : value < 0 ? "text-expense" : "")}>
+  <span className={cn("tabular-nums sensitive", value > 0 ? "text-income" : value < 0 ? "text-expense" : "")}>
     {value > 0 ? "+" : value < 0 ? "−" : ""}
     {brl(Math.abs(value))}
   </span>

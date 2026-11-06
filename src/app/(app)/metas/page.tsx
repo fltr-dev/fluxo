@@ -133,13 +133,13 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
         <>
           <Card className="grid gap-0 py-0 sm:grid-cols-3">
             {[
-              ["Guardado em metas", brl(rows.reduce((s, r) => s + r.g.current, 0)), <>de <span className="tabular-nums">{brl(rows.reduce((s, r) => s + r.g.targetAmount, 0))}</span> no total</>],
+              ["Guardado em metas", brl(rows.reduce((s, r) => s + r.g.current, 0)), <>de <span className="tabular-nums sensitive">{brl(rows.reduce((s, r) => s + r.g.targetAmount, 0))}</span> no total</>],
               ["Aporte mensal necessário", brl(open.reduce((s, r) => s + r.p.monthlyNeeded, 0)), "somando as metas em andamento"],
               ["Próximo prazo", next ? monthLabel(next.g.deadline.slice(0, 7)) : "—", next ? `${next.g.name} · ${next.p.monthsLeft} ${next.p.monthsLeft === 1 ? "mês" : "meses"}` : "nenhuma meta em andamento"],
             ].map(([label, value, hint], i) => (
               <div key={String(label)} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-t-0 sm:border-l")}>
                 <span className="text-sm font-medium text-muted-foreground">{label}</span>
-                <span className="text-xl font-semibold tracking-tight tabular-nums">{value}</span>
+                <span className={cn("text-xl font-semibold tracking-tight tabular-nums", label !== "Próximo prazo" && "sensitive")}>{value}</span>
                 <span className="truncate text-xs text-muted-foreground">{hint}</span>
               </div>
             ))}
@@ -167,8 +167,8 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                   <CardContent className="grid gap-4">
                     <div className="grid gap-2">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-xl font-semibold tracking-tight tabular-nums">{brl(g.current)}</span>
-                        <span className="text-sm text-muted-foreground tabular-nums">de {brl(g.targetAmount)}</span>
+                        <span className="text-xl font-semibold tracking-tight tabular-nums sensitive">{brl(g.current)}</span>
+                        <span className="text-sm text-muted-foreground tabular-nums sensitive">de {brl(g.targetAmount)}</span>
                       </div>
                       <Bar value={p.pct} state={p.state === "late" ? "warn" : "ok"} className="h-2.5" />
                       <span className="text-xs text-muted-foreground tabular-nums">{pct(p.pct)} concluído</span>
@@ -181,7 +181,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                       ].map(([k, v], i) => (
                         <div key={k} className={cn("grid min-w-0 gap-0.5 px-3 py-2.5", i > 0 && "border-l")}>
                           <span className="text-xs text-muted-foreground">{k}</span>
-                          <span className={cn("truncate font-medium tabular-nums", k === "Por mês" && p.state === "late" && "text-warning")}>{v}</span>
+                          <span className={cn("truncate font-medium tabular-nums", k !== "Prazo" && "sensitive", k === "Por mês" && p.state === "late" && "text-warning")}>{v}</span>
                         </div>
                       ))}
                     </div>
@@ -213,7 +213,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
       )}
 
       {contributeTo && (
-        <RouteDialog closeHref="/metas" title="Novo aporte" description={<>{contributeTo.g.name} · <span className="tabular-nums">{brl(contributeTo.g.current)} de {brl(contributeTo.g.targetAmount)}</span></>}>
+        <RouteDialog closeHref="/metas" title="Novo aporte" description={<>{contributeTo.g.name} · <span className="tabular-nums sensitive">{brl(contributeTo.g.current)} de {brl(contributeTo.g.targetAmount)}</span></>}>
           <form action={contributeAndClose} className="grid gap-4">
             <input type="hidden" name="goalId" value={contributeTo.g.id} />
             <div className="grid grid-cols-2 gap-3">
@@ -228,7 +228,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
               <input name="note" maxLength={1000} placeholder="Ex.: parte do 13º" className={fieldClass} />
             </Field>
             <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-              Faltam <span className="tabular-nums">{brl(contributeTo.p.remaining)}</span> · hoje o aporte necessário é <span className="tabular-nums">{brl(contributeTo.p.monthlyNeeded)}</span>/mês.
+              Faltam <span className="tabular-nums sensitive">{brl(contributeTo.p.remaining)}</span> · hoje o aporte necessário é <span className="tabular-nums sensitive">{brl(contributeTo.p.monthlyNeeded)}</span>/mês.
             </p>
             <FormActions>
               <CancelLink href="/metas" />

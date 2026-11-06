@@ -98,7 +98,7 @@ function Block({ b }: { b: CardBlock }) {
         {b.items.map((k) => (
           <div key={k.label} className="grid gap-0.5 px-3.5 py-2.5">
             <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{k.label}</span>
-            <b className={cn("text-[15px] tabular-nums sm:text-base", k.tone && TONE[k.tone])}>{k.value}</b>
+            <b className={cn("text-[15px] tabular-nums sm:text-base", String(k.value).includes("R$") && "sensitive", k.tone && TONE[k.tone])}>{k.value}</b>
           </div>
         ))}
       </div>
@@ -113,7 +113,7 @@ function Block({ b }: { b: CardBlock }) {
               <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(100, (r.value / r.max) * 100)}%`, background: r.color ?? "var(--primary)" }} />
               {r.marker != null && <i className="absolute -top-0.5 h-3 w-0.5 rounded bg-foreground/60" style={{ left: `${Math.min(99, (r.marker / r.max) * 100)}%` }} />}
             </span>
-            <b className="text-right tabular-nums">{r.text}</b>
+            <b className={cn("text-right tabular-nums", r.text.includes("R$") && "sensitive")}>{r.text}</b>
             <span className={cn("hidden text-right text-xs font-bold tabular-nums sm:block", r.tone === "bad" && "text-expense", r.tone === "good" && "text-income")}>{r.delta ?? ""}</span>
           </div>
         ))}
@@ -132,7 +132,7 @@ function Block({ b }: { b: CardBlock }) {
           <tbody>
             {b.rows.map((r, i) => (
               <tr key={i} className="border-b last:border-0">
-                {r.map((c, j) => <td key={j} className={cn("px-3.5 py-1.5", b.align?.[j] === "r" ? "text-right tabular-nums" : "max-w-[16rem] truncate")}>{c}</td>)}
+                {r.map((c, j) => <td key={j} className={cn("px-3.5 py-1.5", b.align?.[j] === "r" ? "text-right tabular-nums" : "max-w-[16rem] truncate", String(c).includes("R$") && "sensitive")}>{c}</td>)}
               </tr>
             ))}
           </tbody>
@@ -197,14 +197,14 @@ export function ActionCard({ action: a, onEdit }: { action: ActionView; onEdit?:
             <b className="block truncate">{a.title}</b>
             {a.subtitle && <span className="block truncate text-xs text-muted-foreground">{a.subtitle}</span>}
           </div>
-          {a.amount && <b className="text-base tabular-nums">{a.amount}</b>}
+          {a.amount && <b className="text-base tabular-nums sensitive">{a.amount}</b>}
         </div>
         {a.rows.length > 0 && (
           <ul className="grid gap-0.5 border-t border-dashed pt-2 text-[13px]">
             {a.rows.map((r, i) => (
               <li key={i} className="flex justify-between gap-3">
                 <span className="min-w-0 truncate">{r.label}</span>
-                <span className="shrink-0 tabular-nums">{r.value}</span>
+                <span className={cn("shrink-0 tabular-nums", String(r.value).includes("R$") && "sensitive")}>{r.value}</span>
               </li>
             ))}
           </ul>

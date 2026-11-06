@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useBusy } from "@/components/ui/pending"
 import { cn } from "@/lib/utils"
 
 // Gestos de lista: arrastar a linha para o lado revela botões (no toque); pressionar e segurar,
@@ -59,6 +60,7 @@ function useRowActions({ title, description, menu, extra }: SheetProps) {
   const [error, setError] = useState("")
   const [confirming, setConfirming] = useState("")
   const [pending, start] = useTransition()
+  useBusy(pending)
 
   useEffect(() => {
     if (!confirming) return
@@ -106,7 +108,7 @@ function useRowActions({ title, description, menu, extra }: SheetProps) {
         {side === "bottom" && <span aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30" />}
         <SheetHeader className="border-b px-5 pt-3 pb-3 pr-12">
           <SheetTitle className="truncate text-base font-semibold">{title}</SheetTitle>
-          {description && <SheetDescription className="tabular-nums">{description}</SheetDescription>}
+          {description && <SheetDescription className={cn("tabular-nums", description.includes("R$") && "sensitive")}>{description}</SheetDescription>}
         </SheetHeader>
         <div className="grid gap-3 overflow-y-auto p-3">
           {extra && <div className="px-2 pt-1">{extra({ close, run: (fn) => run(fn) })}</div>}

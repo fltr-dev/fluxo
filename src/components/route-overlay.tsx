@@ -14,10 +14,21 @@ import { cn } from "@/lib/utils"
 
 type Props = { closeHref: string; title: string; description?: React.ReactNode; children: React.ReactNode; className?: string }
 
-export function RouteDialog({ closeHref, title, description, children, className }: Props) {
+/** Fecha com animação: primeiro some (data-closed) e só navega para `closeHref` quando a animação termina. */
+function useAnimatedClose(closeHref: string) {
   const router = useRouter()
+  const [open, setOpen] = useState(true)
+  return {
+    open,
+    onOpenChange: (o: boolean) => !o && setOpen(false),
+    onOpenChangeComplete: (o: boolean) => !o && router.push(closeHref, { scroll: false }),
+  }
+}
+
+export function RouteDialog({ closeHref, title, description, children, className }: Props) {
+  const root = useAnimatedClose(closeHref)
   return (
-    <Dialog open onOpenChange={(o) => !o && router.push(closeHref, { scroll: false })}>
+    <Dialog {...root}>
       <DialogContent className={cn("max-h-[calc(100svh-2rem)] gap-5 overflow-y-auto p-6 sm:max-w-lg", className)}>
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
@@ -47,9 +58,9 @@ const CLOSE_AT = 96 // px arrastados para baixo que fecham o painel
  * fecha, respeita a área segura do iPhone).
  */
 export function RouteSheet({ closeHref, title, description, children, className }: Props) {
-  const router = useRouter()
+  const root = useAnimatedClose(closeHref)
   const mobile = useIsMobile()
-  const close = () => router.push(closeHref, { scroll: false })
+  const close = () => root.onOpenChange(false)
   const [dy, setDy] = useState<number | null>(null)
   const start = useRef(0)
 
@@ -65,7 +76,7 @@ export function RouteSheet({ closeHref, title, description, children, className 
   }
 
   return (
-    <Sheet open onOpenChange={(o) => !o && close()}>
+    <Sheet {...root}>
       <SheetContent
         side={mobile ? "bottom" : "right"}
         className={cn("w-full gap-0 data-[side=right]:sm:max-w-md data-[side=bottom]:max-h-[90svh] data-[side=bottom]:rounded-t-2xl", className)}

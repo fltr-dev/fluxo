@@ -4,6 +4,7 @@ import { ChevronDown, ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Set
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { DevBadge } from "@/components/bits"
 import { AccountAvatar } from "@/components/account-avatar"
 import { Logo } from "@/components/logo"
 import { useSettings } from "@/components/settings-dialog"
@@ -221,6 +222,8 @@ type SidebarProps = {
   accounts: SidebarAccount[]
   user: { name: string; email: string }
   version: string
+  /** Ambiente de desenvolvimento: a versão leva o selo "dev" */
+  dev?: boolean
   appName: string
   collapsed: boolean
   accountsOpen: boolean
@@ -228,7 +231,7 @@ type SidebarProps = {
 }
 
 /** Sidebar do desktop: abre (16rem) ou recolhe só com ícones e dicas (3.5rem); a escolha fica num cookie. */
-export function Sidebar({ badges, accounts, user, version, appName, collapsed: initialCollapsed, accountsOpen: initialOpen, signOut }: SidebarProps) {
+export function Sidebar({ badges, accounts, user, version, dev, appName, collapsed: initialCollapsed, accountsOpen: initialOpen, signOut }: SidebarProps) {
   const settings = useSettings()
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [open, setOpen] = useState(initialOpen)
@@ -287,17 +290,17 @@ export function Sidebar({ badges, accounts, user, version, appName, collapsed: i
         </div>
 
         <div className="grid gap-1 border-t border-sidebar-border p-2">
-          <UserMenu name={user.name} email={user.email} signOut={signOut} collapsed={collapsed} />
-          <Tip label={`${appName} · versão ${version}`} show={collapsed}>
+          <Tip label={`${appName} · versão ${version}${dev ? " · ambiente de desenvolvimento" : ""}`} show={collapsed}>
             <button
               type="button"
               onClick={() => settings.open("about")}
-              className={cn("flex items-center justify-center gap-1 rounded-md py-1 text-[11px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/50", !collapsed && "justify-start px-1")}
+              className={cn("flex items-center justify-center gap-1.5 rounded-md py-1 text-[11px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/50", !collapsed && "justify-start px-2")}
             >
-              {!collapsed && <span className="truncate">{appName}</span>}
               <span className="tabular-nums">v{version}</span>
+              {dev && (collapsed ? <span className="size-1.5 rounded-full bg-warning" aria-label="dev" /> : <DevBadge />)}
             </button>
           </Tip>
+          <UserMenu name={user.name} email={user.email} signOut={signOut} collapsed={collapsed} />
         </div>
       </aside>
     </TooltipProvider>

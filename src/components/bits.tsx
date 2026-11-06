@@ -48,7 +48,7 @@ export function Empty({ icon: Icon, title, children, action }: { icon?: LucideIc
 }
 
 export const Money = ({ value, className, signed }: { value: number; className?: string; signed?: boolean }) => (
-  <span className={cn("whitespace-nowrap tabular-nums", value < 0 && "text-expense", signed && value > 0 && "text-income", className)}>
+  <span className={cn("whitespace-nowrap tabular-nums sensitive", value < 0 && "text-expense", signed && value > 0 && "text-income", className)}>
     {signed && value > 0 && "+"}
     {brl(value)}
   </span>
@@ -58,7 +58,7 @@ export const Field = ({ label, children, className, hint }: { label: string; chi
   <label className={cn("grid content-start gap-1.5 text-sm font-medium", className)}>
     {label}
     {children}
-    {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
+    {hint && <span className={cn("text-xs font-normal text-muted-foreground", hint.includes("R$") && "sensitive")}>{hint}</span>}
   </label>
 )
 
@@ -105,6 +105,13 @@ export function FormActions({ children, start, className, plain }: { children: R
     </div>
   )
 }
+
+/** Selo "dev" ao lado da versão fora da produção (local ou preview da Vercel; ver APP.dev). */
+export const DevBadge = () => (
+  <span className="rounded-sm bg-warning/15 px-1 py-0.5 text-[10px] leading-none font-bold tracking-wide text-warning uppercase" title="Ambiente de desenvolvimento">
+    dev
+  </span>
+)
 
 /** Botão "Cancelar" do rodapé: volta para a tela sem salvar. */
 export function CancelLink({ href, children = "Cancelar" }: { href: string; children?: React.ReactNode }) {
