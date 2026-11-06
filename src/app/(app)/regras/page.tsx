@@ -3,7 +3,6 @@ import { ChevronRight, CircleCheck, Eye, ListChecks, Pencil, Plus, Trash2 } from
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
-import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -14,6 +13,7 @@ import { subcategoryOptions } from "@/lib/ledger"
 import { listAccounts } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { applyRulesToExisting, deleteRule, saveRule, toggleRule } from "./actions"
+import { RuleFields } from "./rule-kind-category"
 
 const MATCH_LABEL = { CONTAINS: "Descrição contém", STARTS_WITH: "Descrição começa com", REGEX: "Descrição casa com regex" }
 const MATCH_SHORT = { CONTAINS: "Contém", STARTS_WITH: "Começa com", REGEX: "Regex" }
@@ -43,31 +43,15 @@ function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: 
         <input name="pattern" required maxLength={200} defaultValue={rule.pattern} aria-label="Padrão" placeholder="Ex.: UBER" className={cn(fieldClass, "mt-1 font-mono")} />
         <span className="text-xs text-muted-foreground">Não diferencia maiúsculas de minúsculas.</span>
       </fieldset>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Conta">
-          <FormSelect name="accountId" defaultValue={String(rule.accountId ?? "")} emptyLabel="Qualquer conta" options={accounts.map((a) => ({ value: String(a.id), label: a.name }))} />
-        </Field>
-        <Field label="Tipo">
-          <FormSelect
-            name="kind"
-            defaultValue={rule.kind ?? ""}
-            emptyLabel="Qualquer"
-            options={[
-              { value: "EXPENSE", label: "Despesa" },
-              { value: "INCOME", label: "Receita" },
-            ]}
-          />
-        </Field>
-        <Field label="Valor mínimo (R$)">
-          <input type="number" name="minAmount" min={0} step="0.01" defaultValue={rule.minAmount ?? ""} className={fieldClass} />
-        </Field>
-        <Field label="Valor máximo (R$)">
-          <input type="number" name="maxAmount" min={0} step="0.01" defaultValue={rule.maxAmount ?? ""} className={fieldClass} />
-        </Field>
-      </div>
-      <Field label="Categorizar como">
-        <SubcategorySelect name="subcategoryId" options={options} required defaultValue={rule.subcategoryId ? String(rule.subcategoryId) : null} placeholder="Escolha…" />
-      </Field>
+      <RuleFields
+        accounts={accounts}
+        options={options}
+        accountId={rule.accountId}
+        kind={rule.kind}
+        minAmount={rule.minAmount}
+        maxAmount={rule.maxAmount}
+        subcategoryId={rule.subcategoryId}
+      />
       <Field label="Prioridade" hint="Menor número vence quando duas regras casam.">
         <input type="number" name="priority" min={0} max={10000} defaultValue={rule.priority ?? 100} className={cn(fieldClass, "w-28")} />
       </Field>
@@ -169,7 +153,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
                           {filters.length > 0 && (
                             <span className="flex flex-wrap gap-1">
                               {filters.map((x) => (
-                                <span key={String(x)} className={cn("rounded-full bg-muted px-2 text-xs text-muted-foreground", String(x).includes("R$") && "tabular-nums")}>{x}</span>
+                                <span key={String(x)} className={cn("rounded-full bg-muted px-2 text-xs text-muted-foreground", String(x).includes("R$") && "tabular-nums sensitive")}>{x}</span>
                               ))}
                             </span>
                           )}

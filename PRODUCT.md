@@ -11,7 +11,7 @@ PWA instalável (Android, iOS, desktop), `display: standalone`, sem modo offline
 ## Users
 
 - **O dono (usuário principal):** uma única pessoa, que controla as próprias finanças. Usa o fluxo **tanto no celular quanto no desktop, com o mesmo peso**: no celular, olhadas rápidas ao longo da semana (quanto gastei, o que vence, categorizar algo, perguntar ao Cofy); no desktop, sessões mais longas de revisão (relatórios, investimentos, regras, limites, fechamento do mês).
-- **Visitante da demonstração:** quem entra pelo login de demo (dados fictícios fixos, somente leitura). A demo é **vitrine da FLTR Sistemas** para clientes e recrutadores: chega sem contexto e precisa entender e se impressionar com o produto sem explicação.
+- **Visitante da demonstração:** quem entra pelo login de demo (dados fictícios fixos, somente leitura). A demo é **vitrine da FLTR Systems** para clientes e recrutadores: chega sem contexto e precisa entender e se impressionar com o produto sem explicação.
 
 ## Product Purpose
 
@@ -47,7 +47,7 @@ O Cofy é um recurso importante, mas não foi apontado como o diferencial centra
 
 ## Brand Commitments
 
-- **Nome:** "fluxo", sempre em minúsculas, de "fluxo de caixa". Assinatura "por FLTR Sistemas".
+- **Nome:** "fluxo", sempre em minúsculas, de "fluxo de caixa". Assinatura "por FLTR Systems".
 - **Mascote:** Cofy, porquinho-cofrinho de perfil; calmo, direto, número primeiro, só fala de finanças e do fluxo, não recomenda ativo específico.
 - **Voz:** PT-BR, direta, segunda pessoa implícita. Botões dizem o que fazem; erros dizem o que houve e o que fazer. Sem exclamações, sem emoji, sem "Ops!".
 - Identidade visual, logo e tokens estão registrados em `DESIGN.md`.

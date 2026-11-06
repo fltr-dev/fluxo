@@ -140,7 +140,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
               <span className="text-sm font-medium text-muted-foreground">{k.label}</span>
             </div>
             <div className="grid gap-0.5">
-              <span className={cn("text-xl font-semibold tracking-tight tabular-nums", k.value < 0 && "text-expense")} aria-label={brl(k.value)}>{brl(k.value)}</span>
+              <span className={cn("text-xl font-semibold tracking-tight tabular-nums sensitive", k.value < 0 && "text-expense")} aria-label={brl(k.value)}>{brl(k.value)}</span>
               <span className="text-xs text-muted-foreground">{k.hint}</span>
             </div>
           </Card>

@@ -1,6 +1,6 @@
 # fluxo — Design System
 
-Controle financeiro pessoal, **por FLTR Sistemas**. Este arquivo é a fonte de verdade para gerar telas (Claude Design, protótipos) e para mudar o código. A página visual com tudo renderizado fica no artifact "Fluxo Design System".
+Controle financeiro pessoal, **por FLTR Systems**. Este arquivo é a fonte de verdade para gerar telas (Claude Design, protótipos) e para mudar o código. A página visual com tudo renderizado fica no artifact "Fluxo Design System".
 
 > Estado: **aplicado no código**. Os tokens abaixo são os do `src/app/globals.css` (nomes do shadcn), a fonte vem de `src/app/layout.tsx`, o logo de `src/components/logo.tsx` e os ícones de `src/app/icon.svg` e `public/icons/*.svg` (os PNG e o `favicon.ico` são gerados a partir desses SVG). O nome vem de `src/lib/app-info.ts`.
 
@@ -10,11 +10,11 @@ Controle financeiro pessoal, **por FLTR Sistemas**. Este arquivo é a fonte de v
 2. **Números primeiro.** O valor é o elemento mais forte da tela. Sempre `tabular-nums`, alinhado à direita em listas.
 3. **Cor só com significado.** Verde-receita, rosa-despesa, âmbar-atenção, vermelho-erro. A cor de destaque (verde fluxo) é para ação e navegação, nunca para dizer "dinheiro entrou".
 4. **Celular primeiro.** PWA em retrato: alvos de toque ≥ 44px, barra inferior, ação principal ao alcance do polegar. No desktop, a mesma interface ganha sidebar e mais colunas.
-5. **Privacidade.** Todo valor monetário pode ser borrado pelo modo privado (classe `.privacy` + `.tabular-nums`).
+5. **Privacidade.** O modo privado (olho no topo) borra **só dinheiro e dados de conta**: saldos, faturas, limites de cartão, dívidas, metas, reserva, investimentos (valor, preço, proventos) e valores em gráficos e tooltips. Contagens, datas, percentuais (de meta, de limite, rentabilidade), quantidades de cotas, ordem e versão ficam visíveis; campos de formulário não borram, para dar para ver o que se digita. **Como marcar:** use `<Money>` (já é `sensitive`); num `brl(...)` solto ponha a classe `sensitive` no elemento do valor; no meio de uma frase, envolva só o número em `<span className="sensitive">`; dica de campo (`Field hint`) e descrição do painel de ações borram sozinhas quando têm "R$". `tabular-nums` é só tipografia e não esconde nada. O eixo Y dos gráficos Recharts borra sozinho; gráfico com eixo em % marca `axis-public`. Na dúvida se é dinheiro, borre.
 
 ## Marca
 
-- **Nome:** fluxo, sempre em minúsculas (inclusive no começo de frase dentro da interface). Vem de "fluxo de caixa", que é o que o app mostra. Assinatura: "por FLTR Sistemas" (rodapé, login, Sobre).
+- **Nome:** fluxo, sempre em minúsculas (inclusive no começo de frase dentro da interface). Vem de "fluxo de caixa", que é o que o app mostra. Assinatura: "por FLTR Systems" (rodapé, login, Sobre).
 - **Símbolo:** uma moeda vista de frente (anel) com o nível subindo em duas ondas. A onda de trás (45% de opacidade) é o dinheiro que entra; a da frente, cheia, é o que fica guardado. Diz crescimento sem seta nem gráfico de barras.
 - **Ícone do app** (favicon, PWA, apple-icon): quadrado arredondado (raio 22% do lado) em `verde-600` com o símbolo branco.
 
@@ -147,9 +147,11 @@ Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegaçã
 
 ## Componentes
 
-- **Botão:** variantes `default` (primary), `secondary`, `outline`, `ghost`, `destructive` (fundo `destructive 10%`, texto destructive), `link`. Alturas: `sm 32`, `default 36` (desktop) / `40` (celular), `lg 44`. Ícone à esquerda, 16px, gap 6px. Um único botão primário por tela.
+- **Botão:** variantes `default` (primary), `secondary`, `outline`, `ghost`, `destructive` (fundo `destructive 10%`, texto destructive), `link`. Alturas: `sm 32`, `default 36` (desktop) / `40` (celular), `lg 44`. Ícone à esquerda, 16px, gap 6px. Um único botão primário por tela. Todo botão e tudo que é clicável (abas, itens de menu e de lista, `summary`, switches, opções de select) mostra `cursor: pointer`; desabilitado mostra `not-allowed`. Botão de envio (`type="submit"`) mostra sozinho o spinner (`Loader2` girando no lugar do ícone) enquanto o formulário grava; fora de formulário use `loading`; `autoPending={false}` só para ações longas em segundo plano (Sincronizar).
 - **Campo:** altura 40px, raio 8, borda `input`, fundo `background` (escuro: `input 30%`). Rótulo 13/500 acima, dica 12 `muted-foreground` abaixo, erro 12 `destructive`. Campo de valor: prefixo "R$" em `muted-foreground`, texto alinhado à direita, `inputmode="decimal"`.
-- **Select:** sempre o componente próprio (Base UI), nunca `<select>` nativo; lista no popover com check no item escolhido.
+- **Select (padrão shadcn, Base UI):** sempre o componente próprio, nunca `<select>` nativo. Campo de 40px e texto 16px no celular (36px e 14px a partir de `md`); linhas de 44px no celular; check à direita do item escolhido; popup com anel de 1px + sombra de popover, abre e fecha com fade + zoom de 150ms.
+- **Busca no seletor:** listas com mais de 8 opções ganham um campo "Buscar…" no topo do popup (lupa, sem borda, separado por uma linha). O filtro ignora maiúsculas e acentos ("alimentacao" acha "Alimentação"); sem resultado aparece "Nada encontrado". Listas curtas ficam sem busca.
+- **Seletor de categoria (`SubcategorySelect`, dois níveis):** a lista mostra só as categorias (círculo suave com o ícone, nome, chevron), agrupadas em Despesa/Receita, com um ponto na categoria do valor atual. No desktop, passar o mouse ou focar abre as subcategorias num painel à direita, em cascata (troca depois de 90ms, para atravessar a lista na diagonal sem trocar o painel); no celular, tocar abre as subcategorias logo abaixo, em sanfona. Com texto na busca a lista vira plana, "Categoria › Subcategoria" com ícone, e uma categoria que bate traz todas as subcategorias. A opção vazia ("A categorizar", "Não mapear", "Todas") é sempre a primeira linha. Campo fechado: ícone + "Categoria › Subcategoria" com reticências. Teclado: digitar vai para a busca, ↑↓ andam, → entra nas subcategorias e ← volta, Enter escolhe, Esc fecha. **Quando o formulário já tem um tipo (Despesa/Receita)**, o seletor mostra só as categorias daquele tipo, e trocar o tipo limpa a categoria que deixou de servir (ex.: Regras, `regras/rule-kind-category.tsx`).
 - **Card:** borda + fundo `card`, raio 14. Cabeçalho: `h2` à esquerda, ação `ghost sm` à direita.
 - **KPI:** overline + valor `display`/`h1` + `Delta` (seta e % em `income`/`expense`, `muted` quando zero).
 - **Linha de transação:** círculo da categoria (40) · descrição (`h3`, 1 linha com reticências) + "categoria · conta" (`small`, muted) · valor à direita (`h3` tabular) + data (`caption`). Transferência: valor em `foreground`, sem sinal, ícone `arrow-left-right`. Ignorada: linha com opacidade 55% e badge "Ignorada". Altura mínima 56px; separador `border` entre linhas, sem cards por linha.
@@ -160,9 +162,17 @@ Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegaçã
 - **Avatar de conta:** quadrado raio 10, 36px, cor do banco com o símbolo do banco (`public/banks/*.svg`, centralizado; alguns já trazem o fundo e ocupam o quadrado) ou o monograma/iniciais; contorno interno de 1px (`black/10`, no escuro `white/15`) para o quadrado não sumir no fundo (Nubank `#820AD1`, Itaú `#EC7000`, Inter `#FF7A00`, C6 `#242424`...).
 - **Estado vazio:** borda tracejada, ícone 24 em quadrado `muted` 44px, título 15/600, texto muted, uma ação.
 - **Toast:** canto inferior (celular: acima da barra inferior), fundo `foreground`, texto `background`, 14px, ação em `primary` vivo. "Transação salva", "Desfazer".
-- **Sidebar (desktop):** 256px (recolhida 56px). Grupos com overline; item 36px, ícone 20, ativo = fundo `sidebar-accent` + texto `sidebar-accent-foreground` (sem barra lateral). Rodapé: avatar, usuário, versão.
+- **Sidebar (desktop):** 256px (recolhida 56px). Grupos com overline; item 36px, ícone 20, ativo = fundo `sidebar-accent` + texto `sidebar-accent-foreground` (sem barra lateral). Rodapé: versão (`v0.2.0`, sem o nome do app) acima do avatar e usuário; fora da produção (local ou preview da Vercel, `APP.dev`) a versão leva o selo âmbar "DEV" (`DevBadge`), também no menu "Mais" do celular e no rodapé das Configurações, que é centralizado.
 - **Barra inferior (celular):** 64px + safe-area, fundo `background 95%` com blur, 4 itens (Início, Transações, Relatórios, Mais) e o botão central "+" (48×44, raio 12, primary) para nova transação. Ativo = ícone e rótulo em primary.
-- **Sheet / modal:** no celular, sheet de baixo com alça, raio 18 no topo; no desktop, modal 480–560px.
+- **Sheet / modal:** no celular, sheet de baixo com alça, raio 18 no topo; no desktop, modal 480–560px. O sheet **desliza** da borda (220ms, curva padrão) e o fundo escurece com fade, inclusive quando abre direto pela URL (`?editar=…`): usar keyframes (`animate-in`/`slide-in-from-*`), não transição. Fechar pelo X, Esc ou fundo anima a saída antes de navegar (`onOpenChangeComplete`). Modais entram com fade + zoom 95% em 150ms.
+
+- **Configurações:** modal com abas na lateral, nesta ordem: **Conta** (abre por padrão), Aparência, Avisos, Sobre. Em Conta, "Nome" é o nome de exibição (saudação e menu; sem ele aparece o usuário) e salva sem pedir senha; "Usuário" é só o login de entrada, e trocar usuário ou senha pede a senha atual e encerra as sessões em todos os aparelhos. Um único botão primário, "Salvar alterações". O tema só muda em Aparência: não há botão de tema no topo do app.
+
+## Carregamento e atualização
+
+- **Primeira carga = skeleton fiel.** Cada rota de `src/app/(app)/` tem o próprio `loading.tsx`, que repete a estrutura da `page.tsx`: mesmas classes de grid, colunas e breakpoints, o `Card` de verdade com os mesmos paddings, linhas na altura real (transação 60px, conta 56px, tabela h-12/h-14) e gráficos na altura real. No máximo 6–8 linhas por lista; título e primeiro card não pulam quando o conteúdo chega. Peças em `src/components/skeletons.tsx` (`SkPage`, `SkLine` — caixa na altura da linha de texto e barra em 60% —, `SkTitle` com `wrap` quando a descrição quebra no celular, `SkTabs`, `SkChips`, `SkStats`, `SkRow`, `SkTxRow`/`SkTxDays`, `SkChart`). Telas com abas mostram a aba padrão. **Ao mudar o layout de uma tela, atualize o `loading.tsx` dela junto.** A raiz leva `aria-busy` e "Carregando…" para leitor de tela; os blocos pulsam em `bg-muted` e param com "reduzir movimento".
+- **Atualização = tela apagada e bloqueada.** Ao salvar, arquivar, excluir ou trocar um valor que grava sozinho, a tela não volta para o skeleton: o `<main>` fica a 55% de opacidade (depois de 100ms, para ações rápidas não piscarem), não aceita cliques e o cursor vira `progress`; no painel ou modal que está salvando, os campos esmaecem e só o botão com spinner fica em destaque. Mecanismo: `useBusy(pending)` em `components/ui/pending.tsx` marca `html[data-busy]`; já vem ligado em todo botão de envio, nos gestos (`SwipeRow`) e nos seletores com `autoSubmit` (`FormBusy`). Ações novas fora de formulário chamam `useBusy` com o `pending` do `useTransition`.
+- **Rolagem só até o conteúdo.** Nenhuma tela rola além do fim do conteúdo. Toda caixa com rolagem própria (`overflow-*-auto`) é `position: relative` (regra base no `globals.css`), senão o input oculto dos seletores do Base UI escapa da caixa e estica a página.
 
 ## Gestos (`SwipeRow`, `src/components/swipe-row.tsx`)
 
@@ -186,7 +196,7 @@ Nas tabelas do desktop (Transações, Limites) não há arrastar; o clique direi
 1. **Dashboard:** saudação + mês, card de saldo (display) com "olho" do modo privado, KPIs Receitas/Despesas do mês com Delta, gráfico de barras dos 6 meses (income × expense), limites em atenção, últimas transações.
 2. **Transações:** busca + filtros (chips: período, conta, categoria), lista agrupada por dia com total do dia, botão "+" na barra inferior.
 3. **Limites / Metas:** abas Limites | Metas; limite por categoria com barra e estado; meta com valor guardado, alvo, prazo e quanto falta por mês.
-4. **Login:** ícone + wordmark, "Entrar", usuário, senha (mostrar/ocultar), botão primário largo, link "Ver demonstração", assinatura "por FLTR Sistemas".
+4. **Login:** ícone + wordmark, "Entrar", usuário, senha (mostrar/ocultar), botão primário largo, link "Ver demonstração", assinatura "por FLTR Systems".
 
 ## Voz e texto
 

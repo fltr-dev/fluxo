@@ -42,8 +42,8 @@ export default async function IncomePage({ searchParams }: PageProps<"/investime
 
   const kpis = [
     { icon: Coins, label: "Recebido em 12M", value: brl(inc.total), ctx: inc.growth != null ? <><span className={inc.growth >= 0 ? "text-income" : "text-expense"}>{signedPct(inc.growth)}</span> sobre os 12 meses anteriores</> : "nos últimos 12 meses" },
-    { icon: ChartColumn, label: "Média mensal", value: brl(inc.average), ctx: inc.best.total ? `maior mês: ${monthLabel(inc.best.month)} · ${brl(inc.best.total)}` : "—" },
-    { icon: Percent, label: "Yield on cost", value: inc.yieldOnCost != null ? pct2(inc.yieldOnCost) : "—", ctx: inc.payingCost ? `sobre ${brl(inc.payingCost).replace(/,\d\d$/, "")} aplicados em renda variável` : "sem renda variável" },
+    { icon: ChartColumn, label: "Média mensal", value: brl(inc.average), ctx: inc.best.total ? <>maior mês: {monthLabel(inc.best.month)} · <span className="sensitive">{brl(inc.best.total)}</span></> : "—" },
+    { icon: Percent, label: "Yield on cost", value: inc.yieldOnCost != null ? pct2(inc.yieldOnCost) : "—", ctx: inc.payingCost ? <>sobre <span className="sensitive">{brl(inc.payingCost).replace(/,\d\d$/, "")}</span> aplicados em renda variável</> : "sem renda variável" },
     { icon: CalendarClock, label: "A receber", value: brl(inc.upcomingTotal), ctx: inc.upcoming.length ? `${inc.upcoming.length} ${inc.upcoming.length === 1 ? "pagamento anunciado" : "pagamentos anunciados"}` : "nada anunciado" },
   ]
 
@@ -64,7 +64,7 @@ export default async function IncomePage({ searchParams }: PageProps<"/investime
                   <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary/10 text-primary"><k.icon className="size-[18px]" /></span>
                   <span className="text-[11px] leading-[14px] font-bold tracking-[0.08em] text-muted-foreground uppercase">{k.label}</span>
                 </span>
-                <span className="text-xl font-bold tracking-tight tabular-nums sm:text-2xl">{k.value}</span>
+                <span className={cn("text-xl font-bold tracking-tight tabular-nums sm:text-2xl", k.label !== "Yield on cost" && "sensitive")}>{k.value}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">{k.ctx}</span>
               </div>
             ))}
@@ -83,7 +83,7 @@ export default async function IncomePage({ searchParams }: PageProps<"/investime
                     <AssetBadge code={a.code} name={a.name} assetClass={a.assetClass} size={30} />
                     <b className="w-20 shrink-0 truncate text-sm" title={a.code ? `${a.code} · ${a.name}` : a.name}>{a.code ?? a.name}</b>
                     <span className="relative h-2 min-w-12 flex-1 rounded-full bg-muted"><span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(a.total / top.total) * 100}%`, background: CLASS_INFO[a.assetClass].color }} /></span>
-                    <b className="w-24 shrink-0 text-right text-sm whitespace-nowrap tabular-nums">{brl(a.total)}</b>
+                    <b className="w-24 shrink-0 text-right text-sm whitespace-nowrap tabular-nums sensitive">{brl(a.total)}</b>
                   </Link>
                 ))}
                 {inc.byAsset.length === 0 && <p className="py-3 text-sm text-muted-foreground">Nada recebido nos últimos 12 meses.</p>}
@@ -164,8 +164,8 @@ function PaymentRow({ r, upcoming, path }: { r: TradeRow; upcoming?: boolean; pa
       <span>
         <span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", upcoming ? "bg-amber-500/10 text-warning" : "bg-muted text-muted-foreground")}>{TRADE_LABEL[r.type]}</span>
       </span>
-      <span className="text-right text-xs text-muted-foreground tabular-nums">{unit(r) ?? "—"}</span>
-      <b className={cn("text-right whitespace-nowrap tabular-nums", !upcoming && "text-income")}>{upcoming ? "" : "+"}{brl(r.amount)}</b>
+      <span className="text-right text-xs text-muted-foreground tabular-nums sensitive">{unit(r) ?? "—"}</span>
+      <b className={cn("text-right whitespace-nowrap tabular-nums sensitive", !upcoming && "text-income")}>{upcoming ? "" : "+"}{brl(r.amount)}</b>
       <span className="text-right">
         {!r.pluggyId && (
           <form action={deleteTrade}>

@@ -125,7 +125,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                     <span className={cn("truncate font-medium", p.archived && "text-muted-foreground line-through")}>{p.name}</span>
                     <span className="text-xs text-muted-foreground">{p.subs.length} subcategorias</span>
                   </span>
-                  <span className="text-sm font-medium tabular-nums">{monthTotal.get(p.id) ? brl(monthTotal.get(p.id)!) : "—"}</span>
+                  <span className="text-sm font-medium tabular-nums sensitive">{monthTotal.get(p.id) ? brl(monthTotal.get(p.id)!) : "—"}</span>
                   <Link href={`/categorias${withParams(sp, { editar: p.id })}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar ${p.name}`}>
                     <Pencil />
                   </Link>

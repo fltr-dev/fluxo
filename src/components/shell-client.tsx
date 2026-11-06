@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useFormStatus } from "react-dom"
 import { Logo } from "@/components/logo"
 import { useSettings } from "@/components/settings-dialog"
+import { DevBadge } from "@/components/bits"
 import { NavList, type Badges, type SidebarAccount } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -44,7 +45,7 @@ export function Breadcrumb({ accounts }: { accounts: { id: number; name: string 
   )
 }
 
-/** Alterna claro ↔ escuro na barra do topo (as outras opções, como "Cinza" e "Sistema", ficam em Configurações). */
+/** Alterna claro ↔ escuro no login. Dentro do app o tema fica só em Configurações › Aparência. */
 export function ThemeToggle({ className }: { className?: string }) {
   return (
     <Button variant="ghost" size="icon-sm" className={cn("max-md:size-9", className)} aria-label="Alternar tema" onClick={() => applyTheme(isDark() ? "light" : "dark")}>
@@ -55,7 +56,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   )
 }
 
-/** Esconde os valores com blur (classe .privacy no <html>, ver globals.css); cookie para o SSR já vir escondido. */
+/** Esconde com blur os valores marcados com `sensitive` (classe .privacy no <html>, ver globals.css); cookie para o SSR já vir escondido. */
 export function PrivacyToggle({ className }: { className?: string }) {
   function toggle() {
     const on = document.documentElement.classList.toggle("privacy")
@@ -80,7 +81,7 @@ export function SyncButton({ compact }: { compact?: boolean }) {
     return () => void delete root.dataset.syncing
   }, [pending])
   return (
-    <Button type="submit" variant={compact ? "ghost" : "outline"} size={compact ? "icon-sm" : "sm"} className={cn(compact && "max-md:size-9")} disabled={pending} aria-label="Sincronizar agora">
+    <Button type="submit" autoPending={false} variant={compact ? "ghost" : "outline"} size={compact ? "icon-sm" : "sm"} className={cn(compact && "max-md:size-9")} disabled={pending} aria-label="Sincronizar agora">
       <RefreshCw className={cn(pending && "animate-spin")} />
       {!compact && (pending ? "Sincronizando…" : "Sincronizar")}
     </Button>
@@ -94,7 +95,7 @@ const MOBILE = [
 ]
 
 /** Barra inferior do celular; "Mais" abre o restante do menu (com as contas) num painel lateral. */
-export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen, appName, version }: { signOut: () => Promise<void>; badges: Badges; accounts: SidebarAccount[]; accountsOpen: boolean; appName: string; version: string }) {
+export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen, appName, version, dev }: { signOut: () => Promise<void>; badges: Badges; accounts: SidebarAccount[]; accountsOpen: boolean; appName: string; version: string; dev?: boolean }) {
   const path = usePathname()
   const settings = useSettings()
   const [open, setOpen] = useState(false)
@@ -138,7 +139,6 @@ export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen
           </div>
           <div className="grid gap-1 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div className="flex items-center gap-2">
-              <ThemeToggle />
               <Button
                 variant="ghost"
                 className="flex-1 justify-start"
@@ -157,7 +157,10 @@ export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen
                 </Button>
               </form>
             </div>
-            <p className="px-2 text-xs text-muted-foreground tabular-nums">{appName} · v{version}</p>
+            <p className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+              <span className="tabular-nums">v{version}</span>
+              {dev && <DevBadge />}
+            </p>
           </div>
         </SheetContent>
       </Sheet>

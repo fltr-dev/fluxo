@@ -303,6 +303,8 @@ export const appState = pgTable("app_state", {
   id: integer().primaryKey().default(1),
   // Quando as categorias padrão foram criadas (ou dispensadas por já existirem); preenchido = não criar de novo
   defaultCategoriesAt: timestamp({ withTimezone: true }),
+  // Nome do dono para saudação e barra lateral (Configurações › Conta); vazio = mostra o usuário de entrada
+  ownerName: text(),
 })
 
 // ---------- Dívidas (pendências que não são fatura de cartão) ----------

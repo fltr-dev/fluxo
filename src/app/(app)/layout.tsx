@@ -2,10 +2,10 @@ import { Plus, TriangleAlert } from "lucide-react"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { auth, sessionIsCurrent, signOut } from "@/auth"
+import { auth, ownerName, sessionIsCurrent, signOut } from "@/auth"
 import { NotificationBell, type BellItem } from "@/components/notification-bell"
 import { PageTransition } from "@/components/page-transition"
-import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton, ThemeToggle } from "@/components/shell-client"
+import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton } from "@/components/shell-client"
 import { CofyProvider } from "@/components/cofy/store"
 import { SettingsProvider } from "@/components/settings-dialog"
 import { Sidebar } from "@/components/sidebar"
@@ -33,7 +33,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // Login trocado em Configurações: sessões antigas deixam de valer
   if (!(await sessionIsCurrent(session?.user))) redirect("/login?error=expired")
 
-  const user = { name: session?.user?.name || "Você", email: session?.user?.email ?? "" }
+  // Nome salvo em Configurações › Conta; sem ele, o usuário de entrada
+  const savedName = (await ownerName()) ?? ""
+  const user = { name: savedName || session?.user?.name || "Você", email: session?.user?.email ?? "" }
   const demo = session?.user?.role === "demo"
   // Sino: gera os avisos que faltam e lê os recentes; um erro aqui nunca derruba a tela
   const [bell, notify] = await Promise.all([
@@ -53,7 +55,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <SettingsProvider
-      user={{ ...user, role: session?.user?.role ?? "owner" }}
+      user={{ ...user, role: session?.user?.role ?? "owner", savedName }}
       app={APP}
       theme={themeFromCookie(jar.get("theme")?.value)}
       primary={primaryFromCookie(jar.get("primary")?.value) ?? DEFAULT_PRIMARY}
@@ -66,6 +68,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           accounts={sidebarAccounts}
           user={user}
           version={APP.version}
+          dev={APP.dev}
           appName={APP.name}
           collapsed={jar.get("sidebar")?.value === "collapsed"}
           accountsOpen={accountsOpen}
@@ -104,7 +107,6 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             )}
             <PrivacyToggle />
             <NotificationBell items={bellItems} unread={bell.unread} />
-            <ThemeToggle className="hidden md:inline-flex" />
           </header>
           {demo && <div className="border-b bg-amber-500/10 px-4 py-1.5 text-center text-xs font-medium text-amber-700 md:px-6 dark:text-amber-300">Demonstração · dados fictícios · somente leitura</div>}
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">
@@ -112,7 +114,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </main>
         </div>
 
-        <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version} />
+        <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version}
+          dev={APP.dev} />
       </div>
       </CofyProvider>
     </SettingsProvider>

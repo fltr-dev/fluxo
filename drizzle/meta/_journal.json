@@ -57,6 +57,13 @@
       "when": 1793893006825,
       "tag": "0007_cartao",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793971659707,
+      "tag": "0008_nome_do_dono",
+      "breakpoints": true
     }
   ]
 }

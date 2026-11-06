@@ -23,14 +23,14 @@ type TipProps = { active?: boolean; payload?: ReadonlyArray<{ payload?: unknown 
 function Bubble({ title, rows }: { title: string; rows: Row[] }) {
   return (
     <div className="grid gap-0.5 rounded-lg bg-foreground px-3 py-2 text-xs text-background shadow-lg">
-      <div className="mb-0.5 opacity-70">{title}</div>
+      <div className={cn("mb-0.5 opacity-70", title.includes("R$") && "sensitive")}>{title}</div>
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between gap-5">
           <span className="flex items-center gap-1.5 opacity-80">
             {r.color && <Swatch color={r.color} dash={r.dash} />}
             {r.label}
           </span>
-          <span className="font-semibold tabular-nums">{r.value}</span>
+          <span className={cn("font-semibold tabular-nums", r.value.includes("R$") && "sensitive")}>{r.value}</span>
         </div>
       ))}
     </div>
@@ -158,7 +158,7 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
           {pct ? "A rentabilidade aparece a partir do segundo mês com saldo registrado." : "O histórico começa a ser registrado na primeira sincronização."}
         </p>
       ) : (
-        <ComposedChart responsive style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+        <ComposedChart responsive className={cn(pct && "axis-public")} style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
           <CartesianGrid {...grid} />
           <XAxis dataKey="month" tickFormatter={monthLabel} tick={axis} axisLine={false} tickLine={false} tickMargin={8} minTickGap={16} />
           <YAxis orientation="right" tickFormatter={pct ? pctTick : compactNum} tick={axis} axisLine={false} tickLine={false} width={64} domain={["auto", "auto"]} />
@@ -223,7 +223,7 @@ export function AllocationDonut({ data, total, size = 168, centerLabel }: { data
       <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
         <span className="grid">
           <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">Total</span>
-          <span className="text-base font-bold tabular-nums">{centerLabel ?? brl(total)}</span>
+          <span className="text-base font-bold tabular-nums sensitive">{centerLabel ?? brl(total)}</span>
         </span>
       </div>
     </div>
@@ -257,7 +257,7 @@ export function AllocationPanel({ rows, total }: { rows: AllocationRow[]; total:
               >
                 <Dot color={r.color} square />
                 <span className={cn("min-w-0 flex-1 truncate text-sm font-semibold", !on && "line-through")}>{r.label}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{brl0(r.value)}</span>
+                <span className="text-xs text-muted-foreground tabular-nums sensitive">{brl0(r.value)}</span>
                 <b className="w-12 text-right text-sm tabular-nums">{on && shownTotal ? pct1(r.value / shownTotal) : "—"}</b>
               </button>
             </li>
@@ -280,7 +280,7 @@ export function MonthlyReturnsChart({ data, height = 200 }: { data: { month: str
   }
   return (
     <div className="grid gap-3">
-    <ComposedChart responsive style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+    <ComposedChart responsive className="axis-public" style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
       <CartesianGrid {...grid} />
       <XAxis dataKey="month" tickFormatter={monthLabel} tick={axis} axisLine={false} tickLine={false} tickMargin={8} minTickGap={8} />
       <YAxis tickFormatter={pctTick} tick={axis} axisLine={false} tickLine={false} width={48} />

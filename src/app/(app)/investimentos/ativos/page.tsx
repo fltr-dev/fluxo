@@ -99,7 +99,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/investime
                           <span className="rounded-md bg-muted px-1.5 text-xs font-semibold text-muted-foreground tabular-nums">{rows.length}</span>
                         </span>
                         <span /><span /><span /><span />
-                        <b className="text-right tabular-nums">{brl(gTotal)}</b>
+                        <b className="text-right tabular-nums sensitive">{brl(gTotal)}</b>
                         <Result value={gTotal - gInvested} pct={gInvested ? gTotal / gInvested - 1 : null} />
                         <b className="text-right tabular-nums">{pct1(total ? gTotal / total : 0)}</b>
                       </div>
@@ -122,7 +122,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/investime
                   <div role="row" className={cn(COLS, "min-h-14 border-t bg-muted/40")}>
                     <b>{cat || q ? "Total filtrado" : "Total da carteira"}</b>
                     <span /><span /><span /><span />
-                    <b className="text-right tabular-nums">{brl(list.reduce((s, h) => s + h.value, 0))}</b>
+                    <b className="text-right tabular-nums sensitive">{brl(list.reduce((s, h) => s + h.value, 0))}</b>
                     {(() => {
                       const t = list.reduce((s, h) => s + h.value, 0)
                       const i = list.reduce((s, h) => s + (h.invested ?? h.value), 0)
@@ -135,7 +135,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/investime
             </div>
           </Card>
           <p className="text-xs text-muted-foreground">
-            Renda variável: rentabilidade = saldo − custo das compras (preço médio × quantidade). Renda fixa: saldo bruto informado pela instituição, antes de IR e IOF. Ativos lançados à mão usam a cotação pública do dia (Yahoo Finance). Total investido: {brl(invested)}.
+            Renda variável: rentabilidade = saldo − custo das compras (preço médio × quantidade). Renda fixa: saldo bruto informado pela instituição, antes de IR e IOF. Ativos lançados à mão usam a cotação pública do dia (Yahoo Finance). Total investido: <span className="sensitive">{brl(invested)}</span>.
           </p>
         </>
       )}
@@ -152,7 +152,7 @@ function Result({ value, pct }: { value: number; pct: number | null }) {
   return (
     <span className="grid justify-items-end leading-[18px] whitespace-nowrap tabular-nums">
       <b className={value >= 0 ? "text-income" : "text-expense"}>{pct != null ? signedPct(pct) : "—"}</b>
-      <span className="text-xs text-muted-foreground">{value >= 0 ? "+" : "−"}{brl(Math.abs(value))}</span>
+      <span className="text-xs text-muted-foreground sensitive">{value >= 0 ? "+" : "−"}{brl(Math.abs(value))}</span>
     </span>
   )
 }
@@ -174,19 +174,19 @@ function AssetRow({ h, total, variable }: { h: Holding; total: number; variable:
       {variable ? (
         <>
           <span className="tabular-nums">{h.quantity != null ? qtyFmt(h.quantity) : "—"}</span>
-          <span className="tabular-nums">{price(h.avgPrice)}</span>
-          <span className="tabular-nums">{price(h.unitPrice)}</span>
-          <span className="tabular-nums">{h.invested != null ? brl(h.invested) : "—"}</span>
+          <span className="tabular-nums sensitive">{price(h.avgPrice)}</span>
+          <span className="tabular-nums sensitive">{price(h.unitPrice)}</span>
+          <span className="tabular-nums sensitive">{h.invested != null ? brl(h.invested) : "—"}</span>
         </>
       ) : (
         <>
           <span className="truncate" title={h.rateLabel ?? undefined}>{h.rateLabel ?? "—"}</span>
           <span className="tabular-nums">{h.dueDate ? dateBR(h.dueDate) : "—"}</span>
           <span className="truncate" title={h.broker ?? undefined}>{h.broker ?? "—"}</span>
-          <span className="tabular-nums">{h.invested != null ? brl(h.invested) : "—"}</span>
+          <span className="tabular-nums sensitive">{h.invested != null ? brl(h.invested) : "—"}</span>
         </>
       )}
-      <b className="whitespace-nowrap tabular-nums">{brl(h.value)}</b>
+      <b className="whitespace-nowrap tabular-nums sensitive">{brl(h.value)}</b>
       {h.profit != null ? <Result value={h.profit} pct={h.profitPct} /> : <span className="text-muted-foreground">—</span>}
       <span className="grid gap-1">
         <span className="font-semibold tabular-nums">{pct1(weight)}</span>

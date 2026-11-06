@@ -40,7 +40,7 @@ function Bubble({ active, payload, label }: Partial<TooltipContentProps<number, 
               {p.name}
             </span>
           )}
-          <span className="font-semibold tabular-nums">{brl(Number(p.value))}</span>
+          <span className="font-semibold tabular-nums sensitive">{brl(Number(p.value))}</span>
         </div>
       ))}
     </div>
@@ -61,7 +61,7 @@ export function NetWorthArea({ data, current }: { data: { month: string; value: 
         <div className="grid gap-1">
           <span className="text-sm font-medium text-muted-foreground">Patrimônio líquido</span>
           <div className="flex flex-wrap items-baseline gap-2.5">
-            <span className="text-3xl font-semibold tracking-tight tabular-nums">{brl(current)}</span>
+            <span className="text-3xl font-semibold tracking-tight tabular-nums sensitive">{brl(current)}</span>
             {change != null && (
               <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", change >= 0 ? "bg-income/10 text-income" : "bg-rose-500/10 text-expense")}>
                 {signedPct(change)} em {range} meses
@@ -150,7 +150,7 @@ export function ExpenseGauge({ data, total }: { data: { name: string; value: num
         </PieChart>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 grid justify-items-center">
           <span className="text-xs text-muted-foreground">{legend.anyHidden ? "Total selecionado" : "Total no período"}</span>
-          <span className="text-xl font-semibold tabular-nums">{brl(shownTotal)}</span>
+          <span className="text-xl font-semibold tabular-nums sensitive">{brl(shownTotal)}</span>
         </div>
       </div>
       <ul className="grid w-full grid-cols-3 gap-x-1 gap-y-1" aria-label="Categorias">

@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/pglite"
 import { migrate } from "drizzle-orm/pglite/migrator"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import * as schema from "@/db/schema"
-import { checkOwner, credentialVersion, hashPassword, readStored, saveStored, verifyPassword } from "./credentials"
+import { checkOwner, credentialVersion, hashPassword, readOwnerName, readStored, saveOwnerName, saveStored, verifyPassword } from "./credentials"
 
 // Postgres real em memória com as migrations do projeto (inclui a tabela app_credentials)
 const pg = new PGlite()
@@ -82,6 +82,18 @@ describe("login do dono", () => {
     expect(await readStored(d)).toBeNull()
     expect(await checkOwner(d, "dono", "da-env-123")).toBe(0)
   })
+  it("nome de exibição: salva, limpa e não mexe na versão do login (não encerra sessões)", async () => {
+    await saveStored(db, { username: "fernando", password: "senha-forte-123" })
+    const v = await credentialVersion(db)
+    expect(await readOwnerName(db)).toBeNull()
+    await saveOwnerName(db, "  Fernando  ")
+    expect(await readOwnerName(db)).toBe("Fernando")
+    await saveOwnerName(db, "   ")
+    expect(await readOwnerName(db)).toBeNull()
+    expect(await credentialVersion(db)).toBe(v)
+    const empty = drizzle(new PGlite(), { schema, casing: "snake_case" }) as never
+    expect(await readOwnerName(empty)).toBeNull() // tabela ainda não migrada
+  }, 20_000)
   it("qualquer outro erro do banco propaga (o login falha fechado, nunca cai nas variáveis de ambiente)", async () => {
     const broken = { select: () => { throw Object.assign(new Error("connection refused"), { code: "ECONNREFUSED" }) } } as never
     await expect(readStored(broken)).rejects.toThrow("connection refused")

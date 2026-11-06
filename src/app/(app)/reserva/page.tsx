@@ -52,7 +52,7 @@ export default async function ReservePage() {
               </span>
             </div>
             {missing > 0 ? (
-              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-warning">Faltam <span className="tabular-nums">{brl(missing)}</span> para o alvo</span>
+              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-warning">Faltam <span className="tabular-nums sensitive">{brl(missing)}</span> para o alvo</span>
             ) : (
               <span className="rounded-full bg-income/10 px-2.5 py-0.5 text-xs font-medium text-income">Alvo atingido</span>
             )}
@@ -68,7 +68,7 @@ export default async function ReservePage() {
             </div>
             <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
               <span>0</span>
-              <span className="font-medium text-foreground">{r.settings.targetMode === "MONTHS" ? `${r.settings.targetMonths} meses · alvo` : `${brl(r.target)} · alvo`}</span>
+              <span className={cn("font-medium text-foreground", r.settings.targetMode !== "MONTHS" && "sensitive")}>{r.settings.targetMode === "MONTHS" ? `${r.settings.targetMonths} meses · alvo` : `${brl(r.target)} · alvo`}</span>
             </div>
           </div>
         </CardContent>
@@ -81,7 +81,7 @@ export default async function ReservePage() {
           ].map(([label, value, hint], i) => (
             <div key={label} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-t-0 sm:border-l")}>
               <span className="text-sm font-medium text-muted-foreground">{label}</span>
-              <span className="text-lg font-semibold tracking-tight tabular-nums">{value}</span>
+              <span className="text-lg font-semibold tracking-tight tabular-nums sensitive">{value}</span>
               <span className="text-xs text-muted-foreground">{hint}</span>
             </div>
           ))}
@@ -123,7 +123,7 @@ export default async function ReservePage() {
                 </span>
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input type="number" name="targetMonths" required min={1} max={60} defaultValue={r.settings.targetMonths} aria-label="Meses" className={cn(fieldClass, "w-20 text-center tabular-nums")} />
-                  meses × <span className="tabular-nums">{brl(r.avgMonthlyExpense)}</span>
+                  meses × <span className="tabular-nums sensitive">{brl(r.avgMonthlyExpense)}</span>
                 </span>
               </span>
             </label>
@@ -150,7 +150,7 @@ export default async function ReservePage() {
           </div>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="w-4 border-t-2 border-dashed border-primary" />
-            Média <span className="tabular-nums">{brl(r.avgMonthlyExpense)}</span>
+            Média <span className="tabular-nums sensitive">{brl(r.avgMonthlyExpense)}</span>
           </span>
         </CardHeader>
         <CardContent>

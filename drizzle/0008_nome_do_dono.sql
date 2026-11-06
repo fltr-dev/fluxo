@@ -1,0 +1,1 @@
+ALTER TABLE "app_state" ADD COLUMN "owner_name" text;

@@ -3,7 +3,7 @@
 import { Bell, Cloud, Info, KeyRound, Monitor, Moon, Palette, Sun, type LucideIcon } from "lucide-react"
 import { createContext, useActionState, useContext, useMemo, useState } from "react"
 import { updateCredentials } from "@/app/(app)/settings-actions"
-import { FormActions } from "@/components/bits"
+import { DevBadge, FormActions } from "@/components/bits"
 import { Logo } from "@/components/logo"
 import { NotificationSettings, type NotifyProps } from "@/components/notification-settings"
 import { Button } from "@/components/ui/button"
@@ -15,17 +15,18 @@ import { cn } from "@/lib/utils"
 export type SettingsSection = "appearance" | "notifications" | "account" | "about"
 
 const SECTIONS: { id: SettingsSection; label: string; icon: LucideIcon }[] = [
+  { id: "account", label: "Conta", icon: KeyRound },
   { id: "appearance", label: "Aparência", icon: Palette },
   { id: "notifications", label: "Avisos", icon: Bell },
-  { id: "account", label: "Conta", icon: KeyRound },
   { id: "about", label: "Sobre", icon: Info },
 ]
 
 const THEME_ICON: Record<ThemeId, LucideIcon> = { system: Monitor, light: Sun, dim: Cloud, dark: Moon }
 
-type AppInfo = { name: string; version: string; company: string; commit?: string }
+type AppInfo = { name: string; version: string; company: string; dev?: boolean; commit?: string }
 type Props = {
-  user: { name: string; email: string; role: "owner" | "demo" }
+  /** `name`: o que aparece (nome salvo ou, sem ele, o usuário); `savedName`: o nome salvo, "" = nenhum. */
+  user: { name: string; email: string; role: "owner" | "demo"; savedName: string }
   app: AppInfo
   theme: ThemeId
   primary: PrimaryId
@@ -39,10 +40,10 @@ export const useSettings = () => useContext(Ctx)
 
 export function SettingsProvider({ children, ...props }: Props) {
   const [open, setOpen] = useState(false)
-  const [section, setSection] = useState<SettingsSection>("appearance")
+  const [section, setSection] = useState<SettingsSection>("account")
   const api = useMemo(
     () => ({
-      open: (s: SettingsSection = "appearance") => {
+      open: (s: SettingsSection = "account") => {
         setSection(s)
         setOpen(true)
       },
@@ -58,7 +59,7 @@ export function SettingsProvider({ children, ...props }: Props) {
           <div className="grid min-h-0 md:min-h-[30rem] md:grid-cols-[13.5rem_minmax(0,1fr)]">
             <div className="flex flex-col gap-1 border-b bg-muted/40 p-3 md:border-r md:border-b-0 md:p-4">
               <DialogTitle className="px-2 pt-1 pb-2 text-base font-semibold md:pb-3">Configurações</DialogTitle>
-              <DialogDescription className="sr-only">Aparência, avisos, conta e informações do sistema</DialogDescription>
+              <DialogDescription className="sr-only">Conta, aparência, avisos e informações do sistema</DialogDescription>
               <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 md:flex-col" aria-label="Seções">
                 {SECTIONS.map(({ id, label, icon: Icon }) => (
                   <button
@@ -76,10 +77,12 @@ export function SettingsProvider({ children, ...props }: Props) {
                   </button>
                 ))}
               </nav>
-              <p className="mt-auto hidden px-2.5 pt-6 text-xs text-muted-foreground md:block">
+              <p className="mt-auto hidden justify-items-center gap-0.5 pt-6 text-center text-xs text-muted-foreground md:grid">
                 {props.app.company}
-                <br />
-                <span className="tabular-nums">Versão {props.app.version}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="tabular-nums">Versão {props.app.version}</span>
+                  {props.app.dev && <DevBadge />}
+                </span>
               </p>
             </div>
             <div className="min-h-0 overflow-y-auto p-5 md:max-h-[34rem] md:p-7">
@@ -179,27 +182,54 @@ function Appearance({ theme: initialTheme, primary: initialPrimary }: { theme: T
 const input =
   "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 dark:bg-input/30"
 
+const hint = "text-xs font-normal text-muted-foreground"
+
 function Account({ user }: { user: Props["user"] }) {
   const [state, action, pending] = useActionState(updateCredentials, null)
+  // Só trocar usuário ou senha pede a senha atual e encerra as sessões; o nome salva direto
+  const [loginChanged, setLoginChanged] = useState(false)
   if (user.role === "demo")
     return (
-      <div className="grid gap-3">
-        <Heading title="Conta" value="Login e senha" />
-        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">A demonstração é somente leitura: o login e a senha dela não podem ser alterados.</p>
+      <div className="grid max-w-md gap-4">
+        <Heading title="Conta" value="Seu nome e o login de entrada" />
+        <label className="grid gap-1.5 text-sm font-medium">
+          Nome
+          <input disabled defaultValue={user.name} className={input} />
+        </label>
+        <label className="grid gap-1.5 text-sm font-medium">
+          Usuário
+          <input disabled defaultValue={user.email} className={input} />
+          <span className={hint}>Usado só para entrar.</span>
+        </label>
+        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">A demonstração é somente leitura: o nome, o login e a senha dela não podem ser alterados.</p>
       </div>
     )
   return (
-    <form action={action} className="grid gap-5">
+    <form
+      action={action}
+      onChange={(e) => {
+        const d = new FormData(e.currentTarget)
+        setLoginChanged(String(d.get("username")).trim() !== user.email || !!d.get("newPassword"))
+      }}
+      onReset={() => setLoginChanged(false)}
+      className="grid gap-5"
+    >
       <div className="grid max-w-md gap-4">
-      <Heading title="Conta" value="Altere o usuário de entrada e a senha" />
+      <Heading title="Conta" value="Seu nome e o login de entrada" />
+      <label className="grid gap-1.5 text-sm font-medium">
+        Nome
+        <input name="name" maxLength={60} defaultValue={user.savedName} placeholder={user.email} autoComplete="given-name" className={input} />
+        <span className={hint}>Aparece na saudação e no menu.</span>
+      </label>
       <label className="grid gap-1.5 text-sm font-medium">
         Usuário
         <input name="username" required minLength={3} maxLength={64} defaultValue={user.email} autoComplete="username" className={input} />
+        <span className={hint}>Usado só para entrar.</span>
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
         Senha atual
-        <input name="currentPassword" type="password" required autoComplete="current-password" className={input} />
-        <span className="text-xs font-normal text-muted-foreground">Necessária para confirmar qualquer alteração.</span>
+        <input name="currentPassword" type="password" required={loginChanged} autoComplete="current-password" className={input} />
+        <span className={hint}>Necessária para trocar o usuário ou a senha.</span>
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1.5 text-sm font-medium">
@@ -211,15 +241,24 @@ function Account({ user }: { user: Props["user"] }) {
           <input name="confirmPassword" type="password" maxLength={200} autoComplete="new-password" className={input} />
         </label>
       </div>
-      {state?.error && (
+      {state && "error" in state && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
         </p>
       )}
-      <p className="text-xs text-muted-foreground">Ao salvar, você sai de todos os aparelhos e entra de novo com o login novo. A senha fica guardada só como hash (scrypt).</p>
+      {state && "ok" in state && !loginChanged && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {state.ok}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        {loginChanged
+          ? "Ao salvar, você sai de todos os aparelhos e entra de novo com o login novo. A senha fica guardada só como hash (scrypt)."
+          : "Trocar só o nome não pede senha e não encerra a sessão."}
+      </p>
       </div>
       <FormActions plain>
-        <Button type="submit" size="lg" disabled={pending}>
+        <Button type="submit" size="lg" loading={pending}>
           {pending ? "Salvando…" : "Salvar alterações"}
         </Button>
       </FormActions>

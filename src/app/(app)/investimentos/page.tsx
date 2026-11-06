@@ -89,11 +89,11 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
       value: brl(summary.total),
       ctx: monthChange != null ? (
         <>
-          <span className={monthChange >= 0 ? "text-income" : "text-expense"}>
+          <span className={cn("sensitive", monthChange >= 0 ? "text-income" : "text-expense")}>
             {monthChange >= 0 ? "+" : "−"}
             {brl(Math.abs(monthChange))}
           </span>{" "}
-          no mês{monthFlow ? ` · ${brl0(monthFlow)} em aportes` : ""}
+          no mês{monthFlow ? <> · <span className="sensitive">{brl0(monthFlow)}</span> em aportes</> : ""}
         </>
       ) : (
         `${summary.holdings.length} ativos`
@@ -115,7 +115,7 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
       value: history.accReturn != null ? signedPct(history.accReturn) : "—",
       ctx: history.pctOfCdi != null ? `${Math.round(history.pctOfCdi * 100)}% do CDI · CDI ${pct1(history.cdiReturn!)}` : history.accReturn == null ? "aparece com 2 meses de histórico" : "CDI ainda não carregado",
     },
-    { icon: Coins, tone: "primary", label: "Proventos 12M", value: brl(income.total), ctx: <>média de {brl0(income.average)}/mês · <Link href="/investimentos/proventos" className="font-medium text-primary hover:underline">ver</Link></> },
+    { icon: Coins, tone: "primary", label: "Proventos 12M", value: brl(income.total), ctx: <>média de <span className="sensitive">{brl0(income.average)}</span>/mês · <Link href="/investimentos/proventos" className="font-medium text-primary hover:underline">ver</Link></> },
   ]
   const TONE: Record<string, string> = { primary: "bg-primary/10 text-primary", neutral: "bg-muted text-foreground/80", income: "bg-income/10 text-income", expense: "bg-expense/10 text-expense" }
 
@@ -132,7 +132,7 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
               </span>
               <span className="text-[11px] leading-[14px] font-bold tracking-[0.08em] text-muted-foreground uppercase">{k.label}</span>
             </span>
-            <span className={cn("text-xl font-bold tracking-tight tabular-nums sm:text-2xl", k.valueClass)}>{k.value}</span>
+            <span className={cn("text-xl font-bold tracking-tight tabular-nums sm:text-2xl", !k.label.startsWith("Rentabilidade") && "sensitive", k.valueClass)}>{k.value}</span>
             {k.ctx && <span className="text-xs text-muted-foreground tabular-nums">{k.ctx}</span>}
           </div>
         ))}
@@ -180,7 +180,7 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
                       {a.target == null ? (
                         <span className="text-xs text-muted-foreground">sem alvo</span>
                       ) : a.need! > 0.5 ? (
-                        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary tabular-nums">aportar {brl0(a.need!)}</span>
+                        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary tabular-nums sensitive">aportar {brl0(a.need!)}</span>
                       ) : (
                         <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">{a.diff! > 0.0005 ? `${(a.diff! * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp acima` : "no alvo"}</span>
                       )}
@@ -215,12 +215,12 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border ring-1 ring-border">
             <div className="grid bg-card px-3.5 py-2.5">
               <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">Recebido 12M</span>
-              <b className="text-lg tabular-nums">{brl(income.total)}</b>
+              <b className="text-lg tabular-nums sensitive">{brl(income.total)}</b>
               <span className="text-xs text-muted-foreground">{income.yieldOnCost != null ? `yield on cost ${pct1(income.yieldOnCost)}` : "—"}</span>
             </div>
             <div className="grid bg-card px-3.5 py-2.5">
               <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">A receber</span>
-              <b className="text-lg tabular-nums">{brl(income.upcomingTotal)}</b>
+              <b className="text-lg tabular-nums sensitive">{brl(income.upcomingTotal)}</b>
               <span className="text-xs text-muted-foreground">{income.upcoming.length ? `${income.upcoming.length} ${income.upcoming.length === 1 ? "pagamento anunciado" : "pagamentos anunciados"}` : "nada anunciado"}</span>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
                   <b className="truncate text-sm" title={r.code ? `${r.code} · ${r.name}` : r.name}>{r.code ?? r.name}</b>
                   <span className="text-xs text-muted-foreground">{TRADE_LABEL[r.type]}</span>
                 </span>
-                <b className="text-sm whitespace-nowrap tabular-nums">{brl(r.amount)}</b>
+                <b className="text-sm whitespace-nowrap tabular-nums sensitive">{brl(r.amount)}</b>
               </div>
             ))}
             {income.count === 0 && <p className="border-t py-3 text-sm text-muted-foreground">Nenhum provento registrado ainda.</p>}

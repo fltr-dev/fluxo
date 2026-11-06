@@ -89,7 +89,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
               ].map(([label, value, hint], i) => (
                 <div key={label} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-t-0 sm:border-l")}>
                   <span className="text-sm font-medium text-muted-foreground">{label}</span>
-                  <span className={cn("text-xl font-semibold tracking-tight tabular-nums", label === "Disponível" && (budget - used >= 0 ? "text-income" : "text-expense"))}>{value}</span>
+                  <span className={cn("text-xl font-semibold tracking-tight tabular-nums sensitive", label === "Disponível" && (budget - used >= 0 ? "text-income" : "text-expense"))}>{value}</span>
                   <span className="text-xs text-muted-foreground">{hint}</span>
                 </div>
               ))}
@@ -129,7 +129,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
                         <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", STATE[s.state].badge)}>{pct(s.pct)}</span>
                       </span>
                       <Bar value={s.pct} state={s.state} />
-                      <span className="flex justify-between gap-2 text-xs text-muted-foreground tabular-nums">
+                      <span className="flex justify-between gap-2 text-xs text-muted-foreground tabular-nums sensitive">
                         <span>{brl(l.spent)} de {brl(l.limit)}</span>
                         <span className={cn(over > 0 && "font-medium text-expense")}>{over > 0 ? `${brl(over)} acima` : `${brl(-over)} disponível`}</span>
                       </span>
@@ -165,9 +165,9 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
                           <span className={cn("min-w-12 rounded-full px-2 py-0.5 text-center text-xs font-medium tabular-nums", STATE[s.state].badge)}>{pct(s.pct)}</span>
                         </span>
                       </td>
-                      <td className="px-3 text-right font-medium tabular-nums">{brl(l.spent)}</td>
-                      <td className="px-3 text-right text-muted-foreground tabular-nums">{brl(l.limit)}</td>
-                      <td className={cn("px-3 text-right font-medium tabular-nums", l.limit - l.spent < 0 && "text-expense")}>{brl(l.limit - l.spent)}</td>
+                      <td className="px-3 text-right font-medium tabular-nums sensitive">{brl(l.spent)}</td>
+                      <td className="px-3 text-right text-muted-foreground tabular-nums sensitive">{brl(l.limit)}</td>
+                      <td className={cn("px-3 text-right font-medium tabular-nums sensitive", l.limit - l.spent < 0 && "text-expense")}>{brl(l.limit - l.spent)}</td>
                       <td className="pr-4">
                         <span className="flex justify-end gap-0.5">
                           <Link href={`/limites?editar=${l.id}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar limite de ${l.label}`}>
@@ -201,7 +201,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limites">
                 <Link key={c.id} href={`/limites?novo=1&categoria=${c.id}`} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-medium hover:bg-muted">
                   <span className="size-2 rounded-full" style={{ background: c.color ?? "#a1a1aa" }} />
                   {c.name}
-                  <span className="text-xs text-muted-foreground tabular-nums">{brl(c.total)}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums sensitive">{brl(c.total)}</span>
                   <Plus className="size-3.5 text-muted-foreground" />
                 </Link>
               ))}

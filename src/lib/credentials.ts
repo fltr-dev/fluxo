@@ -1,7 +1,7 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto"
 import { eq } from "drizzle-orm"
 import type { db as appDb } from "@/db"
-import { appCredentials } from "@/db/schema"
+import { appCredentials, appState } from "@/db/schema"
 
 // Login do dono. Sem linha em `app_credentials`, vale OWNER_USER/OWNER_PASSWORD do ambiente; depois que o dono
 // altera o login em Configurações › Conta, só a linha do banco vale (as variáveis de ambiente deixam de funcionar).
@@ -36,11 +36,12 @@ export async function verifyPassword(password: string, stored: string) {
   return key.length === expected.length && timingSafeEqual(key, expected)
 }
 
-/** Tabela ainda não migrada (42P01): trata como "sem login salvo", para a migração poder rodar depois do deploy. */
-const missingTable = (e: unknown) => {
+const pgCode = (e: unknown) => {
   const err = e as { code?: string; cause?: { code?: string } }
-  return err?.code === "42P01" || err?.cause?.code === "42P01"
+  return err?.code ?? err?.cause?.code
 }
+/** Tabela ainda não migrada (42P01): trata como "sem login salvo", para a migração poder rodar depois do deploy. */
+const missingTable = (e: unknown) => pgCode(e) === "42P01"
 
 export async function readStored(d: Db) {
   try {
@@ -76,4 +77,22 @@ export async function checkOwner(d: Db, user: string, password: string): Promise
 
 export async function credentialVersion(d: Db) {
   return (await readStored(d))?.updatedAt.getTime() ?? 0
+}
+
+/** Nome de exibição do dono (saudação, barra lateral); null = não definido, mostra o usuário de entrada. */
+export async function readOwnerName(d: Db) {
+  try {
+    const [row] = await d.select({ name: appState.ownerName }).from(appState).where(eq(appState.id, 1))
+    return row?.name || null
+  } catch (e) {
+    // coluna ainda não migrada (42703): sem nome, como no login
+    if (missingTable(e) || pgCode(e) === "42703") return null
+    throw e
+  }
+}
+
+/** Trocar só o nome não mexe no login: não muda a versão nem encerra sessões. */
+export async function saveOwnerName(d: Db, name: string | null) {
+  const ownerName = name?.trim() || null
+  await d.insert(appState).values({ id: 1, ownerName }).onConflictDoUpdate({ target: appState.id, set: { ownerName } })
 }
