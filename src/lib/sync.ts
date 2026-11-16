@@ -1,5 +1,5 @@
 import "server-only"
-import { and, asc, eq, inArray, isNotNull, notLike, or, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, isNotNull, like, or, sql } from "drizzle-orm"
 import { accounts, db, DEFAULT_INSTITUTION_NAME, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
 import { deriveKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
@@ -71,10 +71,12 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
     .where(eq(institutions.id, inst.id))
 }
 
+const uniqueByPluggyId = <T extends { pluggyId: string }>(rows: T[]) => [...new Map(rows.map((r) => [r.pluggyId, r])).values()]
+
 /**
  * Ativos da Pluggy na tela de Investimentos (categoria, quantidade, cotação, custo, taxa) e as movimentações de cada um:
- * aplicações/resgates para o histórico do patrimônio e operações do ativo. As movimentações são refeitas a cada sync
- * (poucas linhas por investimento); investimento cuja busca falhar mantém o que já tinha. A categoria escolhida pelo
+ * aplicações/resgates para o histórico do patrimônio e operações do ativo. As movimentações se acumulam entre syncs
+ * (upsert pelo id da Pluggy); investimento cuja busca falhar mantém o que já tinha. A categoria escolhida pelo
  * usuário (`assetClassOverride`) e os lançamentos manuais nunca são tocados.
  */
 async function syncInvestments(pluggy: Pluggy, invs: PluggyInvestment[], accountIds: Map<string | null, number>, broker: string) {
@@ -131,22 +133,41 @@ async function syncInvestments(pluggy: Pluggy, invs: PluggyInvestment[], account
   const ok = fetched.filter((f) => f !== null)
   if (!ok.length) return
 
-  await db.delete(investmentMovements).where(inArray(investmentMovements.accountId, ok.map((f) => f.accountId)))
-  const moves = ok.flatMap((f) => deriveInvestmentMovements(f.inv, f.txs).map((m) => ({ ...m, accountId: f.accountId })))
-  if (moves.length) await db.insert(investmentMovements).values(moves)
+  // Movimentações e operações da Pluggy se acumulam (upsert pelo id): o que sair da janela que a Pluggy devolve fica no
+  // histórico. Só a compra sintética ("purchase:…", usada quando não há movimentações) é refeita a cada sync.
+  await db
+    .delete(investmentMovements)
+    .where(and(inArray(investmentMovements.accountId, ok.map((f) => f.accountId)), like(investmentMovements.pluggyId, "purchase:%")))
+  // dedup pelo id: um upsert não pode tocar a mesma linha duas vezes no mesmo comando
+  const moves = uniqueByPluggyId(ok.flatMap((f) => deriveInvestmentMovements(f.inv, f.txs).map((m) => ({ ...m, accountId: f.accountId }))))
+  for (let i = 0; i < moves.length; i += 500)
+    await db
+      .insert(investmentMovements)
+      .values(moves.slice(i, i + 500))
+      .onConflictDoUpdate({ target: investmentMovements.pluggyId, set: { date: sql`excluded.date`, amount: sql`excluded.amount` } })
 
-  // Operações vindas da Pluggy são refeitas; manuais (sem pluggyId) e proventos achados na conta ("tx:…") ficam
+  // Manuais (sem pluggyId) e proventos achados na conta ("tx:…") nunca são tocados
+  const investmentIdList = ok.map((f) => f.investmentId)
   await db
     .delete(investmentTrades)
-    .where(and(inArray(investmentTrades.investmentId, ok.map((f) => f.investmentId)), isNotNull(investmentTrades.pluggyId), notLike(investmentTrades.pluggyId, "tx:%")))
-  const trades = ok.flatMap((f) => deriveInvestmentTrades(f.inv, f.txs).map((t) => ({ ...t, investmentId: f.investmentId })))
-  for (let i = 0; i < trades.length; i += 500) await db.insert(investmentTrades).values(trades.slice(i, i + 500)).onConflictDoNothing()
+    .where(and(inArray(investmentTrades.investmentId, investmentIdList), like(investmentTrades.pluggyId, "purchase:%")))
+  const trades = uniqueByPluggyId(ok.flatMap((f) => deriveInvestmentTrades(f.inv, f.txs).map((t) => ({ ...t, investmentId: f.investmentId }))))
+  for (let i = 0; i < trades.length; i += 500)
+    await db
+      .insert(investmentTrades)
+      .values(trades.slice(i, i + 500))
+      .onConflictDoUpdate({
+        target: investmentTrades.pluggyId,
+        set: { date: sql`excluded.date`, type: sql`excluded.type`, quantity: sql`excluded.quantity`, price: sql`excluded.price`, amount: sql`excluded.amount` },
+      })
 
-  // Sem custo informado pela Pluggy, o custo sai das próprias operações
-  const noCost = saved.filter((s) => s.invested == null)
-  for (const s of noCost) {
-    const own = trades.filter((t) => t.investmentId === s.id)
-    if (own.length) await db.update(investments).set({ invested: positionFromTrades(own).invested }).where(eq(investments.id, s.id))
+  // Sem custo informado pela Pluggy, o custo sai das operações guardadas (inclusive as que já saíram da janela da Pluggy)
+  const noCost = saved.filter((s) => s.invested == null).map((s) => s.id)
+  if (!noCost.length) return
+  const stored = await db.select().from(investmentTrades).where(inArray(investmentTrades.investmentId, noCost)).orderBy(asc(investmentTrades.date), asc(investmentTrades.id))
+  for (const id of noCost) {
+    const own = stored.filter((t) => t.investmentId === id)
+    if (own.length) await db.update(investments).set({ invested: positionFromTrades(own).invested }).where(eq(investments.id, id))
   }
 }
 
