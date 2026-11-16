@@ -1,0 +1,19 @@
+name: Datas do Project
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/project-dates.sh
+        env:
+          # O GITHUB_TOKEN não acessa Projects da organização; precisa de um PAT com escopo "project".
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
