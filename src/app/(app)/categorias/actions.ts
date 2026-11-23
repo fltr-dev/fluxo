@@ -1,11 +1,11 @@
 "use server"
 
-import { and, eq, ne, sql } from "drizzle-orm"
+import { and, eq, inArray, ne, sql } from "drizzle-orm"
 import { refresh } from "next/cache"
 import { z } from "zod"
 import { requireUser } from "@/auth"
 import { categories, categoryRules, db, pluggyCategoryMap, spendingLimits, transactions } from "@/db"
-import { seedCategories } from "@/db/default-categories"
+import { addDefaultCategory, seedCategories } from "@/db/default-categories"
 import { lucideByName } from "@/components/category-icon"
 import { fd, parseForm } from "@/lib/form"
 
@@ -53,10 +53,63 @@ export async function updateCategory(form: FormData) {
   refresh()
 }
 
+/** Ids da categoria e das subcategorias dela. */
+async function familyIds(id: number) {
+  const subs = await db.select({ id: categories.id }).from(categories).where(eq(categories.parentId, id))
+  return [id, ...subs.map((s) => s.id)]
+}
+
+const txCount = async (ids: number[]) =>
+  (await db.select({ n: sql<number>`count(*)::int` }).from(transactions).where(inArray(transactions.subcategoryId, ids)))[0].n
+
+/** Reativa direto; arquivar só sem transações (com transações o caminho é `retireCategory`, que pede o destino). */
 export async function toggleArchived(form: FormData) {
   await requireUser()
   const { id } = parseForm(form, { id: fd.id })
-  await db.update(categories).set({ archived: sql`not ${categories.archived}` }).where(eq(categories.id, id))
+  const [cat] = await db.select().from(categories).where(eq(categories.id, id))
+  if (!cat) return
+  if (!cat.archived && (await txCount(await familyIds(id)))) throw new Error("A categoria tem transações: escolha para onde movê-las")
+  await db.update(categories).set({ archived: !cat.archived }).where(eq(categories.id, id))
+  refresh()
+}
+
+/**
+ * Arquiva ou exclui (só se já arquivada) depois de tirar as transações dela: vão para `targetId` ou ficam
+ * "A categorizar". Regras e mapeamentos da Pluggy seguem o destino; sem destino, regras param e mapeamentos saem.
+ */
+export async function retireCategory(form: FormData) {
+  await requireUser()
+  const { id, action, targetId } = parseForm(form, { id: fd.id, action: z.enum(["archive", "delete"]), targetId: fd.optId })
+  const [cat] = await db.select().from(categories).where(eq(categories.id, id))
+  if (!cat) return
+  if (action === "delete" && !cat.archived) throw new Error("Arquive antes de excluir")
+  const ids = await familyIds(id)
+  const [target] = targetId ? await db.select().from(categories).where(eq(categories.id, targetId)) : []
+  if (targetId && (!target?.parentId || ids.includes(targetId))) throw new Error("Destino inválido")
+  await db.transaction(async (tx) => {
+    if (target) {
+      await tx
+        .update(transactions)
+        .set({ subcategoryId: target.id, kind: target.kind })
+        .where(and(inArray(transactions.subcategoryId, ids), ne(transactions.kind, "TRANSFER")))
+      await tx.update(categoryRules).set({ subcategoryId: target.id }).where(inArray(categoryRules.subcategoryId, ids))
+      await tx.update(pluggyCategoryMap).set({ subcategoryId: target.id }).where(inArray(pluggyCategoryMap.subcategoryId, ids))
+    } else {
+      await tx.update(categoryRules).set({ active: false }).where(inArray(categoryRules.subcategoryId, ids))
+      await tx.delete(pluggyCategoryMap).where(inArray(pluggyCategoryMap.subcategoryId, ids))
+    }
+    await tx.update(transactions).set({ subcategoryId: null, categorySource: "NONE" }).where(inArray(transactions.subcategoryId, ids))
+    await tx.update(transactions).set({ suggestedSubcategoryId: target?.id ?? null }).where(inArray(transactions.suggestedSubcategoryId, ids))
+    if (action === "delete") await tx.delete(categories).where(eq(categories.id, id))
+    else await tx.update(categories).set({ archived: true }).where(eq(categories.id, id))
+  })
+  refresh()
+}
+
+export async function addSuggestion(form: FormData) {
+  await requireUser()
+  const { name } = parseForm(form, { name: fd.text })
+  await db.transaction((tx) => addDefaultCategory(tx, name))
   refresh()
 }
 

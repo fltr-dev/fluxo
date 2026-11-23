@@ -12,19 +12,40 @@ type Db = PgDatabase<PgQueryResultHKT, typeof schema>
  */
 export async function seedCategories(db: Db) {
   const ids = new Map<string, number>()
-  for (const c of SEED_CATEGORIES) {
-    const [p] = await db.insert(categories).values({ name: c.name, kind: c.kind, color: c.color, icon: c.icon }).returning({ id: categories.id })
-    ids.set(c.name, p.id)
-    const subs = await db
-      .insert(categories)
-      .values(c.subs.map((name) => ({ name, kind: c.kind, color: c.color, parentId: p.id })))
-      .returning({ id: categories.id, name: categories.name })
-    for (const s of subs) ids.set(`${c.name}/${s.name}`, s.id)
-  }
+  for (const c of SEED_CATEGORIES) await insertSeed(db, c, ids)
   await db
     .insert(pluggyCategoryMap)
     .values(Object.entries(SEED_PLUGGY_MAP).map(([pluggyCategory, path]) => ({ pluggyCategory, subcategoryId: ids.get(path)! })))
   return ids
+}
+
+async function insertSeed(db: Db, c: (typeof SEED_CATEGORIES)[number], ids: Map<string, number>) {
+  const [p] = await db.insert(categories).values({ name: c.name, kind: c.kind, color: c.color, icon: c.icon }).returning({ id: categories.id })
+  ids.set(c.name, p.id)
+  const subs = await db
+    .insert(categories)
+    .values(c.subs.map((name) => ({ name, kind: c.kind, color: c.color, parentId: p.id })))
+    .returning({ id: categories.id, name: categories.name })
+  for (const s of subs) ids.set(`${c.name}/${s.name}`, s.id)
+}
+
+const fold = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLocaleLowerCase("pt-BR")
+
+/** Categorias padrão que a conta não tem (nem arquivadas), comparando o nome sem caixa nem acento. */
+export function missingDefaults(existing: { name: string; parentId: number | null }[]) {
+  const have = new Set(existing.filter((c) => c.parentId == null).map((c) => fold(c.name)))
+  return SEED_CATEGORIES.filter((c) => !have.has(fold(c.name)))
+}
+
+/** Cria uma categoria padrão com as subcategorias; o mapa da Pluggy dela só entra onde a Pluggy ainda não aponta para nada. */
+export async function addDefaultCategory(db: Db, name: string) {
+  const c = SEED_CATEGORIES.find((s) => s.name === name)
+  if (!c) throw new Error("Sugestão inválida")
+  if (!missingDefaults(await db.select().from(categories)).includes(c)) return
+  const ids = new Map<string, number>()
+  await insertSeed(db, c, ids)
+  const map = Object.entries(SEED_PLUGGY_MAP).filter(([, path]) => ids.has(path))
+  if (map.length) await db.insert(pluggyCategoryMap).values(map.map(([pluggyCategory, path]) => ({ pluggyCategory, subcategoryId: ids.get(path)! }))).onConflictDoNothing()
 }
 
 /**

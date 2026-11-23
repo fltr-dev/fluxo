@@ -1,5 +1,5 @@
 import { asc, isNotNull, sql } from "drizzle-orm"
-import { ArrowRight, ChevronRight, Lock, Merge, Pencil, Plus, Tag, Tags } from "lucide-react"
+import { ArrowRight, ChevronRight, Lock, Merge, Pencil, Plus, Tag, Tags, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, PageTitle } from "@/components/bits"
@@ -16,7 +16,8 @@ import { brl } from "@/lib/format"
 import { subcategoryOptions } from "@/lib/ledger"
 import { byCategory, categoryTree, shellStatus, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
-import { createCategory, mergeSubcategories, seedDefaults, setPluggyMapping, toggleArchived, updateCategory } from "./actions"
+import { missingDefaults } from "@/db/default-categories"
+import { addSuggestion, createCategory, mergeSubcategories, retireCategory, seedDefaults, setPluggyMapping, toggleArchived, updateCategory } from "./actions"
 
 const TABS = [
   ["EXPENSE", "Despesas"],
@@ -35,22 +36,34 @@ async function mergeAndClose(form: FormData) {
   redirect("/categorias")
 }
 
-/** Gestos da categoria: arrastar à direita mostra as transações, à esquerda edita/arquiva; pressionar abre o painel. */
-function categoryActions(id: number, archived: boolean, editHref: string) {
+async function retireAndClose(form: FormData) {
+  "use server"
+  await retireCategory(form)
+  redirect("/categorias")
+}
+
+/**
+ * Gestos da categoria: arrastar à direita mostra as transações, à esquerda edita/arquiva (e exclui, se arquivada);
+ * pressionar abre o painel. Com transações, arquivar abre o modal que pergunta para onde elas vão.
+ */
+function categoryActions(id: number, archived: boolean, editHref: string, retireHref: (acao: string) => string, txs: number) {
   const list: RowAction = { label: "Transações", icon: "list", tone: "primary", href: `/transacoes?categoria=${id}` }
   const edit: RowAction = { label: "Editar", icon: "edit", href: editHref }
-  const archive: RowAction = { label: archived ? "Reativar" : "Arquivar", icon: "archive", tone: "warning", run: toggleArchived, id }
+  const archive: RowAction = archived
+    ? { label: "Reativar", icon: "archive", tone: "warning", run: toggleArchived, id }
+    : { label: "Arquivar", icon: "archive", tone: "warning", ...(txs ? { href: retireHref("arquivar") } : { run: toggleArchived, id }) }
+  const del: RowAction[] = archived ? [{ label: "Excluir", icon: "trash", tone: "danger", href: retireHref("excluir") }] : []
   return {
     left: [list],
-    right: [edit, archive],
-    menu: [{ ...list, label: "Ver transações" }, { ...edit, label: "Editar categoria" }, { ...archive, label: archived ? "Reativar categoria" : "Arquivar categoria" }],
+    right: [edit, archive, ...del],
+    menu: [{ ...list, label: "Ver transações" }, { ...edit, label: "Editar categoria" }, { ...archive, label: `${archive.label} categoria` }, ...del.map((d) => ({ ...d, label: "Excluir categoria" }))],
   }
 }
 
 export default async function CategoriesPage({ searchParams }: PageProps<"/categorias">) {
   const sp = await searchParams
   const ym = monthOf(today())
-  const [tree, options, seen, mapped, monthSpend, monthIncome, status] = await Promise.all([
+  const [tree, options, seen, mapped, monthSpend, monthIncome, status, txRows] = await Promise.all([
     categoryTree(true),
     subcategoryOptions(),
     db.selectDistinct({ name: transactions.pluggyCategory }).from(transactions).where(isNotNull(transactions.pluggyCategory)).orderBy(asc(transactions.pluggyCategory)),
@@ -58,7 +71,9 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
     byCategory({ preset: "mes", page: 1, from: monthStart(ym), to: monthEnd(ym), kind: "EXPENSE" }),
     byCategory({ preset: "mes", page: 1, from: monthStart(ym), to: monthEnd(ym), kind: "INCOME" }),
     shellStatus(),
+    db.select({ id: transactions.subcategoryId, n: sql<number>`count(*)::int` }).from(transactions).where(isNotNull(transactions.subcategoryId)).groupBy(transactions.subcategoryId),
   ])
+  const txBySub = new Map(txRows.map((r) => [r.id!, r.n]))
 
   if (tree.length === 0) {
     return (
@@ -79,7 +94,16 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
   const mapBy = new Map(mapped.map((m) => [m.pluggyCategory, m.subcategoryId]))
   const pluggyNames = [...new Set([...seen.map((s) => s.name!), ...mapped.map((m) => m.pluggyCategory)])].sort((a, b) => a.localeCompare(b))
   const editing = tree.find((p) => p.id === Number(sp.editar))
-  const close = `/categorias${withParams(sp, { editar: undefined, nova: undefined, mesclar: undefined })}`
+  const close = `/categorias${withParams(sp, { editar: undefined, nova: undefined, mesclar: undefined, remover: undefined, acao: undefined })}`
+  const retireHref = (id: number) => (acao: string) => `/categorias${withParams(sp, { editar: undefined, remover: id, acao })}`
+  const txCount = (c: { id: number; subs?: { id: number }[] }) => (txBySub.get(c.id) ?? 0) + (c.subs ?? []).reduce((n, s) => n + (txBySub.get(s.id) ?? 0), 0)
+  const suggestions = tab === "ARCHIVED" ? [] : missingDefaults(tree).filter((c) => c.kind === tab)
+
+  // Modal de arquivar/excluir: a categoria (ou subcategoria) e as transações que precisam de destino
+  const retiring = tree.flatMap((p): { id: number; name: string; subs?: { id: number }[] }[] => [p, ...p.subs]).find((c) => c.id === Number(sp.remover))
+  const retiringIds = retiring ? [retiring.id, ...(retiring.subs ?? []).map((s) => s.id)] : []
+  const retiringTxs = retiring ? txCount(retiring) : 0
+  const deleting = sp.acao === "excluir"
 
   return (
     <div className="grid gap-5">
@@ -117,7 +141,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
             {visible.map((p) => (
               <details key={p.id} className="group border-b last:border-0">
                 <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                  <SwipeRow {...categoryActions(p.id, p.archived, `/categorias${withParams(sp, { editar: p.id })}`)} title={p.name} description={`${p.subs.length} subcategorias`}>
+                  <SwipeRow {...categoryActions(p.id, p.archived, `/categorias${withParams(sp, { editar: p.id })}`, retireHref(p.id), txCount(p))} title={p.name} description={`${p.subs.length} subcategorias`}>
                   <div className="flex items-center gap-3 py-3">
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
                   <IconCircle icon={categoryIcon(p.name, p.icon)} color={p.color} soft className="size-9" />
@@ -151,6 +175,25 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                 </span>
                 <Link href="/transacoes?ver=uncategorized&periodo=12m" className={buttonVariants({ variant: "outline", size: "sm" })}>{status.uncategorized} transações</Link>
               </div>
+            )}
+            {suggestions.length > 0 && (
+              <section className="mt-3 grid gap-1 border-t pt-3" aria-labelledby="sugestoes">
+                <h3 id="sugestoes" className="text-xs font-medium text-muted-foreground">Sugestões</h3>
+                {suggestions.map((c) => (
+                  <form key={c.name} action={addSuggestion} className="flex items-center gap-3 py-2 pl-7">
+                    <input type="hidden" name="name" value={c.name} />
+                    <IconCircle icon={categoryIcon(c.name, c.icon)} color={c.color} soft className="size-9 opacity-70" />
+                    <span className="grid min-w-0 flex-1">
+                      <span className="truncate font-medium">{c.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{c.subs.join(", ")}</span>
+                    </span>
+                    <Button type="submit" variant="outline" size="sm">
+                      <Plus />
+                      Adicionar
+                    </Button>
+                  </form>
+                ))}
+              </section>
             )}
           </CardContent>
         </Card>
@@ -215,6 +258,28 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
         </RouteDialog>
       )}
 
+      {retiring && (
+        <RouteDialog
+          closeHref={close}
+          title={`${deleting ? "Excluir" : "Arquivar"} ${retiring.name}`}
+          description={deleting ? "Não dá para desfazer. Subcategorias, regras, mapeamentos e limites dela também saem." : "Some dos seletores e fica no histórico."}
+        >
+          <form action={retireAndClose} className="grid gap-4">
+            <input type="hidden" name="id" value={retiring.id} />
+            <input type="hidden" name="action" value={deleting ? "delete" : "archive"} />
+            {retiringTxs > 0 && (
+              <Field label={`${retiringTxs} ${retiringTxs === 1 ? "transação está" : "transações estão"} aqui. Para onde vão?`} hint="Regras e mapeamentos da Pluggy seguem o destino. Sem categoria, as regras param e os mapeamentos saem.">
+                <SubcategorySelect name="targetId" options={options.filter((o) => !retiringIds.includes(o.id))} emptyLabel="Deixar sem categoria" />
+              </Field>
+            )}
+            <FormActions>
+              <CancelLink href={close} />
+              <Button type="submit" variant="destructive" size="lg">{deleting ? "Excluir" : "Arquivar"}</Button>
+            </FormActions>
+          </form>
+        </RouteDialog>
+      )}
+
       {editing && (
         <RouteSheet closeHref={close} title="Editar categoria" description={editing.kind === "INCOME" ? "Receita" : "Despesa"}>
           <div className="grid gap-6">
@@ -240,10 +305,19 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                       <input name="name" defaultValue={s.name} required maxLength={200} aria-label="Nome da subcategoria" className={cn(fieldClass, "h-8", s.archived && "text-muted-foreground line-through")} />
                       <Button type="submit" variant="ghost" size="sm">Salvar</Button>
                     </form>
-                    <form action={toggleArchived}>
-                      <input type="hidden" name="id" value={s.id} />
-                      <Button type="submit" variant="ghost" size="sm">{s.archived ? "Reativar" : "Arquivar"}</Button>
-                    </form>
+                    {!s.archived && txCount(s) > 0 ? (
+                      <Link href={retireHref(s.id)("arquivar")} className={buttonVariants({ variant: "ghost", size: "sm" })}>Arquivar</Link>
+                    ) : (
+                      <form action={toggleArchived}>
+                        <input type="hidden" name="id" value={s.id} />
+                        <Button type="submit" variant="ghost" size="sm">{s.archived ? "Reativar" : "Arquivar"}</Button>
+                      </form>
+                    )}
+                    {s.archived && (
+                      <Link href={retireHref(s.id)("excluir")} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Excluir ${s.name}`}>
+                        <Trash2 className="text-destructive" />
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -259,15 +333,24 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
 
             <form id="archive-category" action={toggleArchived}>
               <input type="hidden" name="id" value={editing.id} />
-              <p className="text-xs text-muted-foreground">Arquivar não apaga nada: some dos seletores e fica no histórico.</p>
+              <p className="text-xs text-muted-foreground">Arquivar não apaga nada: some dos seletores e fica no histórico. Arquivada, ela pode ser excluída.</p>
             </form>
 
             {/* os botões do rodapé acionam os formulários acima pelo atributo `form` */}
             <FormActions
               start={
-                <Button type="submit" form="archive-category" variant={editing.archived ? "outline" : "destructive"} size="lg">
-                  {editing.archived ? "Reativar categoria" : "Arquivar categoria"}
-                </Button>
+                <>
+                  {!editing.archived && txCount(editing) > 0 ? (
+                    <Link href={retireHref(editing.id)("arquivar")} className={buttonVariants({ variant: "destructive", size: "lg" })}>Arquivar categoria</Link>
+                  ) : (
+                    <Button type="submit" form="archive-category" variant={editing.archived ? "outline" : "destructive"} size="lg">
+                      {editing.archived ? "Reativar categoria" : "Arquivar categoria"}
+                    </Button>
+                  )}
+                  {editing.archived && (
+                    <Link href={retireHref(editing.id)("excluir")} className={buttonVariants({ variant: "destructive", size: "lg" })}>Excluir</Link>
+                  )}
+                </>
               }
             >
               <CancelLink href={close} />
