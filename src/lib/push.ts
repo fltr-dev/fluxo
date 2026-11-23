@@ -1,6 +1,6 @@
 import "server-only"
 import { eq } from "drizzle-orm"
-import webpush from "web-push"
+import * as webpush from "web-push"
 import { db, pushSubscriptions } from "@/db"
 
 // Web Push (VAPID): as chaves vêm do ambiente (gere com `node scripts/vapid.mjs`). Sem elas o app só mostra o sino.
