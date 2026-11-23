@@ -125,7 +125,7 @@ export const ICON_CATALOG: [name: string, keywords: string][] = [
   ["Popcorn", "cinema pipoca"],
   ["Drama", "teatro"],
   ["PartyPopper", "festa comemoracao"],
-  ["Music", "musica"],
+  ["EighthNotes", "musica nota"],
   ["Headphones", "musica fone"],
   ["Guitar", "musica violao"],
   ["Mic", "microfone show"],
