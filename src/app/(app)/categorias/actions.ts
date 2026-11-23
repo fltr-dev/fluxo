@@ -43,6 +43,21 @@ export async function createCategory(form: FormData) {
   refresh()
 }
 
+/** Cria a subcategoria direto do seletor de categoria (só o nome); se já existe uma igual na categoria, reaproveita. */
+export async function quickSubcategory(parentId: number, name: string) {
+  await requireUser()
+  const v = z.object({ parentId: z.number().int().positive(), name: fd.text }).parse({ parentId, name })
+  const [p] = await db.select().from(categories).where(eq(categories.id, v.parentId))
+  if (!p || p.parentId || p.archived) throw new Error("Categoria inválida")
+  const [same] = await db
+    .select({ id: categories.id, name: categories.name })
+    .from(categories)
+    .where(and(eq(categories.parentId, p.id), eq(categories.archived, false), sql`lower(${categories.name}) = lower(${v.name})`))
+  const [row] = same ? [same] : await db.insert(categories).values({ name: v.name, kind: p.kind, color: p.color, parentId: p.id }).returning({ id: categories.id, name: categories.name })
+  refresh()
+  return row
+}
+
 export async function updateCategory(form: FormData) {
   await requireUser()
   const v = parseForm(form, { id: fd.id, name: fd.text, color: color.optional(), icon })

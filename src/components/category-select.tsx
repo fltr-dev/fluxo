@@ -1,9 +1,11 @@
 "use client"
 
 import { Popover } from "@base-ui/react/popover"
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronRightIcon, LoaderCircle, PlusIcon } from "lucide-react"
 import { DynamicIcon, iconNames } from "lucide-react/dynamic"
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
+import { quickSubcategory } from "@/app/(app)/categorias/actions"
+import { fieldClass } from "@/components/bits"
 import type { FormSelectProps } from "@/components/form-select"
 import { useIsMobile } from "@/components/route-overlay"
 import { FormBusy } from "@/components/ui/pending"
@@ -28,7 +30,7 @@ import { cn } from "@/lib/utils"
 
 /** O que chega de `subcategoryOptions()`; `parentId` e `icon` (ícone efetivo da categoria-pai) são opcionais. */
 type SubOption = { id: number; name: string; kind: string; parentName: string; parentId?: number; color?: string | null; icon?: string | null }
-type Cat = { key: string; name: string; kind: string; color: string; icon?: string | null; subs: SubOption[] }
+type Cat = { key: string; name: string; kind: string; color: string; icon?: string | null; parentId?: number; subs: SubOption[] }
 
 const EMPTY = "empty"
 const ck = (c: Cat) => `c:${c.key}`
@@ -45,6 +47,65 @@ function CatCircle({ c, className }: { c: Cat; className?: string }) {
     <span className={cn("grid size-6 shrink-0 place-items-center rounded-full", className)} style={{ background: `${c.color}1f`, color: c.color }} aria-hidden>
       <DynamicIcon name={KEBAB.get(c.icon?.toLowerCase() ?? "") ?? "tag"} className="size-3.5" />
     </span>
+  )
+}
+
+/** Última linha das subcategorias: vira um campo de nome; Enter cria a subcategoria na categoria e já a escolhe. */
+function AddSub({ c, onCreated, className }: { c: Cat; onCreated: (s: SubOption) => void; className?: string }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  if (c.parentId == null) return null
+  const create = async () => {
+    const n = name.trim()
+    if (!n || busy) return
+    setBusy(true)
+    setError("")
+    try {
+      const r = await quickSubcategory(c.parentId!, n)
+      onCreated({ id: r.id, name: r.name, kind: c.kind, parentName: c.name, parentId: c.parentId, color: c.color, icon: c.icon })
+    } catch {
+      setError("Não foi possível criar. Tente de novo.")
+      setBusy(false)
+    }
+  }
+  if (!editing)
+    return (
+      <button type="button" onClick={() => setEditing(true)} className={cn(selectItemClass, "w-full text-primary", className)}>
+        <PlusIcon className="size-4" />
+        Nova subcategoria
+      </button>
+    )
+  return (
+    <div className={cn("grid gap-1 px-1 py-1", className)}>
+      <div className="flex items-center gap-1">
+        <input
+          autoFocus
+          value={name}
+          maxLength={200}
+          disabled={busy}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation()
+            if (e.key === "Enter") {
+              e.preventDefault()
+              create()
+            } else if (e.key === "Escape") {
+              e.preventDefault()
+              setEditing(false)
+            }
+          }}
+          placeholder="Nome da subcategoria"
+          aria-label={`Nova subcategoria em ${c.name}`}
+          className={cn(fieldClass, "h-8 min-w-0 flex-1")}
+        />
+        <button type="button" onClick={create} disabled={busy || !name.trim()} className="grid h-8 shrink-0 place-items-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50">
+          {busy ? <LoaderCircle className="size-4 animate-spin" aria-label="Criando" /> : "Criar"}
+        </button>
+      </div>
+      {error && <span className="px-1 text-xs text-destructive">{error}</span>}
+    </div>
   )
 }
 
@@ -85,17 +146,19 @@ export function SubcategorySelect({
   const [active, setActive] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const hover = useRef<number>(undefined)
+  // Subcategorias criadas aqui valem já, antes de a página recarregar as opções
+  const [created, setCreated] = useState<SubOption[]>([])
 
   const cats = useMemo(() => {
     const m = new Map<string, Cat>()
-    for (const o of options) {
+    for (const o of [...options, ...created.filter((n) => !options.some((o) => o.id === n.id))]) {
       const key = `${o.kind}-${o.parentId ?? o.parentName}`
-      const c = m.get(key) ?? { key, name: o.parentName, kind: o.kind, color: o.color ?? "#a1a1aa", icon: o.icon, subs: [] }
+      const c = m.get(key) ?? { key, name: o.parentName, kind: o.kind, color: o.color ?? "#a1a1aa", icon: o.icon, parentId: o.parentId, subs: [] }
       c.subs.push(o)
       m.set(key, c)
     }
     return [...m.values()]
-  }, [options])
+  }, [options, created])
   const catOf = useMemo(() => new Map(cats.flatMap((c) => c.subs.map((s) => [String(s.id), c] as const))), [cats])
   const kinds = [...new Set(cats.map((c) => c.kind))]
 
@@ -133,6 +196,10 @@ export function SubcategorySelect({
     setInner(v)
     onValueChange?.(v)
     setOpen(false)
+  }
+  const addSub = (n: SubOption) => {
+    setCreated((list) => [...list, n])
+    pick(String(n.id))
   }
   const go = (k?: string) => {
     if (!k) return
@@ -299,7 +366,12 @@ export function SubcategorySelect({
                             .map((c) => (
                               <Fragment key={c.key}>
                                 {catRow(c)}
-                                {mobile && expanded === c.key && <div role="group">{c.subs.map((s) => subRow(s, c))}</div>}
+                                {mobile && expanded === c.key && (
+                                  <div role="group">
+                                    {c.subs.map((s) => subRow(s, c))}
+                                    <AddSub c={c} onCreated={addSub} className="pl-10" />
+                                  </div>
+                                )}
                               </Fragment>
                             ))}
                         </Fragment>
@@ -312,6 +384,7 @@ export function SubcategorySelect({
                       {panel.name}
                     </div>
                     {panel.subs.map((s) => subRow(s, panel))}
+                    <AddSub key={panel.key} c={panel} onCreated={addSub} />
                   </div>
                 )}
               </div>
