@@ -36,8 +36,11 @@ const BY_NAME: Record<string, LucideIcon> = {
   "outras receitas": CirclePlus,
 }
 
+// Nomes que o Lucide renomeou: categorias salvas com o nome antigo continuam com o ícone
+const RENAMED: Record<string, string> = { Music: "EighthNotes" }
+
 /** Só o servidor resolve nomes → componentes (o mapa completo do Lucide não vai para o bundle do cliente). */
-export const lucideByName = (name?: string | null): LucideIcon | undefined => (name ? (icons as Record<string, LucideIcon>)[name] : undefined)
+export const lucideByName = (name?: string | null): LucideIcon | undefined => (name ? (icons as Record<string, LucideIcon>)[RENAMED[name] ?? name] : undefined)
 
 /** Ícone da categoria: o escolhido (`icon`), senão o da categoria padrão de mesmo nome, senão uma etiqueta. */
 export const categoryIcon = (name?: string | null, icon?: string | null): LucideIcon =>
