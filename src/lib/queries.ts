@@ -22,7 +22,7 @@ export type Filters = Period & {
   preset: string
   accountId?: number
   categoryId?: number
-  /** Várias categorias/subcategorias de uma vez (calendário); soma-se ao `categoryId`. */
+  /** Várias categorias/subcategorias de uma vez (filtros e calendário); soma-se ao `categoryId`. */
   categoryIds?: number[]
   kind?: "INCOME" | "EXPENSE"
   q?: string
@@ -47,12 +47,15 @@ export function parseFilters(sp: SearchParams): Filters {
   const preset = str(sp, "periodo") ?? "mes"
   const tipo = str(sp, "tipo")
   const ver = str(sp, "ver")
+  // Uma só categoria em `categorias` vale como `categoria` (mantém o detalhamento dos relatórios)
+  const many = idList(str(sp, "categorias"))
+  const one = posInt(sp, "categoria") ?? (many?.length === 1 ? many[0] : undefined)
   return {
     preset,
     ...resolvePeriod(preset, today(), isoDate(str(sp, "de")), isoDate(str(sp, "ate"))),
     accountId: posInt(sp, "conta"),
-    categoryId: posInt(sp, "categoria"),
-    categoryIds: idList(str(sp, "categorias")),
+    categoryId: one,
+    categoryIds: many?.length === 1 && many[0] === one ? undefined : many,
     kind: tipo === "receita" ? "INCOME" : tipo === "despesa" ? "EXPENSE" : undefined,
     q: str(sp, "q")?.slice(0, 100),
     view: ver === "uncategorized" || ver === "suggested" || ver === "transfers" || ver === "pending" ? ver : undefined,

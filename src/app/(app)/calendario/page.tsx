@@ -69,7 +69,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const month = [...totals.values()].reduce((t, d) => ({ income: t.income + d.income, expense: t.expense + d.expense, count: t.count + d.count }), { income: 0, expense: 0, count: 0 })
   const maxExpense = Math.max(0, ...[...totals.values()].map((d) => d.expense))
   const href = (patch: Record<string, string | number | undefined>) => `/calendario${withParams(sp, patch)}`
-  const selected = f.categoryIds ?? []
+  const selected = [...(f.categoryId ? [f.categoryId] : []), ...(f.categoryIds ?? [])]
   const closeHref = href({ dia: undefined })
   const dayTotals = day ? totals.get(day) : undefined
 

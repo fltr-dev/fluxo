@@ -1,4 +1,5 @@
 import { accountGroups } from "@/components/account-avatar"
+import { CategoryFilter } from "@/components/calendar-filters"
 import { DateInput } from "@/components/date-input"
 import { Calendar, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -30,16 +31,9 @@ async function FiltersForm({ f, children }: { f: F; children?: React.ReactNode }
         <FormSelect name="conta" defaultValue={String(f.accountId ?? "")} emptyLabel="Todas" groups={accountGroups(accs.filter((a) => !a.archived))} />
       </Field>
       <Field label="Categoria">
-        <FormSelect
-          name="categoria"
-          defaultValue={String(f.categoryId ?? "")}
-          emptyLabel="Todas"
-          groups={tree.map((p) => ({
-            label: p.name,
-            options: [{ value: String(p.id), label: `${p.name} (todas)`, color: p.color }, ...p.subs.map((s) => ({ value: String(s.id), label: s.name, color: p.color }))],
-          }))}
-        />
+        <CategoryFilter name="categorias" tree={tree} selected={[...(f.categoryId ? [f.categoryId] : []), ...(f.categoryIds ?? [])]} />
       </Field>
+      {f.q && <input type="hidden" name="q" value={f.q} />}
       <Field label="Tipo">
         <FormSelect
           name="tipo"
@@ -82,7 +76,7 @@ export function PeriodMenu({ f, sp }: { f: F; sp: SearchParams }) {
 
 /** Seletor de período (menu) + botão "Filtros" que abre o formulário completo num painel lateral. */
 export function Filters({ f, sp, children }: { f: F; sp: SearchParams; children?: React.ReactNode }) {
-  const active = [f.accountId, f.categoryId, f.kind, f.q].filter(Boolean).length
+  const active = [f.accountId, f.categoryId || f.categoryIds?.length, f.kind, f.q].filter(Boolean).length
   return (
     <div className="flex flex-wrap items-center gap-2">
       <PeriodMenu f={f} sp={sp} />
