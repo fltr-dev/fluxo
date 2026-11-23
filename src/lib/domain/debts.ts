@@ -63,6 +63,44 @@ export function salaryOn(model: SalaryModel, ym: string) {
   return { date: `${ym}-${String(day).padStart(2, "0")}`, expected: true }
 }
 
+// ---------- Recorrência ----------
+
+export type Recurrence = { every: number; unit: "WEEK" | "MONTH" }
+
+/** Data seguinte da recorrência (meses: mesmo dia, ou o último do mês quando ele não existe). */
+export const stepDate = (date: string, r: Recurrence) => (r.unit === "WEEK" ? addDays(date, 7 * r.every) : shiftDateMonths(date, r.every))
+
+/** Ocorrências de `next` até `until` (inclusive) e a próxima depois delas. */
+export function occurrences(next: string, r: Recurrence, until: string) {
+  const dates: string[] = []
+  let d = next
+  // ponytail: teto de 500 ocorrências por vez, só para não travar com uma data muito antiga
+  while (d <= until && dates.length < 500) {
+    dates.push(d)
+    d = stepDate(d, r)
+  }
+  return { dates, next: d }
+}
+
+/** "A cada 2 semanas", "Todo mês"… */
+export const recurrenceLabel = (r: Recurrence) =>
+  r.every === 1 ? (r.unit === "WEEK" ? "Toda semana" : "Todo mês") : `A cada ${r.every} ${r.unit === "WEEK" ? "semanas" : "meses"}`
+
+/**
+ * Dívida recorrente: cada item datado é uma parcela. Casa as parcelas pagas com os itens pela data e devolve, em
+ * ordem de data, o que cada linha vira: a paga (mantida) ou uma nova em aberto. Pagas sem item da mesma data ficam no início.
+ */
+export function recurRows<P extends { dueOverride: string | null }>(items: { date: string; amount: number }[], paid: P[]) {
+  const left = [...paid]
+  const rows = [...items]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((it) => {
+      const i = left.findIndex((p) => p.dueOverride === it.date)
+      return i < 0 ? { date: it.date, amount: it.amount, paid: null } : { date: it.date, amount: it.amount, paid: left.splice(i, 1)[0] }
+    })
+  return [...left.map((p) => ({ date: p.dueOverride, amount: 0, paid: p })), ...rows]
+}
+
 // ---------- Vencimento ----------
 
 /** Vencimento da parcela `number` (1, 2, 3…) pela regra; `date` null = sem data. */

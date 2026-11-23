@@ -249,9 +249,10 @@ html[data-busy] :is([data-slot="sheet-content"], [data-slot="dialog-content"]) :
   transition: opacity 150ms cubic-bezier(0.2, 0.7, 0.2, 1) 100ms;
 }
 
-/* Modo privado (PrivacyToggle): borra só o que tem a classe `sensitive` (opt-in: dinheiro e dados de conta);
-   contagens, datas, percentuais e versões ficam visíveis. O eixo Y dos gráficos de dinheiro também borra */
-.privacy .sensitive {
+/* Modo privado (PrivacyToggle): esconde só o número dos valores (`.pv`, do hide() em bits.tsx; o "R$" fica) e o
+   bloco inteiro do que não é texto (`.sensitive`); contagens, datas e versões ficam visíveis. O eixo Y dos
+   gráficos de dinheiro também some. Estilo em Configurações › Aparência: blur (padrão) ou bolinhas (.privacy-dots) */
+.privacy :is(.sensitive, .pv) {
   filter: blur(6px);
   user-select: none;
 }
@@ -261,6 +262,20 @@ html[data-busy] :is([data-slot="sheet-content"], [data-slot="dialog-content"]) :
   filter: url(#privacy-blur);
   user-select: none;
 }
+/* Bolinhas: o número dá lugar a "••••••" de tamanho fixo (não revela quantos dígitos tem); eixo sem rótulos */
+.privacy.privacy-dots .pv {
+  filter: none;
+}
+.privacy.privacy-dots .pv > span {
+  display: none;
+}
+.privacy.privacy-dots .pv::after {
+  content: "••••••";
+}
+.privacy.privacy-dots .recharts-yAxis-tick-labels text {
+  filter: none;
+  visibility: hidden;
+}
 /* Tooltip dos gráficos sempre por cima: os donuts têm o total num rótulo absoluto que vem depois no DOM */
 .recharts-tooltip-wrapper {
   z-index: 20;
@@ -268,6 +283,7 @@ html[data-busy] :is([data-slot="sheet-content"], [data-slot="dialog-content"]) :
 /* Gráfico com eixo em % (rentabilidade) marca `axis-public` e não borra */
 .privacy .axis-public .recharts-yAxis-tick-labels text {
   filter: none;
+  visibility: visible;
   user-select: auto;
 }
 

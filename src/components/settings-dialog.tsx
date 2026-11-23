@@ -8,6 +8,7 @@ import { Logo } from "@/components/logo"
 import { NotificationSettings, type NotifyProps } from "@/components/notification-settings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { setCookie } from "@/lib/cookies-client"
 import { PRIMARIES, THEMES, type PrimaryId, type ThemeId } from "@/lib/theme"
 import { applyPrimary, applyTheme } from "@/lib/theme-client"
 import { cn } from "@/lib/utils"
@@ -113,6 +114,8 @@ function Appearance({ theme: initialTheme, primary: initialPrimary }: { theme: T
   const [primary, setPrimary] = useState(initialPrimary)
   const themeLabel = THEMES.find((t) => t.id === theme)!.label
   const primaryLabel = PRIMARIES.find((p) => p.id === primary)!.label
+  // O modal só abre no cliente, então dá para ler o estilo direto da classe no <html> (o cookie serve ao SSR)
+  const [dots, setDots] = useState(() => document.documentElement.classList.contains("privacy-dots"))
 
   return (
     <div className="grid gap-8">
@@ -171,6 +174,37 @@ function Appearance({ theme: initialTheme, primary: initialPrimary }: { theme: T
               </button>
             )
           })}
+        </div>
+      </section>
+
+      <section>
+        <Heading title="Modo privado" value="Como os valores ficam escondidos ao tocar no olho" />
+        <div role="radiogroup" aria-label="Modo privado" className="flex flex-wrap gap-2">
+          {[
+            { id: false, label: "Desfocar" },
+            { id: true, label: "Bolinhas" },
+          ].map((o) => (
+            <button
+              key={o.label}
+              type="button"
+              role="radio"
+              aria-checked={dots === o.id}
+              onClick={() => {
+                setDots(o.id)
+                document.documentElement.classList.toggle("privacy-dots", o.id)
+                setCookie("privacy-style", o.id ? "dots" : null)
+              }}
+              className={cn(
+                "grid w-36 gap-1 rounded-lg border p-3 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50",
+                dots === o.id && "border-primary bg-primary/5 hover:bg-primary/5",
+              )}
+            >
+              <span className="text-base font-semibold tabular-nums" aria-hidden>
+                R$ {o.id ? "••••••" : <span className="inline-block blur-[5px] select-none">1.234,56</span>}
+              </span>
+              <span className="text-sm text-muted-foreground">{o.label}</span>
+            </button>
+          ))}
         </div>
       </section>
 

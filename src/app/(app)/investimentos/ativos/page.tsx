@@ -1,6 +1,6 @@
 import { Download, Plus, Search, TrendingUp } from "lucide-react"
 import Link from "next/link"
-import { Empty } from "@/components/bits"
+import { Empty, hide } from "@/components/bits"
 import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ASSET_CLASSES, CLASS_INFO, CLASS_ORDER, isVariable, type AssetClass } from "@/lib/domain/investments"
@@ -99,7 +99,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/investime
                           <span className="rounded-md bg-muted px-1.5 text-xs font-semibold text-muted-foreground tabular-nums">{rows.length}</span>
                         </span>
                         <span /><span /><span /><span />
-                        <b className="text-right tabular-nums sensitive">{brl(gTotal)}</b>
+                        <b className="text-right tabular-nums">{hide(brl(gTotal))}</b>
                         <Result value={gTotal - gInvested} pct={gInvested ? gTotal / gInvested - 1 : null} />
                         <b className="text-right tabular-nums">{pct1(total ? gTotal / total : 0)}</b>
                       </div>
@@ -122,7 +122,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/investime
                   <div role="row" className={cn(COLS, "min-h-14 border-t bg-muted/40")}>
                     <b>{cat || q ? "Total filtrado" : "Total da carteira"}</b>
                     <span /><span /><span /><span />
-                    <b className="text-right tabular-nums sensitive">{brl(list.reduce((s, h) => s + h.value, 0))}</b>
+                    <b className="text-right tabular-nums">{hide(brl(list.reduce((s, h) => s + h.value, 0)))}</b>
                     {(() => {
                       const t = list.reduce((s, h) => s + h.value, 0)
                       const i = list.reduce((s, h) => s + (h.invested ?? h.value), 0)
@@ -135,7 +135,7 @@ export default async function AssetsPage({ searchParams }: PageProps<"/investime
             </div>
           </Card>
           <p className="text-xs text-muted-foreground">
-            Renda variável: rentabilidade = saldo − custo das compras (preço médio × quantidade). Renda fixa: saldo bruto informado pela instituição, antes de IR e IOF. Ativos lançados à mão usam a cotação pública do dia (Yahoo Finance). Total investido: <span className="sensitive">{brl(invested)}</span>.
+            Renda variável: rentabilidade = saldo − custo das compras (preço médio × quantidade). Renda fixa: saldo bruto informado pela instituição, antes de IR e IOF. Ativos lançados à mão usam a cotação pública do dia (Yahoo Finance). Total investido: {hide(brl(invested))}.
           </p>
         </>
       )}
@@ -152,7 +152,7 @@ function Result({ value, pct }: { value: number; pct: number | null }) {
   return (
     <span className="grid justify-items-end leading-[18px] whitespace-nowrap tabular-nums">
       <b className={value >= 0 ? "text-income" : "text-expense"}>{pct != null ? signedPct(pct) : "—"}</b>
-      <span className="text-xs text-muted-foreground sensitive">{value >= 0 ? "+" : "−"}{brl(Math.abs(value))}</span>
+      <span className="text-xs text-muted-foreground">{hide(value >= 0 ? "+" : "−")}{hide(brl(Math.abs(value)))}</span>
     </span>
   )
 }
@@ -174,19 +174,19 @@ function AssetRow({ h, total, variable }: { h: Holding; total: number; variable:
       {variable ? (
         <>
           <span className="tabular-nums">{h.quantity != null ? qtyFmt(h.quantity) : "—"}</span>
-          <span className="tabular-nums sensitive">{price(h.avgPrice)}</span>
-          <span className="tabular-nums sensitive">{price(h.unitPrice)}</span>
-          <span className="tabular-nums sensitive">{h.invested != null ? brl(h.invested) : "—"}</span>
+          <span className="tabular-nums">{hide(price(h.avgPrice))}</span>
+          <span className="tabular-nums">{hide(price(h.unitPrice))}</span>
+          <span className="tabular-nums">{hide(h.invested != null ? brl(h.invested) : "—")}</span>
         </>
       ) : (
         <>
           <span className="truncate" title={h.rateLabel ?? undefined}>{h.rateLabel ?? "—"}</span>
           <span className="tabular-nums">{h.dueDate ? dateBR(h.dueDate) : "—"}</span>
           <span className="truncate" title={h.broker ?? undefined}>{h.broker ?? "—"}</span>
-          <span className="tabular-nums sensitive">{h.invested != null ? brl(h.invested) : "—"}</span>
+          <span className="tabular-nums">{hide(h.invested != null ? brl(h.invested) : "—")}</span>
         </>
       )}
-      <b className="whitespace-nowrap tabular-nums sensitive">{brl(h.value)}</b>
+      <b className="whitespace-nowrap tabular-nums">{hide(brl(h.value))}</b>
       {h.profit != null ? <Result value={h.profit} pct={h.profitPct} /> : <span className="text-muted-foreground">—</span>}
       <span className="grid gap-1">
         <span className="font-semibold tabular-nums">{pct1(weight)}</span>

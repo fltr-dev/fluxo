@@ -2,7 +2,7 @@ import { asc, eq, ne } from "drizzle-orm"
 import { ChevronRight, CircleCheck, Eye, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
+import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle, hide } from "@/components/bits"
 import { RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -153,7 +153,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
                           {filters.length > 0 && (
                             <span className="flex flex-wrap gap-1">
                               {filters.map((x) => (
-                                <span key={String(x)} className={cn("rounded-full bg-muted px-2 text-xs text-muted-foreground", String(x).includes("R$") && "tabular-nums sensitive")}>{x}</span>
+                                <span key={String(x)} className={cn("rounded-full bg-muted px-2 text-xs text-muted-foreground", String(x).includes("R$") && "tabular-nums")}>{(String(x).includes("R$")) ? hide(x) : x}</span>
                               ))}
                             </span>
                           )}

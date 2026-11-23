@@ -330,6 +330,14 @@ export const debts = pgTable("debts", {
   startMonth: text(),
   // Avisar N dias antes (0 = só no dia); null = sem aviso
   remindDaysBefore: integer().default(1),
+  // Recorrência (ex.: sessão a cada 2 semanas): a cada `recurEvery` WEEK/MONTH entra um item `recurLabel` de
+  // `recurAmount` com parcela vencendo na data. `recurNext` é a próxima a gerar (null = encerrada); `recurEnd`, a última data
+  recurEvery: integer(),
+  recurUnit: text().$type<"WEEK" | "MONTH">(),
+  recurLabel: text(),
+  recurAmount: money("recur_amount"),
+  recurNext: date({ mode: "string" }),
+  recurEnd: date({ mode: "string" }),
   archived: boolean().notNull().default(false),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })
@@ -340,6 +348,8 @@ export const debtItems = pgTable("debt_items", {
   description: text().notNull(),
   quantity: integer().notNull().default(1),
   unitAmount: money("unit_amount").notNull(),
+  // Data da ocorrência (dívida recorrente); vira o vencimento da parcela do item
+  date: date({ mode: "string" }),
 })
 
 export const debtInstallments = pgTable(

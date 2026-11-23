@@ -32,3 +32,14 @@ export function dayLabel(d: string) {
   const s = dayFmt.format(new Date(`${d}T00:00:00Z`))
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
+
+/**
+ * Valor colado ou digitado → número: "R$ 1.234,56" → 1234.56, "1,234.56" → 1234.56, "12.5" → 12.5, "1.234" → 1234.
+ * O último separador seguido de 1–2 dígitos é o decimal; os outros são de milhar. Sem número, 0.
+ */
+export function parseMoney(text: string) {
+  const s = text.replace(/[^\d.,]/g, "")
+  const m = /^(.*)[.,](\d{1,2})$/.exec(s)
+  const int = (m ? m[1] : s).replace(/\D/g, "")
+  return Number(`${int || 0}.${m ? m[2] : 0}`) || 0
+}

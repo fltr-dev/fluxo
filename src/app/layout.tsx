@@ -36,12 +36,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const theme = themeFromCookie(jar.get("theme")?.value)
   // primary: id da cor de destaque (lista fixa em lib/theme); sem cookie vale o verde do globals.css
   const primary = primaryCss(primaryFromCookie(jar.get("primary")?.value))
-  // "privacy=1": PrivacyToggle esconde os valores com blur
+  // "privacy=1": PrivacyToggle esconde os valores
   const privacy = jar.get("privacy")?.value === "1"
+  // "privacy-style=dots": o modo privado troca o número por bolinhas em vez de borrar (Configurações › Aparência)
+  const dots = jar.get("privacy-style")?.value === "dots"
   // "sidebar=collapsed": sidebar recolhida; o atributo dá a largura (--sidebar-w) a toda a página
   const sidebar = jar.get("sidebar")?.value === "collapsed" ? "collapsed" : "expanded"
   return (
-    <html lang="pt-BR" data-sidebar={sidebar} className={`${manrope.variable} ${geistMono.variable} h-full antialiased ${theme === "system" ? "" : theme} ${privacy ? "privacy" : ""}`}>
+    <html lang="pt-BR" data-sidebar={sidebar} className={`${manrope.variable} ${geistMono.variable} h-full antialiased ${theme === "system" ? "" : theme} ${privacy ? "privacy" : ""} ${dots ? "privacy-dots" : ""}`}>
       <head>
         <style id="app-primary" dangerouslySetInnerHTML={{ __html: primary }} />
       </head>

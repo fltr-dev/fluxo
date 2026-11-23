@@ -2,7 +2,7 @@ import { asc, isNotNull, sql } from "drizzle-orm"
 import { ArrowRight, ChevronRight, Lock, Merge, Pencil, Plus, Tag, Tags, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, PageTitle } from "@/components/bits"
+import { CancelLink, Empty, Field, fieldClass, FormActions, IconCircle, PageTitle, hide } from "@/components/bits"
 import { CategoryFields } from "@/components/category-fields"
 import { categoryIcon, CategoryIcon } from "@/components/category-icon"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
@@ -149,7 +149,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                     <span className={cn("truncate font-medium", p.archived && "text-muted-foreground line-through")}>{p.name}</span>
                     <span className="text-xs text-muted-foreground">{p.subs.length} subcategorias</span>
                   </span>
-                  <span className="text-sm font-medium tabular-nums sensitive">{monthTotal.get(p.id) ? brl(monthTotal.get(p.id)!) : "—"}</span>
+                  <span className="text-sm font-medium tabular-nums">{hide(monthTotal.get(p.id) ? brl(monthTotal.get(p.id)!) : "—")}</span>
                   <Link href={`/categorias${withParams(sp, { editar: p.id })}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Editar ${p.name}`}>
                     <Pencil />
                   </Link>

@@ -9,6 +9,7 @@ import { useSettings } from "@/components/settings-dialog"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ago } from "@/lib/format"
+import { hide } from "@/components/bits"
 import { cn } from "@/lib/utils"
 
 export type BellItem = { id: number; kind: "DEBT_DUE" | "DEBT_OVERDUE" | "SALARY" | "LIMIT" | "SYSTEM"; title: string; body: string; href: string | null; createdAt: string; read: boolean }
@@ -78,8 +79,8 @@ export function NotificationBell({ items, unread }: { items: BellItem[]; unread:
                       <k.icon className="size-4" />
                     </span>
                     <span className="grid min-w-0 flex-1 gap-0.5">
-                      <span className={cn("text-sm", !n.read && "font-semibold", n.title.includes("R$") && "sensitive")}>{n.title}</span>
-                      <span className={cn("text-xs text-muted-foreground", n.body.includes("R$") && "sensitive")}>{n.body}</span>
+                      <span className={cn("text-sm", !n.read && "font-semibold")}>{(n.title.includes("R$")) ? hide(n.title) : n.title}</span>
+                      <span className="text-xs text-muted-foreground">{(n.body.includes("R$")) ? hide(n.body) : n.body}</span>
                       <span className="text-[11px] text-muted-foreground/80">{ago(new Date(n.createdAt))}</span>
                     </span>
                     {!n.read && <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" aria-label="Não lido" />}

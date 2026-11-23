@@ -64,6 +64,13 @@
       "when": 1793971659707,
       "tag": "0008_nome_do_dono",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795456607689,
+      "tag": "0009_recorrencia_dividas",
+      "breakpoints": true
     }
   ]
 }

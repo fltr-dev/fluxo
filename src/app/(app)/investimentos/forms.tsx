@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CancelLink, Field, fieldClass, FormActions } from "@/components/bits"
+import { CancelLink, Field, fieldClass, FormActions, hide } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
 import { Button } from "@/components/ui/button"
 import { CLASS_INFO, CLASS_ORDER, classFromCode, isIncome, isVariable, TRADE_LABEL, type AssetClass, type TradeType } from "@/lib/domain/investments"
@@ -104,7 +104,7 @@ export function NewInvestmentForm({ action, back, today }: { action: Action; bac
       {variable && (
         <div className="flex items-baseline justify-between rounded-lg bg-muted px-3 py-2.5">
           <span className="text-sm font-medium text-muted-foreground">Total investido</span>
-          <span className="text-lg font-bold tabular-nums sensitive">{brl(num(qty) * num(price))}</span>
+          <span className="text-lg font-bold tabular-nums">{hide(brl(num(qty) * num(price)))}</span>
         </div>
       )}
       <FormActions>
@@ -171,7 +171,7 @@ export function TradeForm({ action, back, today, assets, defaultId }: { action: 
       {byQty && (
         <div className="flex items-baseline justify-between rounded-lg bg-muted px-3 py-2.5">
           <span className="text-sm font-medium text-muted-foreground">{t === "SELL" ? "Total recebido" : "Total investido"}</span>
-          <span className="text-lg font-bold tabular-nums sensitive">{brl(num(qty) * num(price))}</span>
+          <span className="text-lg font-bold tabular-nums">{hide(brl(num(qty) * num(price)))}</span>
         </div>
       )}
       <FormActions>
