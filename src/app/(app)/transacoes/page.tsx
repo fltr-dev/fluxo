@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
 import { BulkBar, SelectAll } from "@/components/bulk-bar"
 import { Filters } from "@/components/filters"
+import { SearchInput } from "@/components/filters-client"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { TxContextRow, TxOptions, TxSwipe } from "@/components/tx-row"
@@ -152,11 +153,10 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
       </PageTitle>
 
       <div className="flex flex-wrap items-center gap-2">
-        <form method="get" className="relative min-w-0 flex-1 sm:max-w-72" role="search">
-          {Object.entries(sp).map(([k, v]) => typeof v === "string" && !["q", "pagina", "tx", "nova"].includes(k) && <input key={k} type="hidden" name={k} value={v} />)}
+        <div className="relative min-w-0 flex-1 sm:max-w-72" role="search">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input name="q" defaultValue={f.q} placeholder="Buscar por descrição…" aria-label="Buscar transações" className={cn(fieldClass, "pl-9")} />
-        </form>
+          <SearchInput defaultValue={f.q} placeholder="Buscar por descrição…" aria-label="Buscar transações" className={cn(fieldClass, "pl-9")} />
+        </div>
         <Filters f={f} sp={sp}>{f.view && <input type="hidden" name="ver" value={f.view} />}</Filters>
       </div>
 
@@ -221,9 +221,9 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                         <TxContextRow key={tx.id} item={r} href={txHref(tx.id)} className={cn("border-b last:border-0 hover:bg-muted/30", tx.ignored && "opacity-60", openId === tx.id && "bg-muted")}>
                           <td className="pl-4"><input type="checkbox" name="ids" value={tx.id} form="bulk" aria-label={`Selecionar ${tx.description}`} className="size-4 accent-primary" /></td>
                           <td className="max-w-0 px-3 py-2.5">
-                            <Link href={txHref(tx.id)} scroll={false} className="grid gap-0.5 hover:underline">
+                            <Link href={txHref(tx.id)} scroll={false} className="group grid gap-0.5">
                               <span className="flex min-w-0 items-center gap-1.5">
-                                <span className="truncate font-medium" title={tx.description}>{tx.description}</span>
+                                <span className="truncate font-medium group-hover:underline" title={tx.description}>{tx.description}</span>
                                 {tx.status === "PENDING" && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 text-xs text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"><Clock className="size-3" />Pendente</span>}
                                 {tx.totalInstallments && tx.totalInstallments > 1 && <span className="shrink-0 rounded-full bg-muted px-2 text-xs text-muted-foreground">Parcela {tx.installmentNumber}/{tx.totalInstallments}</span>}
                                 {!tx.pluggyId && <span className="shrink-0 rounded-full border px-2 text-xs text-muted-foreground">Manual</span>}
