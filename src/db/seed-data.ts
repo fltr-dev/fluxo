@@ -8,6 +8,7 @@ export const SEED_CATEGORIES: { name: string; kind: "INCOME" | "EXPENSE"; color:
   { name: "Educação", kind: "EXPENSE", color: "#14b8a6", icon: "GraduationCap", subs: ["Cursos", "Livros", "Escola e faculdade"] },
   { name: "Compras", kind: "EXPENSE", color: "#ec4899", icon: "ShoppingBag", subs: ["Roupas", "Eletrônicos", "Casa", "Pets", "Presentes", "Outros"] },
   { name: "Assinaturas", kind: "EXPENSE", color: "#6366f1", icon: "Repeat", subs: ["Streaming", "Software"] },
+  { name: "Serviços", kind: "EXPENSE", color: "#d946ef", icon: "Handshake", subs: ["Assessor", "Contador", "Advogado e cartório", "Diarista e limpeza", "Beleza e cuidados pessoais", "Consertos e assistência técnica", "Pet"] },
   { name: "Impostos e taxas", kind: "EXPENSE", color: "#78716c", icon: "Receipt", subs: ["Impostos", "Tarifas bancárias", "Juros e multas"] },
   { name: "Outros", kind: "EXPENSE", color: "#64748b", icon: "Ellipsis", subs: ["Seguros", "Doações", "Diversos"] },
   { name: "Salário", kind: "INCOME", color: "#16a34a", icon: "Briefcase", subs: ["Salário", "13º e férias", "Bônus"] },
