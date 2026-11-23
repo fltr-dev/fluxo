@@ -26,7 +26,7 @@ async function deleteAndClose(form: FormData) {
 
 type Rule = typeof categoryRules.$inferSelect
 
-function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: { id: number; name: string }[]; options: Awaited<ReturnType<typeof subcategoryOptions>> }) {
+function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: Parameters<typeof RuleFields>[0]["accounts"]; options: Awaited<ReturnType<typeof subcategoryOptions>> }) {
   return (
     <form id="rule-form" action={saveRule} className="grid gap-4">
       {rule.id && <input type="hidden" name="id" value={rule.id} />}

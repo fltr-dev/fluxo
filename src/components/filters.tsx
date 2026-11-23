@@ -1,3 +1,4 @@
+import { accountGroups } from "@/components/account-avatar"
 import { DateInput } from "@/components/date-input"
 import { Calendar, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,7 @@ async function FiltersForm({ f, children }: { f: F; children?: React.ReactNode }
         </Field>
       </div>
       <Field label="Conta">
-        <FormSelect name="conta" defaultValue={String(f.accountId ?? "")} emptyLabel="Todas" options={accs.filter((a) => !a.archived).map((a) => ({ value: String(a.id), label: a.name }))} />
+        <FormSelect name="conta" defaultValue={String(f.accountId ?? "")} emptyLabel="Todas" groups={accountGroups(accs.filter((a) => !a.archived))} />
       </Field>
       <Field label="Categoria">
         <FormSelect

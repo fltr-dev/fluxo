@@ -93,7 +93,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </PageTitle>
 
       <div className="flex flex-wrap items-center gap-2">
-        <AccountFilter accounts={activeAccounts.map((a) => ({ id: a.id, name: a.name }))} value={f.accountId} />
+        <AccountFilter accounts={activeAccounts.map(({ id, name, type, bank, color, institution }) => ({ id, name, type, bank, color, institution }))} value={f.accountId} />
         <CategoryFilter tree={tree} selected={selected} />
         {selected.map((id) => {
           const c = catLabel.get(id)

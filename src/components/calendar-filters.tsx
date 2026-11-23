@@ -1,5 +1,6 @@
 "use client"
 
+import { accountGroups } from "@/components/account-avatar"
 import { Check, ChevronDown, ChevronRight, ListFilter } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
@@ -27,7 +28,7 @@ function useSetParams() {
   }
 }
 
-export function AccountFilter({ accounts, value }: { accounts: { id: number; name: string }[]; value?: number }) {
+export function AccountFilter({ accounts, value }: { accounts: Parameters<typeof accountGroups>[0]; value?: number }) {
   const set = useSetParams()
   return (
     <FormSelect
@@ -35,7 +36,7 @@ export function AccountFilter({ accounts, value }: { accounts: { id: number; nam
       value={String(value ?? "")}
       onValueChange={(v) => set({ conta: v || undefined })}
       emptyLabel="Todas as contas"
-      options={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
+      groups={accountGroups(accounts)}
       className="w-52"
     />
   )

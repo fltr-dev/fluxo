@@ -1,5 +1,6 @@
 "use client"
 
+import { accountGroups } from "@/components/account-avatar"
 import { useState } from "react"
 import { Field, fieldClass } from "@/components/bits"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
@@ -8,7 +9,7 @@ type Kind = "" | "EXPENSE" | "INCOME"
 type SubOption = Parameters<typeof SubcategorySelect>[0]["options"][number]
 
 type Props = {
-  accounts: { id: number; name: string }[]
+  accounts: Parameters<typeof accountGroups>[0]
   options: SubOption[]
   accountId?: number | null
   kind?: string | null
@@ -36,7 +37,7 @@ export function RuleFields({ accounts, options, accountId, kind: k0, minAmount, 
     <>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Conta">
-          <FormSelect name="accountId" defaultValue={String(accountId ?? "")} emptyLabel="Qualquer conta" options={accounts.map((a) => ({ value: String(a.id), label: a.name }))} />
+          <FormSelect name="accountId" defaultValue={String(accountId ?? "")} emptyLabel="Qualquer conta" groups={accountGroups(accounts)} />
         </Field>
         <Field label="Tipo">
           <FormSelect

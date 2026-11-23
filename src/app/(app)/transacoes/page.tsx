@@ -1,3 +1,4 @@
+import { accountGroups } from "@/components/account-avatar"
 import { DateInput } from "@/components/date-input"
 import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
 import Link from "next/link"
@@ -95,7 +96,7 @@ function ManualForm({ action, accounts, options, values, submit, next, start, pl
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Conta">
-          <FormSelect name="accountId" required defaultValue={String(values?.accountId ?? accounts[0]?.id ?? "")} options={accounts.map((a) => ({ value: String(a.id), label: a.name }))} />
+          <FormSelect name="accountId" required defaultValue={String(values?.accountId ?? accounts[0]?.id ?? "")} groups={accountGroups(accounts)} />
         </Field>
         <Field label="Categoria">
           <SubcategorySelect name="subcategoryId" options={options} defaultValue={String(values?.subcategoryId ?? "")} emptyLabel="A categorizar" />
