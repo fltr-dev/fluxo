@@ -15,7 +15,7 @@ type Stored = { op: unknown; view: Omit<ActionView, "id" | "kind" | "status" | "
 const txOp = z.object({ accountId: z.number().int(), rows: z.array(z.object({ date: z.string(), description: z.string(), amount: z.number(), subcategoryId: z.number().int().nullable() })).min(1) })
 const catOp = z.object({ rows: z.array(z.object({ id: z.number().int(), subcategoryId: z.number().int() })).min(1) })
 const payOp = z.object({ debtId: z.number().int(), installmentId: z.number().int().nullable(), amount: z.number().positive(), date: z.string(), transactionId: z.number().int().nullable() })
-const ruleOp = z.object({ matchType: z.enum(["CONTAINS", "STARTS_WITH", "REGEX"]), pattern: z.string(), kind: z.enum(["INCOME", "EXPENSE"]).nullable(), subcategoryId: z.number().int() })
+const ruleOp = z.object({ matchType: z.enum(["CONTAINS", "STARTS_WITH", "EQUALS", "REGEX"]), pattern: z.string(), kind: z.enum(["INCOME", "EXPENSE"]).nullable(), subcategoryId: z.number().int() })
 const limitOp = z.object({ categoryId: z.number().int(), monthlyAmount: z.number().positive() })
 
 async function run(kind: string, op: unknown): Promise<string> {

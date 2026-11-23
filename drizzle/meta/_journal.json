@@ -71,6 +71,13 @@
       "when": 1795456607689,
       "tag": "0009_recorrencia_dividas",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795461475307,
+      "tag": "0010_regra_igual_a",
+      "breakpoints": true
     }
   ]
 }

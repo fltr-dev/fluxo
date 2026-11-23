@@ -1,22 +1,20 @@
-import { asc, eq, ne } from "drizzle-orm"
-import { ChevronRight, CircleCheck, Eye, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
+import { asc, eq } from "drizzle-orm"
+import { ChevronRight, CircleCheck, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle, hide } from "@/components/bits"
+import { CancelLink, Empty, FormActions, PageTitle, hide } from "@/components/bits"
 import { RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { categoryRules, db, transactions } from "@/db"
-import { ruleMatches } from "@/lib/domain/categorize"
-import { brl, dateBR } from "@/lib/format"
+import { brl } from "@/lib/format"
 import { subcategoryOptions } from "@/lib/ledger"
 import { listAccounts } from "@/lib/queries"
 import { cn } from "@/lib/utils"
-import { applyRulesToExisting, deleteRule, saveRule, toggleRule } from "./actions"
-import { RuleFields } from "./rule-kind-category"
+import { applyRulesToExisting, deleteRule, toggleRule } from "./actions"
+import { RuleForm } from "./rule-kind-category"
 
-const MATCH_LABEL = { CONTAINS: "Descrição contém", STARTS_WITH: "Descrição começa com", REGEX: "Descrição casa com regex" }
-const MATCH_SHORT = { CONTAINS: "Contém", STARTS_WITH: "Começa com", REGEX: "Regex" }
+const MATCH_LABEL = { CONTAINS: "Descrição contém", STARTS_WITH: "Descrição começa com", EQUALS: "Descrição igual a", REGEX: "Descrição casa com regex" }
 
 async function deleteAndClose(form: FormData) {
   "use server"
@@ -25,39 +23,6 @@ async function deleteAndClose(form: FormData) {
 }
 
 type Rule = typeof categoryRules.$inferSelect
-
-function RuleForm({ rule, accounts, options }: { rule: Partial<Rule>; accounts: Parameters<typeof RuleFields>[0]["accounts"]; options: Awaited<ReturnType<typeof subcategoryOptions>> }) {
-  return (
-    <form id="rule-form" action={saveRule} className="grid gap-4">
-      {rule.id && <input type="hidden" name="id" value={rule.id} />}
-      <fieldset className="grid gap-1.5">
-        <legend className="mb-1.5 text-sm font-medium">Descrição da transação</legend>
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-[3px]">
-          {Object.entries(MATCH_SHORT).map(([v, l]) => (
-            <label key={v} className="flex h-8 cursor-pointer items-center justify-center rounded-md text-sm font-medium text-muted-foreground has-checked:bg-card has-checked:text-foreground has-checked:shadow-sm">
-              <input type="radio" name="matchType" value={v} defaultChecked={(rule.matchType ?? "CONTAINS") === v} className="sr-only" />
-              {l}
-            </label>
-          ))}
-        </div>
-        <input name="pattern" required maxLength={200} defaultValue={rule.pattern} aria-label="Padrão" placeholder="Ex.: UBER" className={cn(fieldClass, "mt-1 font-mono")} />
-        <span className="text-xs text-muted-foreground">Não diferencia maiúsculas de minúsculas.</span>
-      </fieldset>
-      <RuleFields
-        accounts={accounts}
-        options={options}
-        accountId={rule.accountId}
-        kind={rule.kind}
-        minAmount={rule.minAmount}
-        maxAmount={rule.maxAmount}
-        subcategoryId={rule.subcategoryId}
-      />
-      <Field label="Prioridade" hint="Menor número vence quando duas regras casam.">
-        <input type="number" name="priority" min={0} max={10000} defaultValue={rule.priority ?? 100} className={cn(fieldClass, "w-28")} />
-      </Field>
-    </form>
-  )
-}
 
 export default async function RulesPage({ searchParams }: PageProps<"/regras">) {
   const sp = await searchParams
@@ -76,9 +41,6 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
   const sheetOpen = !!(editing || tx || sp.nova)
   const draft: Partial<Rule> = editing ?? (tx ? { pattern: tx.description, subcategoryId: tx.subcategoryId ?? undefined, kind: tx.amount < 0 ? "EXPENSE" : "INCOME" } : {})
 
-  // Pré-visualização em memória (só ao editar): transações que a regra casaria, exceto transferências
-  const preview = editing ? (await db.select().from(transactions).where(ne(transactions.kind, "TRANSFER"))).filter((t) => ruleMatches({ ...editing, active: true }, t)) : []
-  const userEdited = preview.filter((t) => t.categorySource === "USER").length
 
   return (
     <div className="grid gap-5">
@@ -214,26 +176,6 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
               <form id="delete-rule" action={deleteAndClose}>
                 <input type="hidden" name="id" value={editing.id} />
               </form>
-            )}
-            {editing && (
-              <section className="grid gap-3 rounded-xl border bg-muted/40 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-sm font-medium"><Eye className="size-4" />Prévia</span>
-                  <span className="rounded-full bg-income/10 px-2 py-0.5 text-xs font-medium text-income tabular-nums">{preview.length} transações</span>
-                </div>
-                <ul className="grid text-sm">
-                  {preview.slice(0, 8).map((t) => (
-                    <li key={t.id} className="flex items-center justify-between gap-3 border-b py-1.5 last:border-0">
-                      <span className="grid min-w-0">
-                        <span className="truncate font-mono text-xs">{t.description}</span>
-                        <span className="text-xs text-muted-foreground">{dateBR(t.date)} · {t.categorySource === "USER" ? "editada por você" : "será aplicada"}</span>
-                      </span>
-                      <Money value={t.amount} className="shrink-0 font-medium" />
-                    </li>
-                  ))}
-                </ul>
-                {userEdited > 0 && <span className="text-xs text-muted-foreground">{userEdited} foram categorizadas por você e serão preservadas.</span>}
-              </section>
             )}
             {/* os botões do rodapé acionam os formulários pelo atributo `form` */}
             <FormActions

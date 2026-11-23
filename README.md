@@ -56,7 +56,7 @@ Para mudar o desenho, edite `src/app/icon.svg` (e as variações em `public/icon
 ## Deploy (Vercel Hobby)
 
 1. Importe o repositório na Vercel e configure as variáveis acima.
-2. Rode `npm run db:migrate` apontando para o Neon (migrações 0004 e 0005 criam dívidas, avisos, push e conversas do Cofy; **0006** cria `app_state` para as categorias padrão e **0007** (`0007_cartao`) adiciona limite, limite disponível e vencimento da fatura em `accounts`) (localmente, com o `DATABASE_URL` de produção). **0008** guarda o nome do dono e **0009** (`0009_recorrencia_dividas`) adiciona a recorrência das dívidas (colunas `recur_*` em `debts` e `date` em `debt_items`). **Aplique as migrações pendentes em produção antes de publicar cada versão**: o app já lê as colunas novas (a partir da 0.3.0, as dívidas leem as da 0009).
+2. Rode `npm run db:migrate` apontando para o Neon (migrações 0004 e 0005 criam dívidas, avisos, push e conversas do Cofy; **0006** cria `app_state` para as categorias padrão e **0007** (`0007_cartao`) adiciona limite, limite disponível e vencimento da fatura em `accounts`) (localmente, com o `DATABASE_URL` de produção). **0008** guarda o nome do dono e **0009** (`0009_recorrencia_dividas`) adiciona a recorrência das dívidas (colunas `recur_*` em `debts` e `date` em `debt_items`). **0010** (`0010_regra_igual_a`) adiciona o tipo de regra "Igual a" (a partir da 0.3.1). **Aplique as migrações pendentes em produção antes de publicar cada versão**: o app já lê as colunas novas (a partir da 0.3.0, as dívidas leem as da 0009).
 3. O cron diário está em `vercel.json` (09:00 UTC = 06:00 em Brasília).
 
 

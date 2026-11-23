@@ -38,6 +38,12 @@ describe("categorização", () => {
     expect(matchRule(rules, tx)?.id).toBe(2)
     expect(matchRule([rule({ matchType: "STARTS_WITH", pattern: "uber *" })], tx)).toBeDefined()
   })
+  it("regra 'igual a' ignora maiúsculas, acentos e espaços, mas não casa trecho", () => {
+    const eq = [rule({ matchType: "EQUALS", pattern: " uber  *trip sao paulo " })]
+    expect(matchRule(eq, tx)).toBeDefined()
+    expect(matchRule([rule({ matchType: "EQUALS", pattern: "99" })], { ...tx, description: "99" })).toBeDefined()
+    expect(matchRule([rule({ matchType: "EQUALS", pattern: "99" })], { ...tx, description: "99 Pop" })).toBeUndefined()
+  })
   it("mapeia pela categoria Pluggy e cai no nível 1", () => {
     const map = new Map([["Groceries", 5], ["Food and drinks", 6]])
     expect(mapPluggyCategory(map, { ...tx, pluggyCategory: "Groceries" })).toBe(5)
