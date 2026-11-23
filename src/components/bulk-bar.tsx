@@ -2,7 +2,9 @@
 
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import type { Undo } from "@/app/(app)/transacoes/actions"
 import { Button } from "@/components/ui/button"
+import { toastUndo } from "@/components/undo"
 
 const boxes = (formId: string) => [...document.querySelectorAll<HTMLInputElement>(`input[form="${formId}"][name="ids"]`)]
 
@@ -10,7 +12,7 @@ const boxes = (formId: string) => [...document.querySelectorAll<HTMLInputElement
  * Barra flutuante de ações em lote. Os checkboxes das linhas apontam para este formulário
  * com o atributo `form`, então cada linha pode continuar tendo os próprios formulários.
  */
-export function BulkBar({ formId, action, children }: { formId: string; action: (f: FormData) => Promise<void>; children: React.ReactNode }) {
+export function BulkBar({ formId, action, children }: { formId: string; action: (f: FormData) => Promise<Undo | undefined>; children: React.ReactNode }) {
   const [count, setCount] = useState(0)
   useEffect(() => {
     const update = () => setCount(boxes(formId).filter((b) => b.checked).length)
@@ -26,7 +28,7 @@ export function BulkBar({ formId, action, children }: { formId: string; action: 
     <form
       id={formId}
       action={async (f) => {
-        await action(f)
+        toastUndo(await action(f))
         clear()
       }}
       hidden={count === 0}

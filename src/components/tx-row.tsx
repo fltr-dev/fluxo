@@ -7,6 +7,7 @@ import { acceptSuggestion, deleteManual, markTransfer, rejectSuggestion, setCate
 import { Money } from "@/components/bits"
 import { SubcategorySelect } from "@/components/form-select"
 import { ContextRow, SwipeRow, type RowAction } from "@/components/swipe-row"
+import { toastUndo } from "@/components/undo"
 import type { transactions } from "@/db"
 import { brl, dateBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -26,7 +27,7 @@ function txActions({ tx }: TxItem, detailsHref: string) {
   const transfer = tx.kind === "TRANSFER"
   const manual = !tx.pluggyId
   const ignore: RowAction = tx.ignored ? { label: "Considerar", icon: "eye", run: toggleIgnored, id } : { label: "Ignorar", icon: "eyeOff", run: toggleIgnored, id }
-  const accept: RowAction = { label: "Aceitar", icon: "check", tone: "primary", run: acceptSuggestion, id }
+  const accept: RowAction = { label: "Aceitar", icon: "check", tone: "primary", run: (f) => acceptSuggestion(f).then(toastUndo), id }
   const left: RowAction[] = transfer
     ? []
     : tx.suggestedSubcategoryId
@@ -49,7 +50,7 @@ const sheetInfo = ({ tx, accountName }: TxItem) => ({ title: tx.description, des
 function CategoryPicker({ tx, run }: { tx: Tx; run: (fn: () => Promise<unknown>) => void }) {
   const options = use(Options)
   return (
-    <form action={(f) => run(() => setCategory(f))} className="grid gap-1.5">
+    <form action={(f) => run(() => setCategory(f).then(toastUndo))} className="grid gap-1.5">
       <input type="hidden" name="id" value={tx.id} />
       <label htmlFor={`cat-${tx.id}`} className="text-sm font-medium">Categoria</label>
       <SubcategorySelect id={`cat-${tx.id}`} name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" autoSubmit />

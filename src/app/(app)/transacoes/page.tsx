@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/filters-client"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { TxContextRow, TxOptions, TxSwipe } from "@/components/tx-row"
+import { UndoForm } from "@/components/undo"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { transactions } from "@/db"
@@ -47,6 +48,14 @@ const backTo = (form: FormData) => {
 async function createAndClose(form: FormData) {
   "use server"
   await createManual(form)
+  redirect(backTo(form))
+}
+
+/** Painel Detalhes: grava a categoria (só se mudou: senão viraria "Você" e perderia a sugestão) e a nota, e fecha. */
+async function saveDetailsAndClose(form: FormData) {
+  "use server"
+  if (form.has("subcategoryId") && form.get("subcategoryId") !== form.get("current")) await setCategory(form)
+  await setNote(form)
   redirect(backTo(form))
 }
 
@@ -242,17 +251,17 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                                   <Sparkles className="size-3 shrink-0" />
                                   {label.get(tx.suggestedSubcategoryId)?.split(" › ")[1] ?? "?"} · {pct(tx.suggestionConfidence ?? 0)}
                                 </span>
-                                <form action={acceptSuggestion}>
+                                <UndoForm action={acceptSuggestion}>
                                   <input type="hidden" name="id" value={tx.id} />
                                   <Button type="submit" variant="ghost" size="icon-sm" aria-label="Aceitar sugestão" className="text-income"><Check /></Button>
-                                </form>
+                                </UndoForm>
                                 <form action={rejectSuggestion}>
                                   <input type="hidden" name="id" value={tx.id} />
                                   <Button type="submit" variant="ghost" size="icon-sm" aria-label="Rejeitar sugestão" className="text-muted-foreground"><X /></Button>
                                 </form>
                               </span>
                             ) : (
-                              <form action={setCategory} className="flex min-w-0 items-center gap-2">
+                              <UndoForm action={setCategory} className="flex min-w-0 items-center gap-2">
                                 <input type="hidden" name="id" value={tx.id} />
                                 <span className="size-2 shrink-0 rounded-full" style={{ background: tx.subcategoryId ? (color ?? "#a1a1aa") : "#f59e0b" }} aria-hidden />
                                 <SubcategorySelect
@@ -268,7 +277,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                                     !tx.subcategoryId && "border-dashed border-amber-300 bg-amber-50 font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400",
                                   )}
                                 />
-                              </form>
+                              </UndoForm>
                             )}
                           </td>
                           <td className="truncate px-3 text-muted-foreground" title={accountName}>{accountName}</td>
@@ -410,10 +419,10 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
           </span>
           <span className="text-sm">{label.get(tx.suggestedSubcategoryId) ?? "?"}</span>
           <div className="flex gap-2">
-            <form action={acceptSuggestion}>
+            <UndoForm action={acceptSuggestion}>
               <input type="hidden" name="id" value={tx.id} />
               <Button type="submit">Aceitar</Button>
-            </form>
+            </UndoForm>
             <form action={rejectSuggestion}>
               <input type="hidden" name="id" value={tx.id} />
               <Button type="submit" variant="outline">Rejeitar</Button>
@@ -422,23 +431,26 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
         </div>
       )}
 
-      {tx.kind !== "TRANSFER" && (
-        <form action={setCategory} className="grid gap-1.5">
-          <input type="hidden" name="id" value={tx.id} />
-          <label htmlFor="sheet-cat" className="text-sm font-medium">Categoria</label>
-          <SubcategorySelect id="sheet-cat" name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" autoSubmit />
-          <Link href={`/regras?de=${tx.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-            <ListChecks className="size-3.5" />
-            Criar regra a partir desta transação
-          </Link>
-        </form>
-      )}
-
-      <form action={setNote} className="grid gap-1.5">
+      {/* categoria e nota só gravam no Salvar (fecha o painel) */}
+      <form action={saveDetailsAndClose} className="grid gap-4">
         <input type="hidden" name="id" value={tx.id} />
-        <label htmlFor="sheet-note" className="text-sm font-medium">Nota</label>
-        <textarea id="sheet-note" name="note" defaultValue={tx.note ?? ""} maxLength={1000} rows={3} placeholder="Ex.: racha do jantar de sexta" className={cn(fieldClass, "h-auto py-2")} />
-        <Button type="submit" variant="outline" className="justify-self-start">Salvar nota</Button>
+        <input type="hidden" name="next" value={here} />
+        {tx.kind !== "TRANSFER" && (
+          <div className="grid gap-1.5">
+            <input type="hidden" name="current" value={String(tx.subcategoryId ?? "")} />
+            <label htmlFor="sheet-cat" className="text-sm font-medium">Categoria</label>
+            <SubcategorySelect id="sheet-cat" name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" />
+            <Link href={`/regras?de=${tx.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+              <ListChecks className="size-3.5" />
+              Criar regra a partir desta transação
+            </Link>
+          </div>
+        )}
+        <div className="grid gap-1.5">
+          <label htmlFor="sheet-note" className="text-sm font-medium">Nota</label>
+          <textarea id="sheet-note" name="note" defaultValue={tx.note ?? ""} maxLength={1000} rows={3} placeholder="Ex.: racha do jantar de sexta" className={cn(fieldClass, "h-auto py-2")} />
+        </div>
+        <Button type="submit" className="justify-self-start">Salvar</Button>
       </form>
 
       <div className="grid gap-2">

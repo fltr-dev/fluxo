@@ -22,11 +22,41 @@ async function unlinkPair(tx: { id: number; transferPairId: number | null }) {
   if (tx.transferPairId) await db.update(transactions).set({ transferPairId: null }).where(eq(transactions.id, tx.transferPairId))
 }
 
-export async function setCategory(form: FormData) {
+// Desfazer: o estado da categoria antes da ação, devolvido ao cliente para o toast "Desfazer"
+const snapshotShape = z.object({
+  id: z.number().int().positive(),
+  subcategoryId: z.number().int().positive().nullable(),
+  categorySource: z.enum(["USER", "RULE", "JEV", "PLUGGY_MAP", "NONE"]),
+  kind: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
+  transferPairId: z.number().int().positive().nullable(),
+  suggestedSubcategoryId: z.number().int().positive().nullable(),
+  suggestionConfidence: z.number().nullable(),
+})
+export type Snapshot = z.infer<typeof snapshotShape>
+export type Undo = { message: string; undo: Snapshot[] }
+
+const snapshot = (t: typeof transactions.$inferSelect): Snapshot => ({
+  id: t.id,
+  subcategoryId: t.subcategoryId,
+  categorySource: t.categorySource,
+  kind: t.kind,
+  transferPairId: t.transferPairId,
+  suggestedSubcategoryId: t.suggestedSubcategoryId,
+  suggestionConfidence: t.suggestionConfidence,
+})
+
+/** Volta as transações ao estado de antes (inclusive a sugestão da IA e o par de transferência). */
+export async function restoreCategories(snaps: Snapshot[]) {
   await requireUser()
-  const { id, subcategoryId } = parseForm(form, { id: fd.id, subcategoryId: fd.optId })
+  for (const { id, ...s } of z.array(snapshotShape).max(500).parse(snaps)) {
+    await db.update(transactions).set({ ...s, updatedAt: new Date() }).where(eq(transactions.id, id))
+    if (s.transferPairId) await db.update(transactions).set({ transferPairId: id }).where(eq(transactions.id, s.transferPairId))
+  }
+  refresh()
+}
+
+async function categorize(id: number, subcategoryId: number | null, kinds: Map<number, "INCOME" | "EXPENSE">) {
   const tx = await getTx(id)
-  const kinds = await subcategoryKinds()
   if (subcategoryId && !kinds.has(subcategoryId)) throw new Error("Subcategoria inválida")
   await unlinkPair(tx)
   await db
@@ -40,10 +70,18 @@ export async function setCategory(form: FormData) {
       updatedAt: new Date(),
     })
     .where(eq(transactions.id, id))
-  refresh()
+  return snapshot(tx)
 }
 
-export async function acceptSuggestion(form: FormData) {
+export async function setCategory(form: FormData): Promise<Undo> {
+  await requireUser()
+  const { id, subcategoryId } = parseForm(form, { id: fd.id, subcategoryId: fd.optId })
+  const before = await categorize(id, subcategoryId, await subcategoryKinds())
+  refresh()
+  return { message: subcategoryId ? "Categoria alterada" : "Transação voltou para A categorizar", undo: [before] }
+}
+
+export async function acceptSuggestion(form: FormData): Promise<Undo | undefined> {
   await requireUser()
   const { id } = parseForm(form, { id: fd.id })
   const tx = await getTx(id)
@@ -60,6 +98,7 @@ export async function acceptSuggestion(form: FormData) {
     })
     .where(eq(transactions.id, id))
   refresh()
+  return { message: "Sugestão aceita", undo: [snapshot(tx)] }
 }
 
 export async function rejectSuggestion(form: FormData) {
@@ -164,19 +203,19 @@ export async function deleteManual(form: FormData) {
 }
 
 /** Ações em lote da lista: categorizar (mesma regra do individual) ou ignorar nos relatórios. */
-export async function bulkUpdate(form: FormData) {
+export async function bulkUpdate(form: FormData): Promise<Undo | undefined> {
   await requireUser()
   const ids = z.array(fd.id).min(1).max(500).parse(form.getAll("ids"))
   const op = z.enum(["categorizar", "ignorar"]).parse(form.get("op"))
   if (op === "ignorar") {
     await db.update(transactions).set({ ignored: true, updatedAt: new Date() }).where(inArray(transactions.id, ids))
-  } else {
-    for (const id of ids) {
-      const one = new FormData()
-      one.set("id", String(id))
-      one.set("subcategoryId", String(form.get("subcategoryId") ?? ""))
-      await setCategory(one)
-    }
+    refresh()
+    return
   }
+  const { subcategoryId } = parseForm(form, { subcategoryId: fd.optId })
+  const kinds = await subcategoryKinds()
+  const undo: Snapshot[] = []
+  for (const id of ids) undo.push(await categorize(id, subcategoryId, kinds))
   refresh()
+  return { message: `${ids.length} ${ids.length === 1 ? "transação categorizada" : "transações categorizadas"}`, undo }
 }
