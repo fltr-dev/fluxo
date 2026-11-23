@@ -47,10 +47,29 @@ export function Empty({ icon: Icon, title, children, action }: { icon?: LucideIc
   )
 }
 
+/**
+ * Modo privado: esconde só os números (o "R$", o sinal e as palavras continuam visíveis). Texto com "R$" esconde
+ * os valores depois dele; sem "R$" (preço, percentual), todo número. O estilo (blur ou bolinhas) é o `.pv` do
+ * globals.css. Conteúdo que não é texto cai no `.sensitive`, que borra o bloco inteiro.
+ */
+export function hide(text: React.ReactNode): React.ReactNode {
+  if (typeof text !== "string" && typeof text !== "number") return <span className="sensitive">{text}</span>
+  const s = String(text)
+  const parts: React.ReactNode[] = []
+  let last = 0
+  for (const m of s.matchAll(s.includes("R$") ? /(R\$\s?)(\d[\d.,]*)/g : /()(\d[\d.,]*)/g)) {
+    const at = m.index + m[1].length
+    parts.push(s.slice(last, at), <span key={at} className="pv"><span>{m[2]}</span></span>)
+    last = at + m[2].length
+  }
+  parts.push(s.slice(last))
+  return parts
+}
+
 export const Money = ({ value, className, signed }: { value: number; className?: string; signed?: boolean }) => (
-  <span className={cn("whitespace-nowrap tabular-nums sensitive", value < 0 && "text-expense", signed && value > 0 && "text-income", className)}>
+  <span className={cn("whitespace-nowrap tabular-nums", value < 0 && "text-expense", signed && value > 0 && "text-income", className)}>
     {signed && value > 0 && "+"}
-    {brl(value)}
+    {hide(brl(value))}
   </span>
 )
 
@@ -58,7 +77,7 @@ export const Field = ({ label, children, className, hint }: { label: string; chi
   <label className={cn("grid content-start gap-1.5 text-sm font-medium", className)}>
     {label}
     {children}
-    {hint && <span className={cn("text-xs font-normal text-muted-foreground", hint.includes("R$") && "sensitive")}>{hint}</span>}
+    {hint && <span className="text-xs font-normal text-muted-foreground">{hint.includes("R$") ? hide(hint) : hint}</span>}
   </label>
 )
 

@@ -130,3 +130,51 @@ describe("dívidas", () => {
     expect(await testDb.select().from(schema.debtInstallments).where(eq(schema.debtInstallments.debtId, id))).toHaveLength(0)
   })
 })
+
+describe("dívida recorrente", () => {
+  // Psicólogo: sessão a cada 2 semanas desde 6 semanas atrás; uma remarcada à mão, a 1ª já paga
+  const start = addDays(now, -42)
+  const psi = (items: { date: string }[], next: string | null) => ({
+    creditor: "Dra. Lia",
+    items: items.map((i) => ({ description: "Sessão", quantity: 1, unitAmount: 200, date: i.date })),
+    mode: "RECUR" as const,
+    schedule: { kind: "NONE" as const, offsetDays: 1 },
+    recur: { every: 2, unit: "WEEK" as const, label: "Sessão", amount: 200, next, end: null },
+    remindDaysBefore: 1,
+  })
+
+  it("cada item vira parcela na sua data; a próxima entra sozinha quando a data chega", async () => {
+    const dates = [start, addDays(start, 16), addDays(start, 28)] // a 2ª remarcada (+2 dias)
+    const id = await debtsLib.createDebt(psi(dates.map((date) => ({ date })), addDays(start, 42)))
+    const v = await find(id)
+    // a 4ª ocorrência (hoje) foi gerada na carga
+    expect(v.items.map((i) => i.date)).toEqual([...dates, now])
+    expect(v.ev.rows.map((r) => [r.due, r.amount])).toEqual([...dates, now].map((d) => [d, 200]))
+    expect(v.ev.total).toBe(800)
+    expect(v.debt.recurNext).toBe(addDays(now, 14))
+    // carregar de novo não duplica
+    expect((await find(id)).items).toHaveLength(4)
+  })
+
+  it("editar mantém a parcela paga casada pela data e não reparte valores", async () => {
+    const id = await debtsLib.createDebt(psi([{ date: start }, { date: addDays(start, 14) }], addDays(start, 28)))
+    let v = await find(id)
+    await debtsLib.payInstallment({ debtId: id, installmentId: v.ev.rows[0].id, amount: 200, date: start })
+    v = await find(id)
+    expect(v.ev.rows.map((r) => r.amount)).toEqual([200, 200, 200, 200])
+    // remove a sessão de 14 dias depois do início (cancelada) e salva
+    const keep = v.items.filter((i) => i.date !== addDays(start, 14)).map((i) => ({ date: i.date! }))
+    await debtsLib.updateDebt({ ...psi(keep, v.debt.recurNext), id })
+    v = await find(id)
+    expect(v.ev.rows).toHaveLength(3)
+    expect(v.ev.rows[0]).toMatchObject({ due: start, paidOn: start })
+    expect(v.ev).toMatchObject({ total: 600, paid: 200, remaining: 400 })
+  })
+
+  it("com data final, para de gerar depois dela", async () => {
+    const id = await debtsLib.createDebt({ ...psi([], start), recur: { every: 2, unit: "WEEK", label: "Sessão", amount: 200, next: start, end: addDays(start, 20) } })
+    const v = await find(id)
+    expect(v.items.map((i) => i.date)).toEqual([start, addDays(start, 14)])
+    expect(v.debt.recurNext).toBeNull()
+  })
+})

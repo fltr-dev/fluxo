@@ -56,7 +56,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   )
 }
 
-/** Esconde com blur os valores marcados com `sensitive` (classe .privacy no <html>, ver globals.css); cookie para o SSR já vir escondido. */
+/** Esconde os valores do hide() (classe .privacy no <html>, ver globals.css); cookie para o SSR já vir escondido. */
 export function PrivacyToggle({ className }: { className?: string }) {
   function toggle() {
     const on = document.documentElement.classList.toggle("privacy")

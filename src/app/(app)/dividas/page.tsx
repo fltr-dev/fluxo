@@ -1,11 +1,11 @@
 import { Calendar, CalendarDays, Check, CircleAlert, HandCoins, Link2, Pencil, Plus, Wallet } from "lucide-react"
 import Link from "next/link"
-import { Bar, Empty, Field, fieldClass, FormActions, PageTitle } from "@/components/bits"
+import { Bar, Empty, Field, fieldClass, FormActions, PageTitle, hide } from "@/components/bits"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { addDays, monthOf, today } from "@/lib/domain/dates"
-import { dueBetween, payoffMonth, salaryOn, scheduleLabel, type DueRow } from "@/lib/domain/debts"
+import { dueBetween, payoffMonth, recurrenceLabel, salaryOn, scheduleLabel, type DueRow } from "@/lib/domain/debts"
 import { loadDebts, matchPayments, type DebtView } from "@/lib/debts"
 import { brl, dateBR, dayMonth, monthLabel } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -28,14 +28,25 @@ const intParam = (v: string | string[] | undefined) => {
 function formValue(v: DebtView): DebtFormValue {
   const open = v.ev.rows.filter((r) => !r.paidOn)
   const s = v.schedule
+  const d = v.debt
   const flex = s.kind === "NONE" && v.ev.rows.every((r) => r.paidOn)
   return {
-    id: v.debt.id,
-    creditor: v.debt.creditor,
-    relation: v.debt.relation ?? "",
-    description: v.debt.description ?? "",
-    items: v.items.map(({ description, quantity, unitAmount }) => ({ description, quantity, unitAmount })),
-    mode: flex ? "FLEX" : open.length <= 1 ? "LUMP" : "INSTALLMENTS",
+    id: d.id,
+    creditor: d.creditor,
+    relation: d.relation ?? "",
+    description: d.description ?? "",
+    items: v.items.map(({ description, quantity, unitAmount, date }) => ({ description, quantity, unitAmount, date: date ?? undefined })),
+    mode: d.recurUnit ? "RECUR" : flex ? "FLEX" : open.length <= 1 ? "LUMP" : "INSTALLMENTS",
+    recur: {
+      every: d.recurEvery ?? 1,
+      unit: d.recurUnit ?? "MONTH",
+      label: d.recurLabel ?? v.items[0]?.description ?? "",
+      amount: d.recurAmount ?? v.items[0]?.unitAmount ?? 0,
+      start: v.items[0]?.date ?? "",
+      next: d.recurNext,
+      end: d.recurEnd ?? "",
+    },
+    paidDates: v.ev.rows.filter((r) => r.paidOn && r.dueOverride).map((r) => r.dueOverride!),
     installments: Math.max(1, open.length),
     kind: s.kind,
     day: s.day ?? 5,
@@ -45,6 +56,8 @@ function formValue(v: DebtView): DebtFormValue {
   }
 }
 
+/** "A cada 2 semanas" na recorrente; senão a regra de vencimento. */
+const ruleLabel = (v: DebtView) => (v.debt.recurUnit && v.debt.recurEvery ? recurrenceLabel({ every: v.debt.recurEvery, unit: v.debt.recurUnit }) : scheduleLabel(v.schedule))
 const installmentOf = (v: DebtView, r: DueRow) => `${r.number} de ${v.ev.rows.length}`
 const dueText = (r: DueRow) => (r.due ? `${dayMonth(r.due)}${r.estimated ? " (previsto)" : ""}` : "sem data")
 
@@ -52,7 +65,7 @@ function DebtCard({ v }: { v: DebtView }) {
   const { debt, ev } = v
   const pctPaid = ev.total ? ev.paid / ev.total : 0
   const next = ev.next
-  const summary = debt.description || v.items.map((i) => i.description).join(", ")
+  const summary = debt.description || debt.recurLabel || v.items.map((i) => i.description).join(", ")
   return (
     <article className={cn("grid min-w-0 grid-cols-1 gap-3 rounded-2xl border bg-card p-4 transition-shadow hover:shadow-sm", ev.status === "overdue" && "border-expense/30")}>
       <div className="flex items-start gap-3">
@@ -68,12 +81,12 @@ function DebtCard({ v }: { v: DebtView }) {
           <p className="truncate text-sm text-muted-foreground" title={summary}>{summary}</p>
         </div>
         <div className="shrink-0 text-right whitespace-nowrap">
-          <div className="font-semibold tabular-nums sensitive">{brl(ev.remaining)}</div>
-          <div className="text-xs text-muted-foreground tabular-nums sensitive">{ev.paid > 0 ? `de ${brl(ev.total)}` : "em aberto"}</div>
+          <div className="font-semibold tabular-nums">{hide(brl(ev.remaining))}</div>
+          <div className="text-xs text-muted-foreground tabular-nums">{hide(ev.paid > 0 ? `de ${brl(ev.total)}` : "em aberto")}</div>
         </div>
       </div>
 
-      {v.items.length > 1 && (
+      {v.items.length > 1 && !debt.recurUnit && (
         <ul className="grid grid-cols-1 gap-0.5 rounded-xl bg-muted/50 px-3 py-2 text-sm">
           {v.items.map((i) => (
             <li key={i.id} className="flex justify-between gap-3">
@@ -81,7 +94,7 @@ function DebtCard({ v }: { v: DebtView }) {
                 {i.quantity > 1 && <span className="tabular-nums">{i.quantity}× </span>}
                 {i.description}
               </span>
-              <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums sensitive">{brl(i.quantity * i.unitAmount)}</span>
+              <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums">{hide(brl(i.quantity * i.unitAmount))}</span>
             </li>
           ))}
         </ul>
@@ -92,11 +105,11 @@ function DebtCard({ v }: { v: DebtView }) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays className="size-4" />
-          {scheduleLabel(v.schedule)}
+          {ruleLabel(v)}
         </span>
         {next ? (
           <span>
-            Próxima: <b className="font-semibold text-foreground">{dueText(next)}</b> · <span className="sensitive">{brl(next.amount)}</span> ·{installmentOf(v, next)}
+            Próxima: <b className="font-semibold text-foreground">{dueText(next)}</b> · {hide(brl(next.amount))} ·{installmentOf(v, next)}
           </span>
         ) : ev.remaining > 0 ? (
           <span>Pagamento livre</span>
@@ -130,11 +143,11 @@ async function DetailSheet({ v }: { v: DebtView }) {
             ["Restante", brl(ev.remaining), ""],
             ["Pago", brl(ev.paid), "text-income"],
             ["Total", brl(ev.total), ""],
-            ["Vencimento", scheduleLabel(v.schedule), ""],
+            ["Vencimento", ruleLabel(v), ""],
           ].map(([l, val, cls]) => (
             <div key={l} className="grid gap-0.5 bg-card px-3.5 py-2.5">
               <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{l}</span>
-              <span className={cn("font-semibold tabular-nums", l !== "Vencimento" && "sensitive", cls)}>{val}</span>
+              <span className={cn("font-semibold tabular-nums", cls)}>{(l !== "Vencimento") ? hide(val) : val}</span>
             </div>
           ))}
         </div>
@@ -146,10 +159,11 @@ async function DetailSheet({ v }: { v: DebtView }) {
               {v.items.map((i) => (
                 <li key={i.id} className="flex justify-between gap-3 px-3.5 py-2">
                   <span className="truncate" title={i.description}>
+                    {i.date && <span className="text-muted-foreground tabular-nums">{dateBR(i.date)} · </span>}
                     {i.quantity > 1 && <span className="tabular-nums">{i.quantity}× </span>}
                     {i.description}
                   </span>
-                  <span className="shrink-0 whitespace-nowrap tabular-nums sensitive">{brl(i.quantity * i.unitAmount)}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums">{hide(brl(i.quantity * i.unitAmount))}</span>
                 </li>
               ))}
             </ul>
@@ -166,7 +180,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
             <Link2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <div className="grid flex-1 gap-1.5">
               <span>
-                Encontramos uma saída de <b className="tabular-nums sensitive">{brl(-suggestion.amount)}</b> em {dateBR(suggestion.date)} ({suggestion.description}). Foi o pagamento da parcela {installmentOf(v, nextOpen)}?
+                Encontramos uma saída de <b className="tabular-nums">{hide(brl(-suggestion.amount))}</b> em {dateBR(suggestion.date)} ({suggestion.description}). Foi o pagamento da parcela {installmentOf(v, nextOpen)}?
               </span>
               <Button type="submit" size="sm" className="justify-self-start">
                 Vincular e marcar como paga
@@ -195,7 +209,7 @@ async function DetailSheet({ v }: { v: DebtView }) {
                     {!r.paidOn && r.status === "overdue" && <span className="text-xs font-medium text-expense">Em atraso</span>}
                     {!r.paidOn && r.id === ev.next?.id && r.status !== "overdue" && <span className="text-xs font-medium text-primary">Próxima</span>}
                   </div>
-                  <b className="whitespace-nowrap tabular-nums sensitive">{brl(r.amount)}</b>
+                  <b className="whitespace-nowrap tabular-nums">{hide(brl(r.amount))}</b>
                   {r.paidOn ? (
                     <form action={undoDebtPayment}>
                       <input type="hidden" name="debtId" value={debt.id} />
@@ -259,7 +273,7 @@ async function PayDialog({ v, installmentId }: { v: DebtView; installmentId?: nu
                 <input type="radio" name="transactionId" value={t.id} className="accent-primary" />
                 <span className="min-w-0 flex-1 truncate" title={t.description}>{t.description}</span>
                 <span className="text-muted-foreground tabular-nums">{dateBR(t.date)}</span>
-                <b className="whitespace-nowrap tabular-nums sensitive">{brl(-t.amount)}</b>
+                <b className="whitespace-nowrap tabular-nums">{hide(brl(-t.amount))}</b>
               </label>
             ))}
           </fieldset>
@@ -332,7 +346,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
             ].map(([label, value, hint, cls], i) => (
               <div key={label} className={cn("grid gap-0.5 px-5 py-4", i > 0 && "border-t sm:border-l lg:border-t-0", i === 2 && "sm:border-t lg:border-t-0 sm:border-l-0 lg:border-l", i === 1 && "sm:border-t-0")}>
                 <span className="text-sm font-medium text-muted-foreground">{label}</span>
-                <span className={cn("text-xl font-semibold tracking-tight whitespace-nowrap tabular-nums sensitive", cls)}>{value}</span>
+                <span className={cn("text-xl font-semibold tracking-tight whitespace-nowrap tabular-nums", cls)}>{hide(value)}</span>
                 <span className="truncate text-xs text-muted-foreground" title={hint}>{hint}</span>
               </div>
             ))}
@@ -344,7 +358,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                 <CircleAlert className="size-4" />
               </span>
               <p className="min-w-0 flex-1 basis-60 text-sm">
-                <b><span className="sensitive">{brl(overdue[0].row.amount)}</span> para {overdue[0].v.debt.creditor}</b> venceu em {dateBR(overdue[0].row.due!)}
+                <b>{hide(brl(overdue[0].row.amount))} para {overdue[0].v.debt.creditor}</b> venceu em {dateBR(overdue[0].row.due!)}
                 {overdue.length > 1 && <span className="text-muted-foreground"> · e mais {overdue.length - 1} em atraso</span>}
               </p>
               <Link href={`/dividas?pagar=${overdue[0].v.debt.id}&parcela=${overdue[0].row.id}`} className={buttonVariants({ size: "sm" })}>
@@ -373,7 +387,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                   </span>
                   <div className="grid">
                     <h2 className="text-sm font-semibold">Próximos 30 dias</h2>
-                    <span className="text-xs text-muted-foreground"><span className="sensitive">{brl(upcoming.reduce((t, u) => t + u.row.amount, 0))}</span> a pagar</span>
+                    <span className="text-xs text-muted-foreground">{hide(brl(upcoming.reduce((t, u) => t + u.row.amount, 0)))} a pagar</span>
                   </div>
                 </div>
                 {timeline.length === 0 ? (
@@ -395,7 +409,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                                 {t.row.estimated && " · data prevista"}
                               </span>
                             </span>
-                            <b className="whitespace-nowrap tabular-nums sensitive">{brl(t.row.amount)}</b>
+                            <b className="whitespace-nowrap tabular-nums">{hide(brl(t.row.amount))}</b>
                           </Link>
                         </li>
                       ) : (
@@ -420,7 +434,7 @@ export default async function DebtsPage({ searchParams }: PageProps<"/dividas">)
                       ? "Sem dívidas em aberto. Que bom!"
                       : payoff
                         ? `Mantendo os pagamentos agendados, você zera tudo em ${monthLabel(payoff)}.`
-                        : <>Faltam <span className="sensitive">{brl(remainingSum)}</span>. Algumas dívidas são de pagamento livre: combine um valor mensal para elas.</>}
+                        : <>Faltam {hide(brl(remainingSum))}. Algumas dívidas são de pagamento livre: combine um valor mensal para elas.</>}
                   </p>
                 </div>
               </Card>

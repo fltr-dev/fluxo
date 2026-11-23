@@ -1,7 +1,7 @@
 import { ArrowLeftRight, ChevronLeft, ChevronRight, HandCoins, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { AccountAvatar } from "@/components/account-avatar"
-import { Money, PageTitle } from "@/components/bits"
+import { Money, PageTitle, hide } from "@/components/bits"
 import { AccountFilter, CategoryFilter } from "@/components/calendar-filters"
 import { RouteSheet } from "@/components/route-overlay"
 import { buttonVariants } from "@/components/ui/button"
@@ -111,7 +111,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Mostrar no calendário">
         <Link href={href({ dividas: showDebts ? "0" : undefined, dia: undefined })} aria-pressed={showDebts} className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium", showDebts ? "border-amber-500/40 bg-amber-500/10 text-warning" : "text-muted-foreground hover:bg-muted")}>
           <HandCoins className="size-3.5" />
-          Dívidas a pagar{showDebts && debtMonthTotal > 0 && <span className="tabular-nums sensitive">· {brl(debtMonthTotal)}</span>}
+          Dívidas a pagar{showDebts && debtMonthTotal > 0 && <span className="tabular-nums">· {hide(brl(debtMonthTotal))}</span>}
         </Link>
         <Link href={href({ salario: showSalary ? "0" : undefined, dia: undefined })} aria-pressed={showSalary} className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium", showSalary ? "border-income/40 bg-income/10 text-income" : "text-muted-foreground hover:bg-muted")}>
           <Wallet className="size-3.5" />
@@ -127,7 +127,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         ].map((k) => (
           <Card key={k.label} className="gap-0.5 px-4 py-3">
             <span className="text-xs font-medium text-muted-foreground sm:text-sm">{k.label} no mês</span>
-            {k.signed ? <Money value={k.value} signed className="text-base font-semibold tracking-tight sm:text-xl" /> : <span className={cn("text-base font-semibold tracking-tight tabular-nums sensitive sm:text-xl", k.cls)}>{brl(k.value)}</span>}
+            {k.signed ? <Money value={k.value} signed className="text-base font-semibold tracking-tight sm:text-xl" /> : <span className={cn("text-base font-semibold tracking-tight tabular-nums sm:text-xl", k.cls)}>{hide(brl(k.value))}</span>}
           </Card>
         ))}
       </section>
@@ -154,7 +154,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                 href={href({ dia: d })}
                 scroll={false}
                 role="gridcell"
-                aria-label={`${dayLabel(d)}${t ? `: recebido ${full(t.income)}, gasto ${full(t.expense)}` : ": sem lançamentos"}${dues ? `, a pagar ${dues.map((x) => `${x.creditor} ${full(x.amount)}`).join(", ")}` : ""}${d === salaryDay ? ", salário previsto" : ""}`}
+                aria-label={`${dayLabel(d)}${t ? `: recebido ${hide(full(t.income))}, gasto ${hide(full(t.expense))}` : ": sem lançamentos"}${dues ? `, a pagar ${dues.map((x) => `${x.creditor} ${full(x.amount)}`).join(", ")}` : ""}${d === salaryDay ? ", salário previsto" : ""}`}
                 aria-current={isToday ? "date" : undefined}
                 className={cn("group relative flex min-h-[4.5rem] flex-col gap-0.5 bg-card p-1 outline-none hover:bg-muted/60 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring sm:min-h-24 sm:p-2", d === day && "bg-primary/5 ring-2 ring-primary ring-inset")}
               >
@@ -165,7 +165,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                       <span key={x.debtId} className="flex items-center gap-1 truncate rounded bg-amber-500/15 px-1 py-px text-warning">
                         <HandCoins className="hidden size-3 shrink-0 sm:block" />
                         <span className="truncate">{x.creditor.split(" ")[0]}</span>
-                        <span className="hidden tabular-nums sensitive sm:inline">{full(x.amount)}</span>
+                        <span className="hidden tabular-nums sm:inline">{hide(full(x.amount))}</span>
                       </span>
                     ))}
                     {dues && dues.length > 1 && <span className="rounded bg-amber-500/15 px-1 py-px text-warning">+{dues.length - 1}</span>}
@@ -173,17 +173,17 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                   </span>
                 )}
                 {t && (
-                  <span className="mt-auto grid gap-0.5 text-[10px] leading-tight font-semibold tabular-nums sensitive sm:text-xs">
+                  <span className="mt-auto grid gap-0.5 text-[10px] leading-tight font-semibold tabular-nums sm:text-xs">
                     {t.income > 0 && (
                       <span className="truncate text-income">
-                        +<span className="sm:hidden">{compact(t.income)}</span>
-                        <span className="hidden sm:inline">{full(t.income)}</span>
+                        +<span className="sm:hidden">{hide(compact(t.income))}</span>
+                        <span className="hidden sm:inline">{hide(full(t.income))}</span>
                       </span>
                     )}
                     {t.expense > 0 && (
                       <span className="truncate text-expense">
-                        −<span className="sm:hidden">{compact(t.expense)}</span>
-                        <span className="hidden sm:inline">{full(t.expense)}</span>
+                        −<span className="sm:hidden">{hide(compact(t.expense))}</span>
+                        <span className="hidden sm:inline">{hide(full(t.expense))}</span>
                       </span>
                     )}
                     {t.expense > 0 && (
@@ -212,7 +212,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
               ].map(([l, v, c]) => (
                 <div key={l as string} className="grid gap-0.5 rounded-xl bg-muted p-3">
                   <span className="text-xs text-muted-foreground">{l}</span>
-                  {l === "Resultado" ? <Money value={v as number} signed className="text-sm font-semibold" /> : <span className={cn("text-sm font-semibold tabular-nums sensitive", c as string)}>{brl(v as number)}</span>}
+                  {l === "Resultado" ? <Money value={v as number} signed className="text-sm font-semibold" /> : <span className={cn("text-sm font-semibold tabular-nums", c as string)}>{hide(brl(v as number))}</span>}
                 </div>
               ))}
             </div>
@@ -229,7 +229,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                           <span className="truncate font-medium">{x.creditor}</span>
                           <span className="text-xs text-muted-foreground">Parcela {x.number}{x.estimated && " · data prevista (depende do salário)"}</span>
                         </span>
-                        <b className="tabular-nums sensitive">{brl(x.amount)}</b>
+                        <b className="tabular-nums">{hide(brl(x.amount))}</b>
                       </Link>
                     </li>
                   ))}

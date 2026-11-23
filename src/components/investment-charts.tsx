@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts"
 import { Dot, Line as LegendLine, ToggleLegend, useSeriesToggle } from "@/components/chart-legend"
 import { brl, monthLabel, signedPct } from "@/lib/format"
+import { hide } from "@/components/bits"
 import { cn } from "@/lib/utils"
 
 // Gráficos da tela de Investimentos. A carteira é sempre a linha escura e forte; os índices ficam em cinza,
@@ -23,14 +24,14 @@ type TipProps = { active?: boolean; payload?: ReadonlyArray<{ payload?: unknown 
 function Bubble({ title, rows }: { title: string; rows: Row[] }) {
   return (
     <div className="grid gap-0.5 rounded-lg bg-foreground px-3 py-2 text-xs text-background shadow-lg">
-      <div className={cn("mb-0.5 opacity-70", title.includes("R$") && "sensitive")}>{title}</div>
+      <div className="mb-0.5 opacity-70">{(title.includes("R$")) ? hide(title) : title}</div>
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between gap-5">
           <span className="flex items-center gap-1.5 opacity-80">
             {r.color && <Swatch color={r.color} dash={r.dash} />}
             {r.label}
           </span>
-          <span className={cn("font-semibold tabular-nums", r.value.includes("R$") && "sensitive")}>{r.value}</span>
+          <span className="font-semibold tabular-nums">{(r.value.includes("R$")) ? hide(r.value) : r.value}</span>
         </div>
       ))}
     </div>
@@ -223,7 +224,7 @@ export function AllocationDonut({ data, total, size = 168, centerLabel }: { data
       <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
         <span className="grid">
           <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">Total</span>
-          <span className="text-base font-bold tabular-nums sensitive">{centerLabel ?? brl(total)}</span>
+          <span className="text-base font-bold tabular-nums">{hide(centerLabel ?? brl(total))}</span>
         </span>
       </div>
     </div>
@@ -257,7 +258,7 @@ export function AllocationPanel({ rows, total }: { rows: AllocationRow[]; total:
               >
                 <Dot color={r.color} square />
                 <span className={cn("min-w-0 flex-1 truncate text-sm font-semibold", !on && "line-through")}>{r.label}</span>
-                <span className="text-xs text-muted-foreground tabular-nums sensitive">{brl0(r.value)}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{hide(brl0(r.value))}</span>
                 <b className="w-12 text-right text-sm tabular-nums">{on && shownTotal ? pct1(r.value / shownTotal) : "—"}</b>
               </button>
             </li>
