@@ -7,6 +7,19 @@ export const pct = (n: number) => pctFmt.format(n)
 export const num1 = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 /** "2026-03-05" → "05/03/2026" */
 export const dateBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`
+/** Máscara enquanto se digita: "05032026" → "05/03/2026" (só dígitos, no máximo 8). */
+export function maskDateBR(s: string) {
+  const d = s.replace(/\D/g, "").slice(0, 8)
+  return [d.slice(0, 2), d.slice(2, 4), d.slice(4)].filter(Boolean).join("/")
+}
+/** "05/03/2026" → "2026-03-05"; null se incompleta ou inexistente (31/02). */
+export function isoFromBR(s: string) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s)
+  if (!m) return null
+  const iso = `${m[3]}-${m[2]}-${m[1]}`
+  const d = new Date(`${iso}T00:00:00Z`)
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso ? iso : null
+}
 /** "2026-11-06" → "6 nov" */
 export const dayMonth = (d: string) => `${+d.slice(8, 10)} ${months[+d.slice(5, 7) - 1]}`
 /** "2026-03" → "mar/26" */

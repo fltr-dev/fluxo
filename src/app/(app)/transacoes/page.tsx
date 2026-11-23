@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/date-input"
 import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -86,7 +87,7 @@ function ManualForm({ action, accounts, options, values, submit, next, start, pl
           <input type="number" name="amount" required min="0.01" step="0.01" inputMode="decimal" placeholder="0,00" defaultValue={values ? Math.abs(values.amount) : undefined} className={cn(fieldClass, "h-11 text-lg font-semibold tabular-nums")} />
         </Field>
         <Field label="Data">
-          <input type="date" name="date" required defaultValue={values?.date ?? today()} className={cn(fieldClass, "h-11")} />
+          <DateInput name="date" required defaultValue={values?.date ?? today()} className="h-11" />
         </Field>
       </div>
       <Field label="Descrição">

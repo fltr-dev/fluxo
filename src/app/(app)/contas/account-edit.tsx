@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/date-input"
 import { redirect } from "next/navigation"
 import { AccountFields } from "@/components/account-fields"
 import { CancelLink, Field, fieldClass, FormActions, Money } from "@/components/bits"
@@ -40,7 +41,7 @@ export function AccountEditSheet({ account, closeHref }: { account: Account; clo
               <input type="number" name="creditLimit" step="0.01" min="0" defaultValue={account.creditLimit ?? ""} placeholder="Sem limite" className={cn(fieldClass, "text-base md:text-sm")} />
             </Field>
             <Field label="Vencimento da fatura">
-              <input type="date" name="billDueDate" defaultValue={account.billDueDate ?? ""} className={cn(fieldClass, "text-base md:text-sm")} />
+              <DateInput name="billDueDate" defaultValue={account.billDueDate ?? ""} className="text-base md:text-sm" />
             </Field>
           </div>
         )}

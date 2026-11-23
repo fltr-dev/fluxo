@@ -1,9 +1,10 @@
+import { DateInput } from "@/components/date-input"
 import { Calendar, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PRESETS } from "@/lib/domain/dates"
 import { dateBR } from "@/lib/format"
 import { categoryTree, listAccounts, withParams, type Filters as F, type SearchParams } from "@/lib/queries"
-import { Field, fieldClass } from "./bits"
+import { Field } from "./bits"
 import { FormSelect } from "./form-select"
 import { FilterSheet, MenuLinks } from "./filters-client"
 
@@ -18,10 +19,10 @@ async function FiltersForm({ f, children }: { f: F; children?: React.ReactNode }
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="De">
-          <input type="date" name="de" defaultValue={f.preset === "custom" ? f.from : ""} className={fieldClass} />
+          <DateInput name="de" defaultValue={f.preset === "custom" ? f.from : ""} />
         </Field>
         <Field label="Até">
-          <input type="date" name="ate" defaultValue={f.preset === "custom" ? f.to : ""} className={fieldClass} />
+          <DateInput name="ate" defaultValue={f.preset === "custom" ? f.to : ""} />
         </Field>
       </div>
       <Field label="Conta">

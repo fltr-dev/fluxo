@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/date-input"
 import { Pencil, Plus, Target, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -51,7 +52,7 @@ function GoalForm({ goal, accounts, action, footer = true }: { goal?: Goal; acco
           <input type="number" name="targetAmount" required min="0.01" step="0.01" defaultValue={goal?.targetAmount} className={fieldClass} />
         </Field>
         <Field label="Prazo">
-          <input type="date" name="deadline" required defaultValue={goal?.deadline} className={fieldClass} />
+          <DateInput name="deadline" required defaultValue={goal?.deadline} />
         </Field>
       </div>
       <Field label="Acompanhar por">
@@ -221,7 +222,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                 <input type="number" name="amount" required step="0.01" inputMode="decimal" placeholder="0,00" className={cn(fieldClass, "h-11 text-lg font-semibold tabular-nums")} />
               </Field>
               <Field label="Data">
-                <input type="date" name="date" required defaultValue={now} className={cn(fieldClass, "h-11")} />
+                <DateInput name="date" required defaultValue={now} className="h-11" />
               </Field>
             </div>
             <Field label="Nota (opcional)">
