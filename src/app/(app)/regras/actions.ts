@@ -94,7 +94,7 @@ export type PreviewRow = { id: number; description: string; date: string; amount
  * à mão (mantida); "same" = já está assim ou outra regra de prioridade maior vence.
  */
 export async function previewRule(draft: RuleDraft) {
-  await requireUser()
+  await requireUser({ allowDemo: true }) // só lê
   if (!draft.pattern.trim()) return { total: 0, change: 0, user: 0, sample: [] as PreviewRow[] }
   const [rules, txs] = await Promise.all([db.select().from(categoryRules).where(eq(categoryRules.active, true)), candidates()])
   // ponytail: filtra em memória todas as transações a cada prévia; ok para o volume de uso pessoal

@@ -87,7 +87,7 @@ export function RuleForm({ rule, accounts, options }: Props) {
         <legend className="mb-1.5 text-sm font-medium">Descrição da transação</legend>
         <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-[3px]">
           {(Object.keys(MATCH_SHORT) as MatchType[]).map((v) => (
-            <label key={v} className="flex h-8 cursor-pointer items-center justify-center rounded-md px-1 text-center text-sm font-medium text-muted-foreground has-checked:bg-card has-checked:text-foreground has-checked:shadow-sm">
+            <label key={v} className="flex h-8 cursor-pointer items-center justify-center rounded-md px-0.5 text-center text-xs font-medium whitespace-nowrap sm:text-[13px] text-muted-foreground has-checked:bg-card has-checked:text-foreground has-checked:shadow-sm">
               <input type="radio" name="matchType" value={v} checked={matchType === v} onChange={() => setMatchType(v)} className="sr-only" />
               {MATCH_SHORT[v]}
             </label>
