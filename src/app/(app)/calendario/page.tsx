@@ -69,7 +69,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const month = [...totals.values()].reduce((t, d) => ({ income: t.income + d.income, expense: t.expense + d.expense, count: t.count + d.count }), { income: 0, expense: 0, count: 0 })
   const maxExpense = Math.max(0, ...[...totals.values()].map((d) => d.expense))
   const href = (patch: Record<string, string | number | undefined>) => `/calendario${withParams(sp, patch)}`
-  const selected = f.categoryIds ?? []
+  const selected = [...(f.categoryId ? [f.categoryId] : []), ...(f.categoryIds ?? [])]
   const closeHref = href({ dia: undefined })
   const dayTotals = day ? totals.get(day) : undefined
 
@@ -93,7 +93,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </PageTitle>
 
       <div className="flex flex-wrap items-center gap-2">
-        <AccountFilter accounts={activeAccounts.map((a) => ({ id: a.id, name: a.name }))} value={f.accountId} />
+        <AccountFilter accounts={activeAccounts.map(({ id, name, type, bank, color, institution }) => ({ id, name, type, bank, color, institution }))} value={f.accountId} />
         <CategoryFilter tree={tree} selected={selected} />
         {selected.map((id) => {
           const c = catLabel.get(id)

@@ -1,12 +1,16 @@
+import { accountGroups } from "@/components/account-avatar"
+import { DateInput } from "@/components/date-input"
 import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Clock, Download, EyeOff, Link2, ListChecks, Lock, Plus, Search, Sparkles, Tag, Trash2, X } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
 import { BulkBar, SelectAll } from "@/components/bulk-bar"
 import { Filters } from "@/components/filters"
+import { SearchInput } from "@/components/filters-client"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { TxContextRow, TxOptions, TxSwipe } from "@/components/tx-row"
+import { UndoForm } from "@/components/undo"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { transactions } from "@/db"
@@ -44,6 +48,14 @@ const backTo = (form: FormData) => {
 async function createAndClose(form: FormData) {
   "use server"
   await createManual(form)
+  redirect(backTo(form))
+}
+
+/** Painel Detalhes: grava a categoria (só se mudou: senão viraria "Você" e perderia a sugestão) e a nota, e fecha. */
+async function saveDetailsAndClose(form: FormData) {
+  "use server"
+  if (form.has("subcategoryId") && form.get("subcategoryId") !== form.get("current")) await setCategory(form)
+  await setNote(form)
   redirect(backTo(form))
 }
 
@@ -85,7 +97,7 @@ function ManualForm({ action, accounts, options, values, submit, next, start, pl
           <input type="number" name="amount" required min="0.01" step="0.01" inputMode="decimal" placeholder="0,00" defaultValue={values ? Math.abs(values.amount) : undefined} className={cn(fieldClass, "h-11 text-lg font-semibold tabular-nums")} />
         </Field>
         <Field label="Data">
-          <input type="date" name="date" required defaultValue={values?.date ?? today()} className={cn(fieldClass, "h-11")} />
+          <DateInput name="date" required defaultValue={values?.date ?? today()} className="h-11" />
         </Field>
       </div>
       <Field label="Descrição">
@@ -93,7 +105,7 @@ function ManualForm({ action, accounts, options, values, submit, next, start, pl
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Conta">
-          <FormSelect name="accountId" required defaultValue={String(values?.accountId ?? accounts[0]?.id ?? "")} options={accounts.map((a) => ({ value: String(a.id), label: a.name }))} />
+          <FormSelect name="accountId" required defaultValue={String(values?.accountId ?? accounts[0]?.id ?? "")} groups={accountGroups(accounts)} />
         </Field>
         <Field label="Categoria">
           <SubcategorySelect name="subcategoryId" options={options} defaultValue={String(values?.subcategoryId ?? "")} emptyLabel="A categorizar" />
@@ -152,11 +164,10 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
       </PageTitle>
 
       <div className="flex flex-wrap items-center gap-2">
-        <form method="get" className="relative min-w-0 flex-1 sm:max-w-72" role="search">
-          {Object.entries(sp).map(([k, v]) => typeof v === "string" && !["q", "pagina", "tx", "nova"].includes(k) && <input key={k} type="hidden" name={k} value={v} />)}
+        <div className="relative min-w-0 flex-1 sm:max-w-72" role="search">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input name="q" defaultValue={f.q} placeholder="Buscar por descrição…" aria-label="Buscar transações" className={cn(fieldClass, "pl-9")} />
-        </form>
+          <SearchInput defaultValue={f.q} placeholder="Buscar por descrição…" aria-label="Buscar transações" className={cn(fieldClass, "pl-9")} />
+        </div>
         <Filters f={f} sp={sp}>{f.view && <input type="hidden" name="ver" value={f.view} />}</Filters>
       </div>
 
@@ -221,9 +232,9 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                         <TxContextRow key={tx.id} item={r} href={txHref(tx.id)} className={cn("border-b last:border-0 hover:bg-muted/30", tx.ignored && "opacity-60", openId === tx.id && "bg-muted")}>
                           <td className="pl-4"><input type="checkbox" name="ids" value={tx.id} form="bulk" aria-label={`Selecionar ${tx.description}`} className="size-4 accent-primary" /></td>
                           <td className="max-w-0 px-3 py-2.5">
-                            <Link href={txHref(tx.id)} scroll={false} className="grid gap-0.5 hover:underline">
+                            <Link href={txHref(tx.id)} scroll={false} className="group grid gap-0.5">
                               <span className="flex min-w-0 items-center gap-1.5">
-                                <span className="truncate font-medium" title={tx.description}>{tx.description}</span>
+                                <span className="truncate font-medium group-hover:underline" title={tx.description}>{tx.description}</span>
                                 {tx.status === "PENDING" && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 text-xs text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"><Clock className="size-3" />Pendente</span>}
                                 {tx.totalInstallments && tx.totalInstallments > 1 && <span className="shrink-0 rounded-full bg-muted px-2 text-xs text-muted-foreground">Parcela {tx.installmentNumber}/{tx.totalInstallments}</span>}
                                 {!tx.pluggyId && <span className="shrink-0 rounded-full border px-2 text-xs text-muted-foreground">Manual</span>}
@@ -240,17 +251,17 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                                   <Sparkles className="size-3 shrink-0" />
                                   {label.get(tx.suggestedSubcategoryId)?.split(" › ")[1] ?? "?"} · {pct(tx.suggestionConfidence ?? 0)}
                                 </span>
-                                <form action={acceptSuggestion}>
+                                <UndoForm action={acceptSuggestion}>
                                   <input type="hidden" name="id" value={tx.id} />
                                   <Button type="submit" variant="ghost" size="icon-sm" aria-label="Aceitar sugestão" className="text-income"><Check /></Button>
-                                </form>
+                                </UndoForm>
                                 <form action={rejectSuggestion}>
                                   <input type="hidden" name="id" value={tx.id} />
                                   <Button type="submit" variant="ghost" size="icon-sm" aria-label="Rejeitar sugestão" className="text-muted-foreground"><X /></Button>
                                 </form>
                               </span>
                             ) : (
-                              <form action={setCategory} className="flex min-w-0 items-center gap-2">
+                              <UndoForm action={setCategory} className="flex min-w-0 items-center gap-2">
                                 <input type="hidden" name="id" value={tx.id} />
                                 <span className="size-2 shrink-0 rounded-full" style={{ background: tx.subcategoryId ? (color ?? "#a1a1aa") : "#f59e0b" }} aria-hidden />
                                 <SubcategorySelect
@@ -266,7 +277,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                                     !tx.subcategoryId && "border-dashed border-amber-300 bg-amber-50 font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400",
                                   )}
                                 />
-                              </form>
+                              </UndoForm>
                             )}
                           </td>
                           <td className="truncate px-3 text-muted-foreground" title={accountName}>{accountName}</td>
@@ -408,10 +419,10 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
           </span>
           <span className="text-sm">{label.get(tx.suggestedSubcategoryId) ?? "?"}</span>
           <div className="flex gap-2">
-            <form action={acceptSuggestion}>
+            <UndoForm action={acceptSuggestion}>
               <input type="hidden" name="id" value={tx.id} />
               <Button type="submit">Aceitar</Button>
-            </form>
+            </UndoForm>
             <form action={rejectSuggestion}>
               <input type="hidden" name="id" value={tx.id} />
               <Button type="submit" variant="outline">Rejeitar</Button>
@@ -420,23 +431,26 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
         </div>
       )}
 
-      {tx.kind !== "TRANSFER" && (
-        <form action={setCategory} className="grid gap-1.5">
-          <input type="hidden" name="id" value={tx.id} />
-          <label htmlFor="sheet-cat" className="text-sm font-medium">Categoria</label>
-          <SubcategorySelect id="sheet-cat" name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" autoSubmit />
-          <Link href={`/regras?de=${tx.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-            <ListChecks className="size-3.5" />
-            Criar regra a partir desta transação
-          </Link>
-        </form>
-      )}
-
-      <form action={setNote} className="grid gap-1.5">
+      {/* categoria e nota só gravam no Salvar (fecha o painel) */}
+      <form action={saveDetailsAndClose} className="grid gap-4">
         <input type="hidden" name="id" value={tx.id} />
-        <label htmlFor="sheet-note" className="text-sm font-medium">Nota</label>
-        <textarea id="sheet-note" name="note" defaultValue={tx.note ?? ""} maxLength={1000} rows={3} placeholder="Ex.: racha do jantar de sexta" className={cn(fieldClass, "h-auto py-2")} />
-        <Button type="submit" variant="outline" className="justify-self-start">Salvar nota</Button>
+        <input type="hidden" name="next" value={here} />
+        {tx.kind !== "TRANSFER" && (
+          <div className="grid gap-1.5">
+            <input type="hidden" name="current" value={String(tx.subcategoryId ?? "")} />
+            <label htmlFor="sheet-cat" className="text-sm font-medium">Categoria</label>
+            <SubcategorySelect id="sheet-cat" name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" />
+            <Link href={`/regras?de=${tx.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+              <ListChecks className="size-3.5" />
+              Criar regra a partir desta transação
+            </Link>
+          </div>
+        )}
+        <div className="grid gap-1.5">
+          <label htmlFor="sheet-note" className="text-sm font-medium">Nota</label>
+          <textarea id="sheet-note" name="note" defaultValue={tx.note ?? ""} maxLength={1000} rows={3} placeholder="Ex.: racha do jantar de sexta" className={cn(fieldClass, "h-auto py-2")} />
+        </div>
+        <Button type="submit" className="justify-self-start">Salvar</Button>
       </form>
 
       <div className="grid gap-2">

@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/date-input"
 import { Calendar, CalendarDays, Check, CircleAlert, HandCoins, Link2, Pencil, Plus, Wallet } from "lucide-react"
 import Link from "next/link"
 import { Bar, Empty, Field, fieldClass, FormActions, PageTitle, hide } from "@/components/bits"
@@ -258,7 +259,7 @@ async function PayDialog({ v, installmentId }: { v: DebtView; installmentId?: nu
             <input type="number" name="amount" required min="0.01" step="0.01" defaultValue={amount} className={fieldClass} />
           </Field>
           <Field label="Data do pagamento">
-            <input type="date" name="date" required defaultValue={today()} max={today()} className={fieldClass} />
+            <DateInput name="date" required defaultValue={today()} max={today()} />
           </Field>
         </div>
         {matches.length > 0 && (

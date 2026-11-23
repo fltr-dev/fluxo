@@ -1,11 +1,13 @@
 "use client"
 
+import { accountGroups } from "@/components/account-avatar"
 import { Check, ChevronDown, ChevronRight, ListFilter } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { FormSelect } from "@/components/form-select"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { selectTriggerClass } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 type Cat = { id: number; name: string; color: string; subs: { id: number; name: string }[] }
@@ -27,7 +29,7 @@ function useSetParams() {
   }
 }
 
-export function AccountFilter({ accounts, value }: { accounts: { id: number; name: string }[]; value?: number }) {
+export function AccountFilter({ accounts, value }: { accounts: Parameters<typeof accountGroups>[0]; value?: number }) {
   const set = useSetParams()
   return (
     <FormSelect
@@ -35,7 +37,7 @@ export function AccountFilter({ accounts, value }: { accounts: { id: number; nam
       value={String(value ?? "")}
       onValueChange={(v) => set({ conta: v || undefined })}
       emptyLabel="Todas as contas"
-      options={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
+      groups={accountGroups(accounts)}
       className="w-52"
     />
   )
@@ -44,8 +46,9 @@ export function AccountFilter({ accounts, value }: { accounts: { id: number; nam
 /**
  * Filtro de várias categorias de uma vez. Marcar a categoria inclui todas as subcategorias; também dá para marcar
  * só algumas. Quando todas as subcategorias estão marcadas, vale a categoria inteira.
+ * Com `name`, vira campo de formulário (painel Filtros): a escolha vai num input oculto e vale ao enviar o formulário.
  */
-export function CategoryFilter({ tree, selected }: { tree: Cat[]; selected: number[] }) {
+export function CategoryFilter({ tree, selected, name }: { tree: Cat[]; selected: number[]; name?: string }) {
   const set = useSetParams()
   const [open, setOpen] = useState(false)
   const [ids, setIds] = useState<Set<number>>(new Set(selected))
@@ -79,23 +82,35 @@ export function CategoryFilter({ tree, selected }: { tree: Cat[]; selected: numb
     setIds(next)
   }
   const apply = () => {
-    set({ categorias: ids.size ? [...ids].join(",") : undefined })
+    set({ categorias: ids.size ? [...ids].join(",") : undefined, categoria: undefined })
     setOpen(false)
   }
+
+  const names = new Map(tree.flatMap((c) => [[c.id, c.name] as const, ...c.subs.map((s) => [s.id, s.name] as const)]))
+  const chosen = [...ids].map((id) => names.get(id)).filter(Boolean)
+  const summary = chosen.length === 0 ? "Todas" : chosen.length <= 2 ? chosen.join(", ") : `${chosen.slice(0, 2).join(", ")} +${chosen.length - 2}`
 
   return (
     <Popover
       open={open}
       onOpenChange={(o) => {
         setOpen(o)
-        if (o) setIds(new Set(selected))
+        if (o && !name) setIds(new Set(selected))
       }}
     >
-      <PopoverTrigger render={<Button variant="outline" />}>
-        <ListFilter />
-        {selected.length ? `Categorias (${selected.length})` : "Todas as categorias"}
-        <ChevronDown className="text-muted-foreground" />
-      </PopoverTrigger>
+      {name ? (
+        <PopoverTrigger className={cn(selectTriggerClass, "h-9")}>
+          <span className={cn("truncate", !chosen.length && "text-muted-foreground")}>{summary}</span>
+          <ChevronDown className="size-4 text-muted-foreground" />
+        </PopoverTrigger>
+      ) : (
+        <PopoverTrigger render={<Button variant="outline" />}>
+          <ListFilter />
+          {selected.length ? `Categorias (${selected.length})` : "Todas as categorias"}
+          <ChevronDown className="text-muted-foreground" />
+        </PopoverTrigger>
+      )}
+      {name && <input type="hidden" name={name} value={[...ids].join(",")} />}
       <PopoverContent className="w-80 p-0" align="start">
         <ul className="max-h-80 overflow-y-auto p-1.5" aria-label="Categorias">
           {tree.map((c) => {
@@ -138,7 +153,7 @@ export function CategoryFilter({ tree, selected }: { tree: Cat[]; selected: numb
         </ul>
         <div className="flex items-center justify-between gap-2 border-t p-2">
           <Button variant="ghost" size="sm" onClick={() => setIds(new Set())} disabled={ids.size === 0}>Limpar</Button>
-          <Button size="sm" onClick={apply}>Aplicar</Button>
+          <Button size="sm" onClick={name ? () => setOpen(false) : apply}>{name ? "Pronto" : "Aplicar"}</Button>
         </div>
       </PopoverContent>
     </Popover>

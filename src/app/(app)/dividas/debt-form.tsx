@@ -1,5 +1,6 @@
 "use client"
 
+import { DateInput } from "@/components/date-input"
 import { Lock, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
@@ -219,7 +220,7 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
             {recur ? (
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,8rem)_2rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_8rem_2rem]">
                 <input aria-label={`Item ${i + 1}`} value={it.description} onChange={(e) => setItem(i, { description: e.target.value })} maxLength={200} disabled={locked[i]} placeholder={v.recur.label} className={cn(fieldClass, "max-sm:hidden")} />
-                <input aria-label={`Data do item ${i + 1}`} type="date" required value={it.date ?? ""} disabled={locked[i]} onChange={(e) => moveDate(i, e.target.value)} className={cn(fieldClass, "px-2")} />
+                <DateInput aria-label={`Data do item ${i + 1}`} required value={it.date ?? ""} disabled={locked[i]} onValueChange={(d) => moveDate(i, d)} className="px-2 pr-9" />
                 <MoneyInput label={`Valor do item ${i + 1}`} value={it.unitAmount} disabled={locked[i]} onChange={(unitAmount) => setItem(i, { unitAmount })} />
                 {locked[i] ? (
                   <span title="Já paga" className="grid size-8 place-items-center text-muted-foreground">
@@ -342,15 +343,15 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
             <div className="grid gap-3 sm:grid-cols-2">
               {editing ? (
                 <Field label="Próxima ocorrência" hint={v.recur.next ? "Entra sozinha nesta data." : "Encerrada: nenhuma nova ocorrência."}>
-                  <input type="date" value={v.recur.next ?? ""} onChange={(e) => setRecur({ next: e.target.value || null })} className={fieldClass} />
+                  <DateInput value={v.recur.next ?? ""} onValueChange={(d) => setRecur({ next: d || null })} />
                 </Field>
               ) : (
                 <Field label="Começa em" hint="Pode ser no passado: os itens até hoje já aparecem abaixo para conferir.">
-                  <input type="date" required value={v.recur.start} onChange={(e) => setRecur({ start: e.target.value })} className={fieldClass} />
+                  <DateInput required value={v.recur.start} onValueChange={(d) => setRecur({ start: d })} />
                 </Field>
               )}
               <Field label="Termina em" hint="Opcional. Sem data, continua até você encerrar.">
-                <input type="date" value={v.recur.end} min={v.recur.start || undefined} onChange={(e) => setRecur({ end: e.target.value })} className={fieldClass} />
+                <DateInput value={v.recur.end} min={v.recur.start || undefined} onValueChange={(d) => setRecur({ end: d })} />
               </Field>
             </div>
             {reminders}
@@ -391,7 +392,7 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
           {v.kind === "DATE" && (
             <label className="flex items-center gap-2 text-sm">
               Vence em
-              <input type="date" required value={v.date} onChange={(e) => set("date", e.target.value)} className={cn(fieldClass, "w-44")} />
+              <span className="w-44"><DateInput required value={v.date} onValueChange={(d) => set("date", d)} /></span>
               {v.mode === "INSTALLMENTS" && v.installments > 1 && <span className="text-muted-foreground">e nos meses seguintes</span>}
             </label>
           )}

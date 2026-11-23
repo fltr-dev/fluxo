@@ -4,7 +4,7 @@ export type CategorySource = "USER" | "RULE" | "JEV" | "PLUGGY_MAP" | "NONE"
 export type Rule = {
   id: number
   priority: number
-  matchType: "CONTAINS" | "STARTS_WITH" | "REGEX"
+  matchType: "CONTAINS" | "STARTS_WITH" | "EQUALS" | "REGEX"
   pattern: string
   accountId: number | null
   kind: Kind | null
@@ -69,6 +69,7 @@ export function ruleMatches(rule: Rule, tx: CategorizableTx) {
   }
   const desc = normalize(tx.description)
   const pattern = normalize(rule.pattern)
+  if (rule.matchType === "EQUALS") return desc === pattern
   return rule.matchType === "STARTS_WITH" ? desc.startsWith(pattern) : desc.includes(pattern)
 }
 

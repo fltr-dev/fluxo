@@ -1,3 +1,6 @@
+import type { OptionGroup } from "@/components/form-select"
+import { ACCOUNT_GROUPS, type AccountType } from "@/lib/account-types"
+import { accountLook } from "@/lib/banks"
 import type { AccountLook } from "@/lib/banks"
 import { cn } from "@/lib/utils"
 
@@ -30,3 +33,14 @@ export function AccountAvatar({ look, size = 32, className }: { look: AccountLoo
     </span>
   )
 }
+
+type SelectableAccount = { id: number; name: string; type: AccountType; bank?: string | null; color?: string | null; institution?: string | null }
+
+/** Opções dos seletores de conta: agrupadas por tipo (mesma ordem de /contas), com o logo do banco em cada uma. */
+export const accountGroups = (accs: SelectableAccount[]): OptionGroup[] =>
+  ACCOUNT_GROUPS.map(([type, label]) => ({
+    label,
+    options: accs
+      .filter((a) => a.type === type)
+      .map((a) => ({ value: String(a.id), label: a.name, icon: <AccountAvatar look={accountLook(a)} size={20} className="rounded-[5px]" /> })),
+  })).filter((g) => g.options.length)

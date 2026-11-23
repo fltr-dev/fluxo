@@ -572,7 +572,7 @@ const propRegra = defineTool({
   name: "propor_regra",
   label: "Regra de categoria",
   description: "Propõe criar uma regra que categoriza automaticamente as transações cuja descrição bate com o padrão. Não grava: o usuário confirma na tela.",
-  schema: z.object({ padrao: z.string().min(1).max(200), categoria: z.string(), correspondencia: z.enum(["contem", "comeca_com", "regex"]).optional(), tipo: z.enum(["despesa", "receita"]).optional() }),
+  schema: z.object({ padrao: z.string().min(1).max(200), categoria: z.string(), correspondencia: z.enum(["contem", "comeca_com", "igual", "regex"]).optional(), tipo: z.enum(["despesa", "receita"]).optional() }),
   async run(i, ctx) {
     const sub = await findSub(i.categoria)
     if (i.correspondencia === "regex") {
@@ -582,10 +582,10 @@ const propRegra = defineTool({
         throw new ToolError("Expressão regular inválida")
       }
     }
-    const matchType = ({ contem: "CONTAINS", comeca_com: "STARTS_WITH", regex: "REGEX" } as const)[i.correspondencia ?? "contem"]
+    const matchType = ({ contem: "CONTAINS", comeca_com: "STARTS_WITH", igual: "EQUALS", regex: "REGEX" } as const)[i.correspondencia ?? "contem"]
     return propose(ctx, "rule", { matchType, pattern: i.padrao, kind: i.tipo ? (i.tipo === "despesa" ? "EXPENSE" : "INCOME") : null, subcategoryId: sub.id }, {
       title: "Nova regra de categoria",
-      rows: [{ label: matchType === "CONTAINS" ? "Descrição contém" : matchType === "STARTS_WITH" ? "Descrição começa com" : "Descrição bate com (regex)", value: i.padrao }, { label: "Categoria", value: sub.label }],
+      rows: [{ label: matchType === "CONTAINS" ? "Descrição contém" : matchType === "STARTS_WITH" ? "Descrição começa com" : matchType === "EQUALS" ? "Descrição igual a" : "Descrição bate com (regex)", value: i.padrao }, { label: "Categoria", value: sub.label }],
       href: "/regras",
       hrefLabel: "Ver em Regras",
     })

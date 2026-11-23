@@ -202,6 +202,20 @@ Nas tabelas do desktop (Transações, Limites) não há arrastar; o clique direi
 
 PT-BR, direto, segunda pessoa implícita. Botões dizem o que fazem ("Salvar transação", "Criar meta"). Erros dizem o que houve e o que fazer ("Senha incorreta. Confira e tente de novo."). Sem exclamações, sem emoji, sem "Ops!".
 
+## Formatos
+
+Sempre no padrão brasileiro, na tela e nos campos, qualquer que seja o idioma do navegador.
+
+| O quê | Na tela | Como fazer |
+|---|---|---|
+| Data | `05/03/2026` (dd/mm/aaaa) | `dateBR()` de `src/lib/format.ts`; curtas: `dayMonth()` ("6 nov"), `monthLabel()` ("mar/26"), `dayLabel()` |
+| Campo de data | digita `dd/mm/aaaa`, ícone abre o calendário | `<DateInput>` de `src/components/date-input.tsx`. Nunca `<input type="date">` cru: ele segue o idioma do navegador e vira mm/dd/yyyy em inglês |
+| Valor | `R$ 1.234,56` | `<Money>` / `brl()`; campos aceitam só números |
+| Percentual | `12%`, `12,5%` | `pct()` / `toLocaleString("pt-BR")` |
+| Data e hora | `05/03/2026, 14:30` | `toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })` |
+
+Na URL, no banco e entre servidor e cliente a data é ISO (`aaaa-mm-dd`); o `DateInput` envia nesse formato.
+
 ## Como usar no Claude Design
 
 1. Anexe este `DESIGN.md` (ou conecte o repositório) e a página do Design System como referência visual.

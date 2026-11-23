@@ -30,7 +30,7 @@ export { SubcategorySelect } from "@/components/category-select"
 // próprio design. Continua funcionando em <form action={serverAction}>: o valor vai num input oculto com `name`.
 // Listas longas (mais de SEARCH_FROM opções) ganham um campo de busca no topo do popup.
 
-export type Option = { value: string; label: string; /** texto mostrado no campo fechado (padrão: label) */ text?: string; color?: string; disabled?: boolean }
+export type Option = { value: string; label: string; /** texto mostrado no campo fechado (padrão: label) */ text?: string; color?: string; /** no lugar da bolinha de cor (ex.: logo da conta) */ icon?: React.ReactNode; disabled?: boolean }
 export type OptionGroup = { label: string; options: Option[] }
 
 export type FormSelectProps = {
@@ -79,14 +79,14 @@ export function FormSelect({ name, defaultValue, value, onValueChange, options =
       value: o.value,
       label: (
         <span className="flex min-w-0 items-center gap-2">
-          <Dot color={o.color} />
+          {o.icon ?? <Dot color={o.color} />}
           <span className="truncate" title={o.text ?? o.label}>{o.text ?? o.label}</span>
         </span>
       ),
     }))
     const item = (o: Option) => (
       <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
-        <Dot color={o.color} />
+        {o.icon ?? <Dot color={o.color} />}
         <span className="truncate" title={o.label}>{o.label}</span>
       </SelectItem>
     )
@@ -114,7 +114,7 @@ export function FormSelect({ name, defaultValue, value, onValueChange, options =
   const sections = [{ label: "", options: first }, ...groups].map((g) => ({ ...g, options: g.options.filter((o) => matches(o.label, query)) })).filter((g) => g.options.length)
   const item = (o: Option) => (
     <Combobox.Item key={o.value} value={o.value} disabled={o.disabled} className={selectItemClass}>
-      <Dot color={o.color} />
+      {o.icon ?? <Dot color={o.color} />}
       <span className="truncate" title={o.label}>{o.label}</span>
       <Combobox.ItemIndicator className="pointer-events-none absolute right-2 grid size-4 place-items-center">
         <CheckIcon className="size-4" />
@@ -126,7 +126,7 @@ export function FormSelect({ name, defaultValue, value, onValueChange, options =
     <Combobox.Root name={name} value={current} onValueChange={pick} inputValue={query} onInputValueChange={setQuery} required={required} disabled={disabled}>
       <Combobox.Trigger ref={trigger} id={id} data-size={size} aria-label={ariaLabel} className={cn(selectTriggerClass, className)}>
         <span className={cn("flex min-w-0 flex-1 items-center gap-2 text-left", !chosen && "text-muted-foreground")}>
-          <Dot color={chosen?.color} />
+          {chosen?.icon ?? <Dot color={chosen?.color} />}
           <span className="truncate">{chosen ? (chosen.text ?? chosen.label) : placeholder}</span>
         </span>
         <ChevronDownIcon className="size-4 text-muted-foreground" />

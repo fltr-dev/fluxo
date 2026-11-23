@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Geist_Mono, Manrope } from "next/font/google"
 import { cookies } from "next/headers"
+import { Toaster } from "@/components/ui/sonner"
 import { primaryCss, primaryFromCookie, themeFromCookie } from "@/lib/theme"
 import "./globals.css"
 
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         {children}
+        <Toaster />
         {/* blur do modo privado para texto SVG (eixos dos gráficos): o Chrome ignora filter: blur() em elementos SVG */}
         <svg aria-hidden className="absolute size-0">
           <filter id="privacy-blur" x="-50%" y="-50%" width="200%" height="200%">

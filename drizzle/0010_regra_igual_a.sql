@@ -1,0 +1,1 @@
+ALTER TYPE "public"."match_type" ADD VALUE 'EQUALS' BEFORE 'REGEX';

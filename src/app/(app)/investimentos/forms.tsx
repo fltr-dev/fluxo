@@ -1,5 +1,6 @@
 "use client"
 
+import { DateInput } from "@/components/date-input"
 import { useState } from "react"
 import { CancelLink, Field, fieldClass, FormActions, hide } from "@/components/bits"
 import { FormSelect } from "@/components/form-select"
@@ -76,7 +77,7 @@ export function NewInvestmentForm({ action, back, today }: { action: Action; bac
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={variable ? "Data da compra" : "Data da aplicação"}>
-          <input type="date" name="date" required defaultValue={today} max={today} className={fieldClass} />
+          <DateInput name="date" required defaultValue={today} max={today} />
         </Field>
         {variable ? (
           <Field label="Quantidade">
@@ -97,7 +98,7 @@ export function NewInvestmentForm({ action, back, today }: { action: Action; bac
             <input name="rateLabel" maxLength={60} className={fieldClass} />
           </Field>
           <Field label="Vencimento">
-            <input type="date" name="dueDate" className={fieldClass} />
+            <DateInput name="dueDate" />
           </Field>
         </div>
       )}
@@ -147,7 +148,7 @@ export function TradeForm({ action, back, today, assets, defaultId }: { action: 
       )}
       <div className="grid grid-cols-2 gap-3">
         <Field label={isIncome(t) ? "Data do pagamento" : "Data"} hint={isIncome(t) ? "Data futura = provento anunciado" : undefined}>
-          <input type="date" name="date" required defaultValue={today} max={isIncome(t) ? undefined : today} className={fieldClass} />
+          <DateInput name="date" required defaultValue={today} max={isIncome(t) ? undefined : today} />
         </Field>
         {byQty || t === "BONUS" || (isIncome(t) && variable) ? (
           <Field label={t === "BONUS" ? "Quantidade recebida" : isIncome(t) ? "Cotas (opcional)" : "Quantidade"} hint={t === "SELL" && asset?.quantity ? `Você tem ${asset.quantity.toLocaleString("pt-BR")}` : undefined}>

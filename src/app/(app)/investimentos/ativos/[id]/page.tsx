@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/date-input"
 import { ArrowLeftRight, ChevronLeft, ChartLine, Coins, Pencil, Plus, Scale, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -223,7 +224,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
                         <input name="rateLabel" defaultValue={h.rateLabel ?? ""} maxLength={60} className={fieldClass} />
                       </Field>
                       <Field label="Vencimento">
-                        <input name="dueDate" type="date" defaultValue={h.dueDate ?? ""} className={fieldClass} />
+                        <DateInput name="dueDate" defaultValue={h.dueDate ?? ""} />
                       </Field>
                     </div>
                     <Field label="Saldo atual (R$)" hint="Valor bruto que a instituição mostra hoje">
