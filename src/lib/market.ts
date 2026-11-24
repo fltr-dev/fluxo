@@ -2,7 +2,7 @@ import "server-only"
 import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { accounts, db, investments, investmentTrades, marketSeries } from "@/db"
 import { addDays, addMonths, monthOf, today } from "./domain/dates"
-import { isVariable, positionFromTrades, type AssetClass } from "./domain/investments"
+import { isVariable, positionFromTrades, yahooSymbol } from "./domain/investments"
 
 // Dados de mercado públicos e sem chave: CDI e IPCA do Banco Central (SGS) e IBOV e cotações do Yahoo Finance.
 // Tudo opcional: falha de rede mantém o que já está no banco e nunca derruba a sincronização.
@@ -82,9 +82,6 @@ export async function updateMarketSeries() {
   ])
   return errors
 }
-
-/** Símbolo no Yahoo: ativos da B3 levam ".SA"; cripto vira par com o real ("BTC-BRL"). */
-export const yahooSymbol = (code: string, assetClass: AssetClass) => (assetClass === "CRIPTO" ? `${code.toUpperCase()}-BRL` : `${code.toUpperCase()}.SA`)
 
 /**
  * Cotação dos ativos manuais de renda variável e saldo recalculado (quantidade × cotação). Os da Pluggy já vêm

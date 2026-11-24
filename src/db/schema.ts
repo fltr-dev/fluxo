@@ -78,6 +78,8 @@ export const balanceSnapshots = pgTable(
     accountId: integer().notNull().references(() => accounts.id, { onDelete: "cascade" }),
     date: date({ mode: "string" }).notNull(),
     balance: money("balance").notNull(),
+    // Saldo de fim de mês reconstruído por `npm run backfill` antes do 1º saldo real; o script apaga e regrava só estes
+    estimated: boolean().notNull().default(false),
   },
   (t) => [unique().on(t.accountId, t.date)],
 )
