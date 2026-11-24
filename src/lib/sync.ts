@@ -1,5 +1,5 @@
 import "server-only"
-import { and, asc, eq, inArray, isNotNull, like, or, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, isNotNull, like, min, or, sql } from "drizzle-orm"
 import { accounts, db, DEFAULT_INSTITUTION_NAME, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
 import { deriveKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
@@ -184,7 +184,15 @@ async function syncIncomeFromTransactions() {
 }
 
 async function syncAccountTransactions(pluggy: Pluggy, cat: Categorizer, acc: typeof accounts.$inferSelect) {
-  const windowStart = acc.transactionsSyncedAt ? addDays(toLocalDate(acc.transactionsSyncedAt), -OVERLAP_DAYS) : null
+  // A janela recua até a pendente mais antiga: o Nubank só confirma a compra quando a fatura fecha (até ~40 dias depois),
+  // e a confirmação mantém o mesmo id, então só chega se a data dela estiver dentro do que pedimos à Pluggy.
+  // ponytail: uma pendente que a Pluggy nunca confirma mantém a janela larga; limitar a N dias se a sync ficar lenta
+  const recent = acc.transactionsSyncedAt ? addDays(toLocalDate(acc.transactionsSyncedAt), -OVERLAP_DAYS) : null
+  const [{ oldestPending }] = await db
+    .select({ oldestPending: min(transactions.date) })
+    .from(transactions)
+    .where(and(eq(transactions.accountId, acc.id), eq(transactions.status, "PENDING")))
+  const windowStart = recent && oldestPending && oldestPending < recent ? oldestPending : recent
   const startedAt = new Date()
   const incoming = (await pluggy.transactions(acc.pluggyId!, windowStart ?? undefined)).map(normalizePluggyTx)
   const ids = incoming.map((i) => i.pluggyId)
