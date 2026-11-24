@@ -1,7 +1,7 @@
 import "server-only"
 import { and, asc, eq, inArray, isNotNull, like, min, or, sql } from "drizzle-orm"
 import { accounts, db, DEFAULT_INSTITUTION_NAME, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
-import { deriveKind } from "./domain/categorize"
+import { deriveKind, resolvedKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
 import { classifyPluggy, detectIncomeFromTransactions, positionFromTrades, rateLabelOf } from "./domain/investments"
 import { deriveInvestmentMovements, deriveInvestmentTrades, mergeTransactions, normalizePluggyTx, type PluggyInvestment } from "./domain/sync-merge"
@@ -219,7 +219,7 @@ async function syncAccountTransactions(pluggy: Pluggy, cat: Categorizer, acc: ty
       ...tx,
       ...res,
       accountId: acc.id,
-      kind: deriveKind(tx.amount, res.subcategoryId ? cat.kinds.get(res.subcategoryId) : null),
+      kind: resolvedKind(tx.amount, res, cat.kinds),
       note: carry?.note ?? null,
       ignored: carry?.ignored ?? false,
     })

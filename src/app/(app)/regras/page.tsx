@@ -90,14 +90,14 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
                 <tr className="border-b">
                   <th className="h-10 w-14 px-4 text-left font-medium">#</th>
                   <th className="px-3 text-left font-medium">Condição</th>
-                  <th className="px-3 text-left font-medium">Subcategoria</th>
+                  <th className="px-3 text-left font-medium">Categorizar como</th>
                   <th className="px-3 text-left font-medium">Ativa</th>
                   <th className="w-28 pr-4"><span className="sr-only">Ações</span></th>
                 </tr>
               </thead>
               <tbody>
                 {rules.map((r) => {
-                  const sub = label.get(r.subcategoryId)
+                  const sub = r.subcategoryId == null ? { parent: null, name: "Transferência", color: null } : label.get(r.subcategoryId)
                   const filters = [
                     r.accountId && `Conta: ${accountName.get(r.accountId)}`,
                     r.kind && (r.kind === "EXPENSE" ? "Despesa" : "Receita"),
@@ -124,7 +124,7 @@ export default async function RulesPage({ searchParams }: PageProps<"/regras">) 
                       <td className="px-3">
                         <span className="flex items-center gap-2">
                           <span className="size-2 shrink-0 rounded-full" style={{ background: sub?.color ?? "#a1a1aa" }} />
-                          <span className="truncate"><span className="text-muted-foreground">{sub?.parent} › </span>{sub?.name ?? "?"}</span>
+                          <span className="truncate">{sub?.parent && <span className="text-muted-foreground">{sub.parent} › </span>}{sub?.name ?? "?"}</span>
                         </span>
                       </td>
                       <td className="px-3">

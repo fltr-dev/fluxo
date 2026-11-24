@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { averageMonthlyExpense, goalProgress, limitStatus, netWorthSeries, reserveStatus } from "./calc"
-import { deriveKind, mapPluggyCategory, matchRule, resolveCategory, type Rule } from "./categorize"
+import { deriveKind, mapPluggyCategory, matchRule, resolveCategory, resolvedKind, ruleChanges, type Rule } from "./categorize"
 import { monthEnd, previousPeriod, resolvePeriod, samePeriodLastYear, toLocalDate } from "./dates"
 import { deriveInvestmentMovements, mergeTransactions, normalizePluggyTx, type Existing, type Incoming } from "./sync-merge"
 import { detectTransfers, type TransferCandidate } from "./transfers"
@@ -67,6 +67,16 @@ describe("categorização", () => {
     expect(deriveKind(-30, null)).toBe("EXPENSE")
     expect(deriveKind(30, null)).toBe("INCOME")
   })
+  it("regra de transferência (subcategoria nula) marca transferência", () => {
+    const res = resolveCategory({ accept: 0.85, suggest: 0.6, ruleSubcategoryId: null, jev: null, mappedSubcategoryId: 3 })
+    expect(res).toMatchObject({ subcategoryId: null, categorySource: "RULE" })
+    expect(resolvedKind(-440, res, new Map())).toBe("TRANSFER")
+    expect(resolvedKind(-440, { subcategoryId: null, categorySource: "NONE" }, new Map())).toBe("EXPENSE")
+    expect(ruleChanges({ subcategoryId: null }, { kind: "EXPENSE", subcategoryId: 5 })).toBe(true)
+    expect(ruleChanges({ subcategoryId: null }, { kind: "TRANSFER", subcategoryId: null })).toBe(false)
+    expect(ruleChanges({ subcategoryId: 5 }, { kind: "TRANSFER", subcategoryId: null })).toBe(true) // tira da transferência sem par
+    expect(ruleChanges({ subcategoryId: 5 }, { kind: "EXPENSE", subcategoryId: 5 })).toBe(false)
+  })
 })
 
 const cand = (c: Partial<TransferCandidate>): TransferCandidate => ({
@@ -88,6 +98,7 @@ describe("transferências", () => {
       cand({ id: 9, accountId: 1, amount: 12, pluggyCategory: "Proceeds interests and dividends", pluggyCategoryId: "03060000", kind: "INCOME" }),
       cand({ id: 10, accountId: 2, amount: 1000, categorySource: "USER", kind: "INCOME" }),
       cand({ id: 11, accountId: 1, amount: -1000, date: "2026-03-10" }),
+      cand({ id: 12, accountId: 1, amount: -11.69, pluggyCategory: "Mutual funds", pluggyCategoryId: "03030000", categorySource: "RULE" }), // regra vence
     ])
     expect(pairs).toEqual([[1, 3]])
     expect(singles).toEqual([7, 8])

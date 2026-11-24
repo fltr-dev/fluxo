@@ -78,6 +78,13 @@
       "when": 1795461475307,
       "tag": "0010_regra_igual_a",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795528600600,
+      "tag": "0011_regra_transferencia",
+      "breakpoints": true
     }
   ]
 }

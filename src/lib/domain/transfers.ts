@@ -30,7 +30,8 @@ const cents = (n: number) => Math.round(n * 100)
 /**
  * Pares: mesmo valor absoluto, sinais opostos, contas diferentes, até `windowDays` dias de distância
  * (escolhe o par mais próximo em data). Singles: categoria Pluggy de transferência sem par encontrado.
- * Ignora o que o usuário já decidiu (categorySource USER), transações ignoradas e já pareadas.
+ * Ignora o que o usuário já decidiu (categorySource USER), transações ignoradas e já pareadas. Regra vence a categoria
+ * da Pluggy: o que uma regra categorizou não vira transferência sem par (pares continuam vencendo).
  */
 export function detectTransfers(txs: TransferCandidate[], windowDays = 3) {
   const candidates = txs.filter((t) => t.transferPairId == null && t.categorySource !== "USER" && !t.ignored)
@@ -58,7 +59,7 @@ export function detectTransfers(txs: TransferCandidate[], windowDays = 3) {
   }
 
   const singles = candidates
-    .filter((t) => !used.has(t.id) && t.kind !== "TRANSFER" && isTransferCategory(t.pluggyCategoryId, t.pluggyCategory))
+    .filter((t) => !used.has(t.id) && t.kind !== "TRANSFER" && t.categorySource !== "RULE" && isTransferCategory(t.pluggyCategoryId, t.pluggyCategory))
     .map((t) => t.id)
 
   return { pairs, singles }

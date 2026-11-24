@@ -10,7 +10,8 @@ export type Rule = {
   kind: Kind | null
   minAmount: number | null
   maxAmount: number | null
-  subcategoryId: number
+  // null = a regra marca a transação como transferência (sem categoria)
+  subcategoryId: number | null
   active: boolean
 }
 
@@ -93,7 +94,8 @@ export type Resolution = {
 
 /** Ordem: regra do usuário → Jev (confiança ≥ accept) → mapeamento Pluggy → "A categorizar". */
 export function resolveCategory(input: {
-  ruleSubcategoryId?: number
+  // null = regra de transferência
+  ruleSubcategoryId?: number | null
   jev: JevResult
   mappedSubcategoryId?: number
   accept: number
@@ -101,7 +103,7 @@ export function resolveCategory(input: {
 }): Resolution {
   const { ruleSubcategoryId, jev, mappedSubcategoryId, accept, suggest } = input
   const none = { suggestedSubcategoryId: null, suggestionConfidence: null }
-  if (ruleSubcategoryId != null) return { subcategoryId: ruleSubcategoryId, categorySource: "RULE", ...none }
+  if (ruleSubcategoryId !== undefined) return { subcategoryId: ruleSubcategoryId, categorySource: "RULE", ...none }
   if (jev && jev.confidence >= accept) return { subcategoryId: jev.subcategoryId, categorySource: "JEV", ...none }
   const suggestion =
     jev && jev.confidence >= suggest
@@ -114,3 +116,11 @@ export function resolveCategory(input: {
 /** Tipo da transação: segue o tipo da categoria (estorno numa categoria de despesa reduz a despesa); sem categoria, segue o sinal. */
 export const deriveKind = (amount: number, categoryKind: Kind | null | undefined): Kind =>
   categoryKind ?? (amount < 0 ? "EXPENSE" : "INCOME")
+
+/** Tipo depois da resolução: regra sem subcategoria é regra de transferência; o resto segue `deriveKind`. */
+export const resolvedKind = (amount: number, res: Pick<Resolution, "subcategoryId" | "categorySource">, kinds: Map<number, Kind>): Kind | "TRANSFER" =>
+  res.categorySource === "RULE" && res.subcategoryId == null ? "TRANSFER" : deriveKind(amount, res.subcategoryId ? kinds.get(res.subcategoryId) : null)
+
+/** A regra mudaria a transação? Regra de transferência muda o que ainda não é transferência; as outras, a categoria. */
+export const ruleChanges = (rule: Pick<Rule, "subcategoryId">, tx: { kind: string; subcategoryId: number | null }) =>
+  rule.subcategoryId == null ? tx.kind !== "TRANSFER" : tx.kind === "TRANSFER" || tx.subcategoryId !== rule.subcategoryId

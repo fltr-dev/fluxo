@@ -1,0 +1,1 @@
+ALTER TABLE "category_rules" ALTER COLUMN "subcategory_id" DROP NOT NULL;

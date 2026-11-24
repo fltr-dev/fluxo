@@ -9,7 +9,8 @@ import { dateBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { previewRule, saveRule, type RuleDraft } from "./actions"
 
-type Kind = "" | "EXPENSE" | "INCOME"
+// TRANSFER = regra de transferência (sem categoria, vale para entradas e saídas)
+type Kind = "" | "EXPENSE" | "INCOME" | "TRANSFER"
 type MatchType = RuleDraft["matchType"]
 type SubOption = Parameters<typeof SubcategorySelect>[0]["options"][number]
 type Preview = Awaited<ReturnType<typeof previewRule>>
@@ -34,19 +35,20 @@ const num = (s: string) => (s.trim() === "" ? null : Number(s))
 /**
  * Formulário da regra com prévia ao vivo: a cada mudança (pausa de 300 ms) conta quantas transações existentes a
  * regra recategorizaria. Tipo e categoria andam juntos: com Despesa só aparecem categorias de despesa (e vice-versa);
- * trocar o tipo limpa a categoria que deixou de servir.
+ * trocar o tipo limpa a categoria que deixou de servir. Com Transferência a categoria some.
  */
 export function RuleForm({ rule, accounts, options }: Props) {
   const [matchType, setMatchType] = useState<MatchType>(rule.matchType ?? "CONTAINS")
   const [pattern, setPattern] = useState(rule.pattern ?? "")
   const [accountId, setAccountId] = useState(String(rule.accountId ?? ""))
-  const [kind, setKind] = useState<Kind>((rule.kind ?? "") as Kind)
+  const [kind, setKind] = useState<Kind>(rule.subcategoryId === null ? "TRANSFER" : ((rule.kind ?? "") as Kind))
   const [min, setMin] = useState(rule.minAmount != null ? String(rule.minAmount) : "")
   const [max, setMax] = useState(rule.maxAmount != null ? String(rule.maxAmount) : "")
   const [sub, setSub] = useState<string | null>(rule.subcategoryId ? String(rule.subcategoryId) : null)
   const [priority, setPriority] = useState(String(rule.priority ?? 100))
   const [preview, setPreview] = useState<Preview | null>(null)
   const [loading, setLoading] = useState(false)
+  const transfer = kind === "TRANSFER"
   const visible = kind ? options.filter((o) => o.kind === kind) : options
 
   useEffect(() => {
@@ -58,7 +60,8 @@ export function RuleForm({ rule, accounts, options }: Props) {
         matchType,
         pattern,
         accountId: accountId ? Number(accountId) : null,
-        kind: kind || null,
+        kind: transfer ? null : kind || null,
+        transfer,
         minAmount: num(min),
         maxAmount: num(max),
         priority: Number(priority) || 0,
@@ -72,7 +75,7 @@ export function RuleForm({ rule, accounts, options }: Props) {
       stale = true
       window.clearTimeout(t)
     }
-  }, [rule.id, matchType, pattern, accountId, kind, min, max, priority, sub])
+  }, [rule.id, matchType, pattern, accountId, kind, transfer, min, max, priority, sub])
 
   function changeKind(next: Kind) {
     setKind(next)
@@ -109,6 +112,7 @@ export function RuleForm({ rule, accounts, options }: Props) {
             options={[
               { value: "EXPENSE", label: "Despesa" },
               { value: "INCOME", label: "Receita" },
+              { value: "TRANSFER", label: "Transferência" },
             ]}
           />
         </Field>
@@ -119,9 +123,15 @@ export function RuleForm({ rule, accounts, options }: Props) {
           <input type="number" name="maxAmount" min={0} step="0.01" value={max} onChange={(e) => setMax(e.target.value)} className={fieldClass} />
         </Field>
       </div>
-      <Field label="Categorizar como">
-        <SubcategorySelect name="subcategoryId" options={visible} required value={sub} onValueChange={(v) => setSub(v || null)} placeholder="Escolha…" />
-      </Field>
+      {transfer ? (
+        <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+          Marca como transferência, sem categoria: fica fora de receitas, despesas e limites. Vale para entradas e saídas.
+        </p>
+      ) : (
+        <Field label="Categorizar como">
+          <SubcategorySelect name="subcategoryId" options={visible} required value={sub} onValueChange={(v) => setSub(v || null)} placeholder="Escolha…" />
+        </Field>
+      )}
       <Field label="Prioridade" hint="Menor número vence quando duas regras casam.">
         <input type="number" name="priority" min={0} max={10000} value={priority} onChange={(e) => setPriority(e.target.value)} className={cn(fieldClass, "w-28")} />
       </Field>
@@ -138,7 +148,7 @@ export function RuleForm({ rule, accounts, options }: Props) {
         {preview && preview.total > 0 ? (
           <>
             <p className="text-sm">
-              <span className="font-medium tabular-nums">{preview.change}</span> serão recategorizadas
+              <span className="font-medium tabular-nums">{preview.change}</span> {transfer ? "virarão transferência" : "serão recategorizadas"}
               {preview.user > 0 && (
                 <span className="text-muted-foreground"> · <span className="tabular-nums">{preview.user}</span> categorizadas por você (mantidas)</span>
               )}
@@ -148,7 +158,7 @@ export function RuleForm({ rule, accounts, options }: Props) {
                 <li key={t.id} className="flex items-center justify-between gap-3 border-b py-1.5 last:border-0">
                   <span className="grid min-w-0">
                     <span className="truncate font-mono text-xs">{t.description}</span>
-                    <span className="text-xs text-muted-foreground">{dateBR(t.date)} · {STATUS[t.status]}</span>
+                    <span className="text-xs text-muted-foreground">{dateBR(t.date)} · {transfer && t.status === "change" ? "vira transferência" : STATUS[t.status]}</span>
                   </span>
                   <Money value={t.amount} className="shrink-0 font-medium" />
                 </li>

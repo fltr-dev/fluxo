@@ -13,7 +13,7 @@ import { SyncButton } from "@/components/shell-client"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { db, institutions, syncRuns } from "@/db"
-import { ACCOUNT_ORDERS, ACCOUNT_TYPES, accountOrder, accountSubline, groupAccounts, type PortfolioRow } from "@/lib/account-types"
+import { ACCOUNT_GROUPS, ACCOUNT_ORDERS, ACCOUNT_TYPES, accountOrder, accountSubline, groupAccounts, type PortfolioRow } from "@/lib/account-types"
 import { accountLook } from "@/lib/banks"
 import { brl, ago } from "@/lib/format"
 import { listAccounts, withParams } from "@/lib/queries"
@@ -248,7 +248,14 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                 </p>
               )}
               {insts.map((i) => {
-                const n = accs.filter((a) => a.institutionId === i.id).length
+                const mine = accs.filter((a) => a.institutionId === i.id)
+                const n = mine.length
+                // Contas da conexão por tipo (correntes e cartões antes dos investimentos), maior saldo primeiro
+                const byType = ACCOUNT_GROUPS.map(([type, label]) => ({
+                  type,
+                  label,
+                  rows: mine.filter((a) => a.type === type).sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance)),
+                })).filter((g) => g.rows.length)
                 return (
                   <div key={i.id} className="grid gap-2 border-b py-3 first:pt-0 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
@@ -272,6 +279,33 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                         </Button>
                       </form>
                     </div>
+                    {n > 0 && (
+                      <details className="group">
+                        <summary className="ml-12 flex w-fit cursor-pointer items-center gap-1 text-xs font-medium text-primary select-none hover:underline">
+                          Ver contas
+                          <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <div className="mt-2 grid gap-2">
+                          {byType.map((g) => (
+                            <div key={g.type} className="grid">
+                              <span className="text-xs font-medium text-muted-foreground">{g.label}</span>
+                              {g.rows.map((a) => (
+                                <Link
+                                  key={a.id}
+                                  href={here({ editar: a.id })}
+                                  scroll={false}
+                                  className={cn("-mx-1.5 flex min-h-8 min-w-0 items-center justify-between gap-3 rounded-md px-1.5 text-sm hover:bg-muted", a.archived && "opacity-60")}
+                                  aria-label={`Editar ${a.name}`}
+                                >
+                                  <span className="truncate">{a.name}</span>
+                                  <Money value={a.balance} className="shrink-0 text-xs text-muted-foreground" />
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                     {i.error && (
                       <div className="flex flex-wrap items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
                         <CircleAlert className="mt-0.5 size-4 shrink-0" />
