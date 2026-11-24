@@ -20,6 +20,12 @@ const qtyFmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits:
 const price = (n: number | null) => (n == null ? "—" : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: n < 1 ? 6 : 2 }))
 const pct2 = (n: number) => `${(n * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 
+export async function generateMetadata({ params }: PageProps<"/investimentos/ativos/[id]">) {
+  const id = Number((await params).id)
+  const h = (await listHoldings()).find((x) => x.id === id)
+  return { title: h ? (h.code ?? h.name) : "Ativos" }
+}
+
 export default async function AssetPage({ params, searchParams }: PageProps<"/investimentos/ativos/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams])
   const investmentId = Number(id)

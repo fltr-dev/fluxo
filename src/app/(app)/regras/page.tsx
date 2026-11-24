@@ -24,6 +24,8 @@ async function deleteAndClose(form: FormData) {
 
 type Rule = typeof categoryRules.$inferSelect
 
+export const metadata = { title: "Regras" }
+
 export default async function RulesPage({ searchParams }: PageProps<"/regras">) {
   const sp = await searchParams
   const fromTx = Number(sp.de) || undefined

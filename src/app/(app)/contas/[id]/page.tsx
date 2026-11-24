@@ -20,6 +20,11 @@ import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "../account-edit"
 import { renameAccount } from "../actions"
 
+export async function generateMetadata({ params }: PageProps<"/contas/[id]">) {
+  const id = Number((await params).id)
+  return { title: (await listAccounts()).find((a) => a.id === id)?.name ?? "Contas" }
+}
+
 export default async function AccountPage({ params, searchParams }: PageProps<"/contas/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams])
   const accountId = Number(id)

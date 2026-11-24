@@ -16,6 +16,8 @@ const price = (n: number | null) => (n == null ? "—" : n.toLocaleString("pt-BR
 
 const COLS = "grid grid-cols-[minmax(220px,2.2fr)_repeat(4,minmax(96px,1fr))_minmax(116px,1.1fr)_minmax(124px,1.2fr)_76px] items-center gap-3 px-5"
 
+export const metadata = { title: "Ativos" }
+
 export default async function AssetsPage({ searchParams }: PageProps<"/investimentos/ativos">) {
   const sp = await searchParams
   const path = "/investimentos/ativos"

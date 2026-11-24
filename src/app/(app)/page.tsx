@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils"
 
 const GOAL_STATE = { done: ["Concluída", "bg-muted text-muted-foreground"], on_track: ["No ritmo", "bg-income/10 text-income"], late: ["Atrasada", "bg-amber-500/10 text-warning"] } as const
 
+export const metadata = { title: "Dashboard" }
+
 export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
   const f = parseFilters(sp)

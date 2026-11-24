@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { auth, ownerName, sessionIsCurrent, signOut } from "@/auth"
+import { LogoLoader } from "@/components/logo"
 import { NotificationBell, type BellItem } from "@/components/notification-bell"
 import { PageTransition } from "@/components/page-transition"
 import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton } from "@/components/shell-client"
@@ -112,6 +113,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12">
             <PageTransition>{children}</PageTransition>
           </main>
+          {/* Gravação demorada (html[data-busy] por mais de 600ms): logo animado no centro da tela apagada */}
+          <div className="ll-center ll-busy">
+            <LogoLoader />
+          </div>
         </div>
 
         <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version}

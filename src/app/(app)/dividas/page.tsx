@@ -292,6 +292,8 @@ async function PayDialog({ v, installmentId }: { v: DebtView; installmentId?: nu
   )
 }
 
+export const metadata = { title: "Dívidas" }
+
 export default async function DebtsPage({ searchParams }: PageProps<"/dividas">) {
   const sp = await searchParams
   const now = today()

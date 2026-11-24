@@ -60,6 +60,8 @@ function categoryActions(id: number, archived: boolean, editHref: string, retire
   }
 }
 
+export const metadata = { title: "Categorias" }
+
 export default async function CategoriesPage({ searchParams }: PageProps<"/categorias">) {
   const sp = await searchParams
   const ym = monthOf(today())

@@ -41,6 +41,8 @@ function LinkTabs({ items, sp, param }: { items: readonly (readonly [string, str
   )
 }
 
+export const metadata = { title: "Relatórios" }
+
 export default async function ReportsPage({ searchParams }: PageProps<"/relatorios">) {
   const sp = await searchParams
   const f = parseFilters(sp)

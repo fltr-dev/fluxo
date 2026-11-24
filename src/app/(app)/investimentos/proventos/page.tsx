@@ -24,6 +24,8 @@ const dayMonth = (d: string) => `${+d.slice(8, 10)} ${MONTHS[+d.slice(5, 7) - 1]
 const pct2 = (n: number) => `${(n * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 const unit = (r: TradeRow) => (r.quantity ? `${(r.amount / r.quantity).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 4 })} × ${r.quantity.toLocaleString("pt-BR")}` : null)
 
+export const metadata = { title: "Proventos" }
+
 export default async function IncomePage({ searchParams }: PageProps<"/investimentos/proventos">) {
   const sp = await searchParams
   const path = "/investimentos/proventos"

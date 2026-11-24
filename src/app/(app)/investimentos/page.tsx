@@ -17,6 +17,8 @@ type PeriodKey = keyof typeof PERIODS
 const pct1 = (n: number) => `${(n * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
 const brl0 = (n: number) => brl(n).replace(/,\d\d$/, "")
 
+export const metadata = { title: "Investimentos" }
+
 export default async function InvestmentsPage({ searchParams }: PageProps<"/investimentos">) {
   const sp = await searchParams
   const period: PeriodKey = typeof sp.periodo === "string" && sp.periodo in PERIODS ? (sp.periodo as PeriodKey) : "12m"

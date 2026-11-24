@@ -18,6 +18,8 @@ function Brand({ className }: { className?: string }) {
   )
 }
 
+export const metadata = { title: "Entrar" }
+
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error, alterado } = await searchParams
   return (

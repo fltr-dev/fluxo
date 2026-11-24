@@ -30,6 +30,8 @@ async function saveSettings(form: FormData) {
   refresh()
 }
 
+export const metadata = { title: "Reserva" }
+
 export default async function ReservePage() {
   const [r, accs] = await Promise.all([reserveOverview(), listAccounts()])
   const active = accs.filter((a) => !a.archived)

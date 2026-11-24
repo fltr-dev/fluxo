@@ -44,6 +44,8 @@ async function createAccountAndClose(form: FormData) {
   redirect("/contas")
 }
 
+export const metadata = { title: "Contas" }
+
 export default async function ConnectionsPage({ searchParams }: PageProps<"/contas">) {
   const sp = await searchParams
   const [insts, accs, runs] = await Promise.all([db.select().from(institutions), listAccounts(), db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(8)])
