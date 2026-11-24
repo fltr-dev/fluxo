@@ -156,7 +156,11 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
 
       {rows.length < 2 ? (
         <p className="grid place-items-center rounded-xl border border-dashed px-6 text-center text-sm text-muted-foreground" style={{ height }}>
-          {pct ? "A rentabilidade aparece a partir do segundo mês com saldo registrado." : "O histórico começa a ser registrado na primeira sincronização."}
+          {pct
+            ? "A rentabilidade aparece a partir do segundo mês com saldo registrado."
+            : rows.length
+              ? `Só há saldo de ${monthLabel(rows[0].month)}. A evolução aparece a partir do segundo mês.`
+              : "Ainda não há saldo registrado. Ele é gravado a cada sincronização."}
         </p>
       ) : (
         <ComposedChart responsive className={cn(pct && "axis-public")} style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>

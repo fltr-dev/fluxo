@@ -134,5 +134,5 @@ export async function snapshotBalances(date: string) {
   await db
     .insert(balanceSnapshots)
     .values(rows.map((r) => ({ accountId: r.id, date, balance: r.balance })))
-    .onConflictDoUpdate({ target: [balanceSnapshots.accountId, balanceSnapshots.date], set: { balance: sql`excluded.balance` } })
+    .onConflictDoUpdate({ target: [balanceSnapshots.accountId, balanceSnapshots.date], set: { balance: sql`excluded.balance`, estimated: false } })
 }

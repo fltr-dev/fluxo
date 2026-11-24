@@ -25,6 +25,9 @@ export const CLASS_ORDER = [...ASSET_CLASSES].sort((a, b) => CLASS_INFO[a].order
 /** Renda variável: tem quantidade e cotação; o resto é renda fixa/fundos (só saldo). */
 export const isVariable = (c: AssetClass) => c === "ACOES" || c === "FII" || c === "BDR" || c === "ETF" || c === "CRIPTO"
 
+/** Símbolo no Yahoo: ativos da B3 levam ".SA"; cripto vira par com o real ("BTC-BRL"). */
+export const yahooSymbol = (code: string, assetClass: AssetClass) => (assetClass === "CRIPTO" ? `${code.toUpperCase()}-BRL` : `${code.toUpperCase()}.SA`)
+
 export const INCOME_TYPES = ["DIVIDEND", "JCP", "YIELD", "INTEREST"] as const
 export type IncomeType = (typeof INCOME_TYPES)[number]
 export type TradeType = "BUY" | "SELL" | "BONUS" | IncomeType
