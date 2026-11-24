@@ -15,13 +15,13 @@ export default function Loading() {
       <Card className="gap-4 px-5 py-5">
         <SkCardHead title="w-44" description="w-80" />
         <div className="grid gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <SkTabs items={["flex-1 md:w-28 md:flex-none", "flex-1 md:w-28 md:flex-none"]} item="h-9 md:h-8" className="w-full md:order-last md:w-auto" />
             <div className="flex flex-wrap gap-1.5">
-              {["w-24", "w-16", "w-16", "w-16"].map((w, i) => (
-                <Skeleton key={i} className={`h-8 rounded-full ${w}`} />
+              {["w-36", "w-28", "w-28", "w-24", "w-32", "w-28"].map((w, i) => (
+                <Skeleton key={i} className={`h-9 shrink-0 rounded-full md:h-8 ${w}`} />
               ))}
             </div>
-            <SkTabs items={["w-24", "w-24"]} item="h-7" />
           </div>
           <SkChart className="h-[260px]" />
         </div>

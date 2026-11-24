@@ -175,7 +175,6 @@ export type HistoryPoint = {
   cdiAcc: number | null
   ibovAcc: number | null
   ipcaAcc: number | null
-  selicAcc: number | null
   poupancaAcc: number | null
   dolarAcc: number | null
 }
@@ -289,7 +288,6 @@ export async function portfolioHistory(months: string[], investmentId?: number) 
   const cdiAcc = bench(cdi)
   const ibovAcc = bench(ibov)
   const ipcaAcc = bench(ipca)
-  const selicAcc = bench(cdiByMonth(market.filter((r) => r.series === "SELIC")))
   const poupancaAcc = bench(monthly("POUPANCA"))
   const dolarAcc = bench(indexReturnsByMonth(market.filter((r) => r.series === "DOLAR")))
 
@@ -303,7 +301,6 @@ export async function portfolioHistory(months: string[], investmentId?: number) 
     cdiAcc: cdiAcc[i],
     ibovAcc: ibovAcc[i],
     ipcaAcc: ipcaAcc[i],
-    selicAcc: selicAcc[i],
     poupancaAcc: poupancaAcc[i],
     dolarAcc: dolarAcc[i],
   }))

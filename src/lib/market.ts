@@ -82,10 +82,6 @@ export async function updateMarketSeries() {
       if (r?.meta?.regularMarketPrice) byMonth.set(`${monthOf(now)}-01`, r.meta.regularMarketPrice)
       await upsert("IBOV", [...byMonth].map(([date, value]) => ({ date, value })))
     }),
-    run("SELIC", async () => {
-      const last = await lastDate("SELIC")
-      await upsert("SELIC", await sgs(11, last ? addDays(last, 1) : start, now))
-    }),
     run("POUPANCA", async () => {
       // rendimento mensal da poupança (regra de 2012) para aniversário no dia 1; o último mês pode ser revisto
       const last = await lastDate("POUPANCA")

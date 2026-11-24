@@ -151,7 +151,7 @@ export async function seedDemoInvestments(
     { assetClass: "BDR", percent: 5 },
   ])
 
-  // Índices: CDI diário (dias úteis), IPCA mensal e IBOV no fim de cada mês, desde 13 meses atrás
+  // Índices: CDI diário (dias úteis), IPCA e poupança mensais, IBOV e dólar no fim de cada mês, desde 13 meses atrás
   const cdi: { series: string; date: string; value: number }[] = []
   for (let d = `${addMonths(thisMonth, -13)}-01`; d <= now; d = addDays(d, 1)) {
     const wd = new Date(`${d}T12:00:00Z`).getUTCDay()
@@ -159,9 +159,13 @@ export async function seedDemoInvestments(
   }
   const IPCA = [0.39, 0.52, 0.48, 0.16, 0.56, 0.43, 0.38, 0.26, 0.24, 0.29, 0.31, 0.44, 0.36]
   const IBOV = [128900, 131500, 134200, 131300, 127800, 130600, 133400, 131500, 135800, 133900, 137200, 141600, 140900, 141200]
+  const POUPANCA = [0.62, 0.65, 0.67, 0.67, 0.68, 0.67, 0.68, 0.67, 0.67, 0.66, 0.67, 0.66, 0.67]
+  const DOLAR = [5.42, 5.58, 5.71, 5.63, 5.49, 5.52, 5.61, 5.44, 5.38, 5.47, 5.35, 5.29, 5.33, 5.36]
   await db.insert(s.marketSeries).values([
     ...cdi,
     ...IPCA.map((value, i) => ({ series: "IPCA", date: `${addMonths(thisMonth, i - 13)}-01`, value })),
     ...IBOV.map((value, i) => ({ series: "IBOV", date: `${addMonths(thisMonth, i - 13)}-01`, value })),
+    ...POUPANCA.map((value, i) => ({ series: "POUPANCA", date: `${addMonths(thisMonth, i - 13)}-01`, value })),
+    ...DOLAR.map((value, i) => ({ series: "DOLAR", date: `${addMonths(thisMonth, i - 13)}-01`, value })),
   ])
 }
