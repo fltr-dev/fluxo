@@ -71,13 +71,15 @@ export async function updateMarketSeries() {
     run("IBOV", async () => {
       const r = await yahoo("^BVSP", `${HISTORY_YEARS}y`, "1mo")
       const closes = r?.indicators?.quote?.[0]?.close ?? []
-      // um ponto por mês, no dia 1; o mês corrente leva a última cotação
-      const rows = (r?.timestamp ?? []).flatMap((ts, i) => {
+      // um ponto por mês, no dia 1; o mês corrente leva a última cotação. O Yahoo repete o mês corrente (candle do
+      // mês + o pregão de hoje) e um upsert com a mesma data duas vezes falha inteiro: o Map fica com a última.
+      const byMonth = new Map<string, number>()
+      ;(r?.timestamp ?? []).forEach((ts, i) => {
         const v = closes[i]
-        return v ? [{ date: `${new Date(ts * 1000).toISOString().slice(0, 7)}-01`, value: v }] : []
+        if (v) byMonth.set(`${new Date(ts * 1000).toISOString().slice(0, 7)}-01`, v)
       })
-      if (r?.meta?.regularMarketPrice) rows.push({ date: `${monthOf(now)}-01`, value: r.meta.regularMarketPrice })
-      await upsert("IBOV", rows)
+      if (r?.meta?.regularMarketPrice) byMonth.set(`${monthOf(now)}-01`, r.meta.regularMarketPrice)
+      await upsert("IBOV", [...byMonth].map(([date, value]) => ({ date, value })))
     }),
   ])
   return errors
