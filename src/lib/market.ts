@@ -4,7 +4,8 @@ import { accounts, db, investments, investmentTrades, marketSeries } from "@/db"
 import { addDays, addMonths, monthOf, today } from "./domain/dates"
 import { isVariable, positionFromTrades, yahooSymbol } from "./domain/investments"
 
-// Dados de mercado públicos e sem chave: CDI e IPCA do Banco Central (SGS) e IBOV e cotações do Yahoo Finance.
+// Dados de mercado públicos e sem chave: CDI, IPCA, Selic, poupança e dólar do Banco Central (SGS) e IBOV e
+// cotações do Yahoo Finance.
 // Tudo opcional: falha de rede mantém o que já está no banco e nunca derruba a sincronização.
 
 const TIMEOUT = 8_000
@@ -51,7 +52,7 @@ async function upsert(series: string, rows: { date: string; value: number }[]) {
 // Histórico buscado na primeira vez (o SGS limita séries diárias a 10 anos por consulta)
 const HISTORY_YEARS = 5
 
-/** Atualiza CDI, IPCA e IBOV desde o último dado salvo. Cada série falha sozinha. */
+/** Atualiza CDI, IPCA, IBOV, Selic, poupança e dólar desde o último dado salvo. Cada série falha sozinha. */
 export async function updateMarketSeries() {
   const now = today()
   const start = `${+now.slice(0, 4) - HISTORY_YEARS}-01-01`
@@ -80,6 +81,22 @@ export async function updateMarketSeries() {
       })
       if (r?.meta?.regularMarketPrice) byMonth.set(`${monthOf(now)}-01`, r.meta.regularMarketPrice)
       await upsert("IBOV", [...byMonth].map(([date, value]) => ({ date, value })))
+    }),
+    run("SELIC", async () => {
+      const last = await lastDate("SELIC")
+      await upsert("SELIC", await sgs(11, last ? addDays(last, 1) : start, now))
+    }),
+    run("POUPANCA", async () => {
+      // rendimento mensal da poupança (regra de 2012) para aniversário no dia 1; o último mês pode ser revisto
+      const last = await lastDate("POUPANCA")
+      await upsert("POUPANCA", await sgs(196, last ? `${addMonths(monthOf(last), -2)}-01` : start, now))
+    }),
+    run("DOLAR", async () => {
+      // PTAX de venda diária reduzida a um fechamento por mês, no dia 1 (como o IBOV); refaz o mês do último dado
+      const last = await lastDate("DOLAR")
+      const byMonth = new Map<string, number>()
+      for (const r of await sgs(1, last ?? start, now)) byMonth.set(`${monthOf(r.date)}-01`, r.value)
+      await upsert("DOLAR", [...byMonth].map(([date, value]) => ({ date, value })))
     }),
   ])
   return errors

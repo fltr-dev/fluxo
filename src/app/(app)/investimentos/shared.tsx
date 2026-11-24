@@ -31,7 +31,7 @@ export async function InvestHeader({ active, path, children }: { active: (typeof
       <PageTitle title="Investimentos" description={list.length ? `${sources}${updated ? ` · atualizado ${ago(updated)}` : ""}` : "Sua carteira, com rentabilidade, proventos e alocação."}>
         <form action={refreshMarket}>
           <input type="hidden" name="back" value={path} />
-          <Button type="submit" variant="ghost" size="sm" title="Buscar CDI, IPCA, IBOV e as cotações dos ativos lançados à mão">
+          <Button type="submit" variant="ghost" size="sm" title="Buscar os índices (CDI, IPCA, IBOV, Selic, poupança, dólar) e as cotações dos ativos lançados à mão">
             <RefreshCw />
             <span className="max-sm:hidden">Cotações</span>
           </Button>

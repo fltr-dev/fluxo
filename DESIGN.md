@@ -89,7 +89,7 @@ Porquinho-cofrinho **de perfil** (focinho à esquerda, fenda nas costas, rabinho
 | ETF | `#EA580C` | `#EA580C` |
 | Outros | `#71717A` | `#A1A1AA` |
 
-Nos gráficos de rentabilidade a **carteira** é a linha cheia em `foreground`; os índices (CDI, IBOV, IPCA) ficam em cinza com traços diferentes e o nome escrito, para não competir com as cores das categorias. Ganho/perda do mês usa `--income`/`--expense`.
+Nos gráficos de rentabilidade a **carteira** é a linha cheia em `foreground`; os índices (CDI, IBOV, IPCA, Selic, Poupança, Dólar) ficam em cinza com traços diferentes e o nome escrito, para não competir com as cores das categorias; só CDI e IBOV começam visíveis. Ganho/perda do mês usa `--income`/`--expense`.
 
 ### Cores de destaque (Configurações › Aparência)
 

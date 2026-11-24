@@ -54,14 +54,22 @@ export type EvolutionPoint = {
   cdiAcc: number | null
   ibovAcc: number | null
   ipcaAcc: number | null
+  selicAcc: number | null
+  poupancaAcc: number | null
+  dolarAcc: number | null
 }
 
 const INDEXES = [
   { key: "cdiAcc", label: "CDI", color: "var(--muted-foreground)", dash: "6 4" },
   { key: "ibovAcc", label: "IBOV", color: "var(--muted-foreground)", dash: "1 3" },
   { key: "ipcaAcc", label: "IPCA", color: "var(--muted-foreground)", dash: "8 3 2 3" },
+  { key: "selicAcc", label: "Selic", color: "var(--muted-foreground)", dash: "2 2" },
+  { key: "poupancaAcc", label: "Poupança", color: "var(--muted-foreground)", dash: "12 4" },
+  { key: "dolarAcc", label: "Dólar", color: "var(--muted-foreground)", dash: "4 2 1 2 1 2" },
 ] as const
 type IndexKey = (typeof INDEXES)[number]["key"]
+// começam visíveis só a carteira, o CDI e o IBOV: seis linhas cinzas juntas não se leem
+const HIDDEN_AT_START: IndexKey[] = ["ipcaAcc", "selicAcc", "poupancaAcc", "dolarAcc"]
 
 /**
  * Evolução da carteira: um gráfico, duas leituras sobre o mesmo eixo de tempo. Em R$, patrimônio × valor aplicado;
@@ -69,9 +77,9 @@ type IndexKey = (typeof INDEXES)[number]["key"]
  */
 export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: EvolutionPoint[]; allowPct?: boolean; height?: number }) {
   const [mode, setMode] = useState<"brl" | "pct">("brl")
-  // R$: patrimônio × aplicado; %: carteira × índices (IPCA começa escondido). Cada modo tem a sua legenda clicável.
+  // R$: patrimônio × aplicado; %: carteira × índices. Cada modo tem a sua legenda clicável.
   const money = useSeriesToggle(["value", "applied"])
-  const rel = useSeriesToggle(["acc", ...INDEXES.map((i) => i.key)], ["ipcaAcc"])
+  const rel = useSeriesToggle(["acc", ...INDEXES.map((i) => i.key)], HIDDEN_AT_START)
   const on = Object.fromEntries(INDEXES.map((i) => [i.key, rel.isVisible(i.key)])) as Record<IndexKey, boolean>
   const pct = allowPct && mode === "pct"
   const rows = pct ? data.filter((d) => d.acc != null) : data.filter((d) => d.value != null)
