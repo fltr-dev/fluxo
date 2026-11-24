@@ -221,9 +221,8 @@ export const categoryRules = pgTable("category_rules", {
   kind: categoryKind(),
   minAmount: money("min_amount"),
   maxAmount: money("max_amount"),
-  subcategoryId: integer()
-    .notNull()
-    .references(() => categories.id, { onDelete: "cascade" }),
+  // null = marca como transferência (sem categoria)
+  subcategoryId: integer().references(() => categories.id, { onDelete: "cascade" }),
   active: boolean().notNull().default(true),
 })
 

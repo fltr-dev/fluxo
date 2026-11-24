@@ -1,12 +1,12 @@
 "use server"
 
-import { and, eq, ne } from "drizzle-orm"
+import { and, eq, isNull, ne } from "drizzle-orm"
 import { refresh } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { requireUser } from "@/auth"
 import { categoryRules, db, transactions } from "@/db"
-import { deriveKind, matchRule, ruleMatches, type Rule } from "@/lib/domain/categorize"
+import { deriveKind, matchRule, ruleChanges, ruleMatches, type Rule } from "@/lib/domain/categorize"
 import { fd, parseForm } from "@/lib/form"
 import { subcategoryKinds } from "@/lib/ledger"
 
@@ -20,10 +20,10 @@ export async function saveRule(form: FormData) {
     matchType: z.enum(MATCH_TYPES),
     pattern: fd.text,
     accountId: fd.optId,
-    kind: z.preprocess((x) => x || null, z.enum(["INCOME", "EXPENSE"]).nullable()),
+    kind: z.preprocess((x) => x || null, z.enum(["INCOME", "EXPENSE", "TRANSFER"]).nullable()),
     minAmount: fd.optMoney,
     maxAmount: fd.optMoney,
-    subcategoryId: fd.id,
+    subcategoryId: fd.optId,
     apply: z.preprocess((x) => x === "on", z.boolean()),
   })
   if (v.matchType === "REGEX") {
@@ -33,7 +33,11 @@ export async function saveRule(form: FormData) {
       throw new Error("Expressão regular inválida")
     }
   }
-  const { id, ...data } = v
+  // Tipo "Transferência" = regra sem subcategoria, que vale para entradas e saídas
+  const { id, kind, subcategoryId, ...rest } = v
+  const transfer = kind === "TRANSFER"
+  if (!transfer && !subcategoryId) throw new Error("Escolha a categoria")
+  const data = { ...rest, kind: transfer ? null : kind, subcategoryId: transfer ? null : subcategoryId! }
   if (id) await db.update(categoryRules).set(data).where(eq(categoryRules.id, id))
   else await db.insert(categoryRules).values(data)
   redirect(apply ? `/regras?aplicadas=${await reapplyRules()}` : "/regras")
@@ -54,26 +58,36 @@ export async function toggleRule(form: FormData) {
   refresh()
 }
 
-/** Transações que as regras podem tocar: tudo menos transferências (as categorizadas à mão ficam de fora depois). */
-const candidates = () => db.select().from(transactions).where(ne(transactions.kind, "TRANSFER"))
+/**
+ * Transações que as regras podem tocar: tudo menos transferências pareadas (as categorizadas à mão ficam de fora depois).
+ * Transferência sem par (detectada pela categoria da Pluggy ou marcada por regra) entra: a regra vence a detecção.
+ */
+const candidates = () => db.select().from(transactions).where(isNull(transactions.transferPairId))
 
 /** Reaplica as regras ativas nas transações existentes que o usuário não categorizou à mão. Devolve quantas mudaram. */
 async function reapplyRules() {
   const [rules, kinds, txs] = await Promise.all([
     db.select().from(categoryRules).where(eq(categoryRules.active, true)),
     subcategoryKinds(),
-    db.select().from(transactions).where(and(ne(transactions.categorySource, "USER"), ne(transactions.kind, "TRANSFER"))),
+    db.select().from(transactions).where(and(ne(transactions.categorySource, "USER"), isNull(transactions.transferPairId))),
   ])
   const changes = txs.flatMap((t) => {
     const rule = matchRule(rules, t)
-    return rule && rule.subcategoryId !== t.subcategoryId ? [{ id: t.id, amount: t.amount, subcategoryId: rule.subcategoryId }] : []
+    return rule && ruleChanges(rule, t) ? [{ id: t.id, amount: t.amount, subcategoryId: rule.subcategoryId }] : []
   })
+  const noSuggestion = { suggestedSubcategoryId: null, suggestionConfidence: null }
   // ponytail: um UPDATE por transação alterada; ok para o volume de uso pessoal
   await Promise.all(
     changes.map((c) =>
       db
         .update(transactions)
-        .set({ subcategoryId: c.subcategoryId, categorySource: "RULE", kind: deriveKind(c.amount, kinds.get(c.subcategoryId)), updatedAt: new Date() })
+        .set({
+          subcategoryId: c.subcategoryId,
+          categorySource: "RULE",
+          kind: c.subcategoryId == null ? "TRANSFER" : deriveKind(c.amount, kinds.get(c.subcategoryId)),
+          ...(c.subcategoryId == null && noSuggestion),
+          updatedAt: new Date(),
+        })
         .where(eq(transactions.id, c.id)),
     ),
   )
@@ -85,7 +99,8 @@ export async function applyRulesToExisting() {
   redirect(`/regras?aplicadas=${await reapplyRules()}`)
 }
 
-export type RuleDraft = Pick<Rule, "matchType" | "pattern" | "accountId" | "kind" | "minAmount" | "maxAmount" | "priority"> & { id?: number; subcategoryId: number | null }
+/** `transfer`: regra de transferência; sem ela, `subcategoryId` nulo = categoria ainda não escolhida. */
+export type RuleDraft = Pick<Rule, "matchType" | "pattern" | "accountId" | "kind" | "minAmount" | "maxAmount" | "priority"> & { id?: number; subcategoryId: number | null; transfer?: boolean }
 export type PreviewRow = { id: number; description: string; date: string; amount: number; status: "change" | "user" | "same" }
 
 /**
@@ -99,7 +114,8 @@ export async function previewRule(draft: RuleDraft) {
   const [rules, txs] = await Promise.all([db.select().from(categoryRules).where(eq(categoryRules.active, true)), candidates()])
   // ponytail: filtra em memória todas as transações a cada prévia; ok para o volume de uso pessoal
   // regra nova ganha o maior id: no empate de prioridade perde para as existentes, como depois de salva
-  const me: Rule = { ...draft, id: draft.id ?? Number.MAX_SAFE_INTEGER, subcategoryId: draft.subcategoryId ?? -1, active: true }
+  const { transfer, ...rule } = draft
+  const me: Rule = { ...rule, id: draft.id ?? Number.MAX_SAFE_INTEGER, subcategoryId: transfer ? null : (draft.subcategoryId ?? -1), active: true }
   const all = [...rules.filter((r) => r.id !== draft.id), me]
   const rows: PreviewRow[] = txs
     .filter((t) => ruleMatches(me, t))
@@ -109,7 +125,7 @@ export async function previewRule(draft: RuleDraft) {
       description: t.description,
       date: t.date,
       amount: t.amount,
-      status: t.categorySource === "USER" ? "user" : matchRule(all, t) === me && t.subcategoryId !== draft.subcategoryId ? "change" : "same",
+      status: t.categorySource === "USER" ? "user" : matchRule(all, t) === me && ruleChanges(me, t) ? "change" : "same",
     }))
   return {
     total: rows.length,
