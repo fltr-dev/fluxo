@@ -111,7 +111,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
 
   const PortfolioLine = ({ p }: { p: PortfolioRow }) => (
     <Link href="/investimentos" className="flex min-h-14 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/50">
-      <IconCircle icon={ChartPie} color="#8b5cf6" soft className="size-9 rounded-lg" />
+      <IconCircle icon={ChartPie} color="#8b5cf6" className="size-9 rounded-lg" />
       <span className="grid min-w-0 flex-1">
         <span className="truncate text-sm font-medium">{p.name}</span>
         <span className="text-xs text-muted-foreground">
@@ -140,7 +140,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
         {summary.map((k) => (
           <Card key={k.label} className="gap-3 px-4 py-4">
             <div className="flex items-center gap-2.5">
-              <IconCircle icon={k.icon} color={k.color} soft className="size-8" />
+              <IconCircle icon={k.icon} color={k.color} className="size-8" />
               <span className="text-sm font-medium text-muted-foreground">{k.label}</span>
             </div>
             <div className="grid gap-0.5">

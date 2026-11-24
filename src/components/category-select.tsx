@@ -44,7 +44,7 @@ const KEBAB = new Map(iconNames.map((n) => [n.replaceAll("-", ""), n]))
 
 function CatCircle({ c, className }: { c: Cat; className?: string }) {
   return (
-    <span className={cn("grid size-6 shrink-0 place-items-center rounded-full", className)} style={{ background: `${c.color}1f`, color: c.color }} aria-hidden>
+    <span className={cn("cat-icon grid size-6 shrink-0 place-items-center rounded-full", className)} style={{ "--c": c.color } as React.CSSProperties} aria-hidden>
       <DynamicIcon name={KEBAB.get(c.icon?.toLowerCase() ?? "") ?? "tag"} className="size-3.5" />
     </span>
   )

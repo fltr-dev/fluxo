@@ -26,6 +26,17 @@
   }
 }
 
+/* Ícone de categoria (e todo IconCircle): a cor vem em --c. Claro: fundo cheio com ícone branco.
+   Escuro: fundo da cor a 16% com o ícone na cor cheia, que destaca mais no fundo escuro. */
+@utility cat-icon {
+  background-color: var(--c);
+  color: #fff;
+  @variant dark {
+    background-color: color-mix(in oklab, var(--c) 16%, transparent);
+    color: var(--c);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-income: var(--income);
@@ -108,7 +119,7 @@
   --inv-pre: #f59e0b;
   --inv-cripto: #f43f5e;
   --inv-inflacao: #2563eb;
-  --inv-bdr: #ca8a04;
+  --inv-bdr: #be185d;
   --inv-fundos: #9333ea;
   --inv-etf: #ea580c;
   --inv-outros: #71717a;
@@ -158,7 +169,7 @@
     --inv-pre: #d97706;
     --inv-cripto: #e11d48;
     --inv-inflacao: #3b82f6;
-    --inv-bdr: #a16207;
+    --inv-bdr: #f472b6;
     --inv-fundos: #9333ea;
     --inv-etf: #ea580c;
     --inv-outros: #a1a1aa;
@@ -357,8 +368,10 @@ html[data-busy] :is([data-slot="sheet-content"], [data-slot="dialog-content"]) :
     transform: none;
   }
 }
+/* backwards, não both: um transform que fica preso depois da animação faria o position: fixed de dentro
+   (logo de carregamento) se posicionar pelo conteúdo, não pela tela */
 .page-enter {
-  animation: page-enter 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: page-enter 220ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 
 /* Login. As ondas do divisor são periódicas e têm o dobro do tamanho da faixa: andar 50% fecha o ciclo sem
@@ -511,7 +524,7 @@ html[data-syncing] .logo-wave-2 {
     transform: translateX(-50px);
   }
 }
-/* Centralizado na área de conteúdo (descontando a sidebar no desktop), por cima da tela */
+/* Centralizado na tela inteira (inclusive com a sidebar), mesmo quando só o conteúdo está carregando */
 .ll-center {
   position: fixed;
   z-index: 20;
@@ -519,11 +532,6 @@ html[data-syncing] .logo-wave-2 {
   left: 50%;
   translate: -50% -50%;
   pointer-events: none;
-}
-@media (min-width: 48rem) {
-  .ll-center {
-    left: calc(var(--sidebar-w) + (100% - var(--sidebar-w)) / 2);
-  }
 }
 @keyframes ll-appear {
   from {

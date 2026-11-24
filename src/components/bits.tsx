@@ -94,11 +94,9 @@ export function Delta({ value, upIsGood = true, className }: { value: number | n
 }
 
 /** Ícone em círculo colorido (KPIs, listas). */
-export const IconCircle = ({ icon: Icon, color, soft, className }: { icon: LucideIcon; color: string; soft?: boolean; className?: string }) => (
-  <span
-    className={cn("grid size-10 shrink-0 place-items-center rounded-full", !soft && "text-white", className)}
-    style={soft ? { background: `${color}1f`, color } : { background: color }}
-  >
+/** Ícone em círculo (categorias, KPIs): cheio com ícone branco no claro, fundo suave com ícone colorido no escuro (`cat-icon`). */
+export const IconCircle = ({ icon: Icon, color, className }: { icon: LucideIcon; color: string; className?: string }) => (
+  <span className={cn("cat-icon grid size-10 shrink-0 place-items-center rounded-full", className)} style={{ "--c": color } as React.CSSProperties}>
     <Icon className="size-[18px]" />
   </span>
 )

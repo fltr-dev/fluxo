@@ -157,7 +157,7 @@ export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
                 <Card className="h-full ring-inset">
                   <CardHeader className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <IconCircle icon={Target} color={st.color} soft />
+                      <IconCircle icon={Target} color={st.color} />
                       <div className="grid min-w-0">
                         <h2 className="truncate font-semibold">{g.name}</h2>
                         <span className="truncate text-xs text-muted-foreground">
