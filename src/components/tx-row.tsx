@@ -45,6 +45,9 @@ function txActions({ tx }: TxItem, detailsHref: string) {
   return { left, right, menu }
 }
 
+/** "05/11" no ano corrente; "05/11/2025" nos outros. */
+const shortDate = (d: string) => (d.startsWith(String(new Date().getFullYear())) ? dateBR(d).slice(0, 5) : dateBR(d))
+
 const sheetInfo = ({ tx, accountName }: TxItem) => ({ title: tx.description, description: `${brl(tx.amount)} · ${dateBR(tx.date)} · ${accountName}` })
 
 function CategoryPicker({ tx, run }: { tx: Tx; run: (fn: () => Promise<unknown>) => void }) {
@@ -61,11 +64,11 @@ function CategoryPicker({ tx, run }: { tx: Tx; run: (fn: () => Promise<unknown>)
 const picker = (tx: Tx) => (tx.kind === "TRANSFER" ? undefined : ({ run }: { run: (fn: () => Promise<unknown>) => void }) => <CategoryPicker tx={tx} run={run} />)
 
 /** Linha da lista: arrastar à direita categoriza (ou aceita a sugestão), à esquerda ignora/exclui; pressionar abre o painel. */
-export function TxSwipe({ item, href, showAccount }: { item: TxItem; href: string; showAccount?: boolean }) {
+export function TxSwipe({ item, href, showAccount, showDate }: { item: TxItem; href: string; showAccount?: boolean; showDate?: boolean }) {
   const { tx, accountName, color, subName, parentName } = item
   const Icon = tx.kind === "TRANSFER" ? ArrowLeftRight : tx.amount > 0 ? ArrowDownLeft : ArrowUpRight
   const c = tx.kind === "TRANSFER" ? "#71717a" : tx.amount > 0 ? "#22c55e" : (color ?? "#f59e0b")
-  const trailing = tx.status === "PENDING" ? "Pendente" : showAccount ? accountName : null
+  const trailing = [showDate && shortDate(tx.date), tx.status === "PENDING" ? "Pendente" : showAccount && accountName].filter(Boolean).join(" · ")
   return (
     <SwipeRow {...txActions(item, href)} {...sheetInfo(item)} extra={picker(tx)} className="border-b last:border-0">
       <Link href={href} scroll={false} draggable={false} className={cn("flex items-center gap-3 px-3.5 py-3 hover:bg-muted/40", tx.ignored && "opacity-60")}>

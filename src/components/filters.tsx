@@ -1,11 +1,12 @@
 import { accountGroups } from "@/components/account-avatar"
 import { CategoryFilter } from "@/components/calendar-filters"
 import { DateInput } from "@/components/date-input"
-import { Calendar, ChevronDown } from "lucide-react"
+import { ArrowDownUp, Calendar, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PRESETS } from "@/lib/domain/dates"
 import { dateBR } from "@/lib/format"
-import { categoryTree, listAccounts, withParams, type Filters as F, type SearchParams } from "@/lib/queries"
+import { categoryTree, listAccounts, SORTS, withParams, type Filters as F, type SearchParams } from "@/lib/queries"
+import { cn } from "@/lib/utils"
 import { Field } from "./bits"
 import { FormSelect } from "./form-select"
 import { FilterSheet, MenuLinks } from "./filters-client"
@@ -70,6 +71,25 @@ export function PeriodMenu({ f, sp }: { f: F; sp: SearchParams }) {
       items={Object.entries(PRESETS)
         .filter(([v]) => v !== "custom")
         .map(([v, l]) => ({ label: l, href: withParams(sp, { periodo: v, de: undefined, ate: undefined, pagina: undefined }), active: f.preset === v }))}
+    />
+  )
+}
+
+/** Ordem da lista de transações (menu de links; a ordem vive na URL). No celular, só o ícone. */
+export function SortMenu({ f, sp }: { f: F; sp: SearchParams }) {
+  const sort = f.sort ?? "recentes"
+  const custom = sort !== "recentes"
+  return (
+    <MenuLinks
+      label={
+        <>
+          <ArrowDownUp className={cn(custom && "text-primary")} />
+          <span className="max-sm:sr-only">{SORTS[sort]}</span>
+          <ChevronDown className="text-muted-foreground max-sm:hidden" />
+        </>
+      }
+      ariaLabel={`Ordenar: ${SORTS[sort]}`}
+      items={Object.entries(SORTS).map(([v, l]) => ({ label: l, href: withParams(sp, { ordem: v === "recentes" ? undefined : v, pagina: undefined, tx: undefined }), active: sort === v }))}
     />
   )
 }

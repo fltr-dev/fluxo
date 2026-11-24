@@ -109,7 +109,7 @@ export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen
       key={href}
       href={href}
       aria-current={isActive(href, path) ? "page" : undefined}
-      className={cn("flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted-foreground", isActive(href, path) && "text-primary")}
+      className={cn("my-1.5 flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-medium text-muted-foreground transition-colors duration-150 active:bg-muted", isActive(href, path) && "text-primary")}
     >
       <Icon className="size-5" />
       {label}
@@ -119,12 +119,12 @@ export function MobileNav({ signOut, badges, accounts, accountsOpen: initialOpen
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-stretch border-t bg-background/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Navegação principal">
       {item(MOBILE[0])}
       {item(MOBILE[1])}
-      <Link href="/transacoes?nova=1" aria-label="Nova transação" className="grid h-11 w-12 shrink-0 place-items-center self-center rounded-xl bg-primary text-primary-foreground">
+      <Link href="/transacoes?nova=1" aria-label="Nova transação" className="grid h-11 w-12 shrink-0 place-items-center self-center rounded-xl bg-primary text-primary-foreground transition duration-150 active:scale-95 active:bg-primary/85">
         <Plus className="size-5" />
       </Link>
       {item(MOBILE[2])}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger className="flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted-foreground">
+        <SheetTrigger className="my-1.5 flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-medium text-muted-foreground transition-colors duration-150 active:bg-muted">
           <Menu className="size-5" />
           Mais
         </SheetTrigger>

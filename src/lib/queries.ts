@@ -27,8 +27,23 @@ export type Filters = Period & {
   kind?: "INCOME" | "EXPENSE"
   q?: string
   view?: "uncategorized" | "suggested" | "transfers" | "pending"
+  /** ausente = "recentes" */
+  sort?: Sort
   page: number
 }
+
+/** Ordens da lista de transações (`?ordem=`); a primeira é a padrão. */
+export const SORTS = {
+  recentes: "Mais recentes",
+  antigas: "Mais antigas",
+  maior: "Maior valor",
+  menor: "Menor valor",
+  az: "Descrição (A–Z)",
+  za: "Descrição (Z–A)",
+  "categoria-az": "Categoria (A–Z)",
+  "categoria-za": "Categoria (Z–A)",
+} as const
+export type Sort = keyof typeof SORTS
 
 const str = (sp: SearchParams, k: string) => (typeof sp[k] === "string" && sp[k] ? (sp[k] as string) : undefined)
 const posInt = (sp: SearchParams, k: string) => {
@@ -47,6 +62,7 @@ export function parseFilters(sp: SearchParams): Filters {
   const preset = str(sp, "periodo") ?? "mes"
   const tipo = str(sp, "tipo")
   const ver = str(sp, "ver")
+  const ordem = str(sp, "ordem")
   // Uma só categoria em `categorias` vale como `categoria` (mantém o detalhamento dos relatórios)
   const many = idList(str(sp, "categorias"))
   const one = posInt(sp, "categoria") ?? (many?.length === 1 ? many[0] : undefined)
@@ -59,6 +75,7 @@ export function parseFilters(sp: SearchParams): Filters {
     kind: tipo === "receita" ? "INCOME" : tipo === "despesa" ? "EXPENSE" : undefined,
     q: str(sp, "q")?.slice(0, 100),
     view: ver === "uncategorized" || ver === "suggested" || ver === "transfers" || ver === "pending" ? ver : undefined,
+    sort: ordem && Object.hasOwn(SORTS, ordem) ? (ordem as Sort) : "recentes",
     page: posInt(sp, "pagina") ?? 1,
   }
 }
@@ -314,6 +331,31 @@ const listWhere = (f: Filters) =>
     f.view === "pending" ? eq(transactions.status, "PENDING") : undefined,
   )
 
+/** Ordem da lista; empates caem na data mais recente. Sem categoria fica sempre no fim. */
+function listOrder(sort: Sort = "recentes") {
+  const recent = [desc(transactions.date), desc(transactions.id)]
+  const abs = sql`abs(${transactions.amount})`
+  const name = sql`lower(${transactions.description})`
+  switch (sort) {
+    case "antigas":
+      return [asc(transactions.date), asc(transactions.id)]
+    case "maior":
+      return [desc(abs), ...recent]
+    case "menor":
+      return [asc(abs), ...recent]
+    case "az":
+      return [asc(name), ...recent]
+    case "za":
+      return [desc(name), ...recent]
+    case "categoria-az":
+      return [sql`${parent.name} asc nulls last`, sql`${sub.name} asc nulls last`, ...recent]
+    case "categoria-za":
+      return [sql`${parent.name} desc nulls last`, sql`${sub.name} desc nulls last`, ...recent]
+    default:
+      return recent
+  }
+}
+
 export async function listTransactions(f: Filters) {
   const where = listWhere(f)
   const [rows, [{ count }]] = await Promise.all([
@@ -331,7 +373,7 @@ export async function listTransactions(f: Filters) {
       .leftJoin(sub, eq(transactions.subcategoryId, sub.id))
       .leftJoin(parent, eq(sub.parentId, parent.id))
       .where(where)
-      .orderBy(desc(transactions.date), desc(transactions.id))
+      .orderBy(...listOrder(f.sort))
       .limit(PAGE_SIZE)
       .offset((f.page - 1) * PAGE_SIZE),
     db.select({ count: sql<number>`count(*)::int` }).from(transactions).where(where),
@@ -359,7 +401,7 @@ export async function exportTransactions(f: Filters) {
     .leftJoin(sub, eq(transactions.subcategoryId, sub.id))
     .leftJoin(parent, eq(sub.parentId, parent.id))
     .where(listWhere(f))
-    .orderBy(desc(transactions.date), desc(transactions.id))
+    .orderBy(...listOrder(f.sort))
 }
 
 export const monthsOf = (p: Period) => monthsInRange(p.from, p.to)

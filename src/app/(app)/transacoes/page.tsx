@@ -5,7 +5,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { CancelLink, Empty, Field, fieldClass, FormActions, Money, PageTitle } from "@/components/bits"
 import { BulkBar, SelectAll } from "@/components/bulk-bar"
-import { Filters } from "@/components/filters"
+import { Filters, SortMenu } from "@/components/filters"
 import { SearchInput } from "@/components/filters-client"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
@@ -134,9 +134,11 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   const here = `/transacoes${withParams(sp, { tx: undefined, nova: undefined })}`
   const txHref = (id: number) => `/transacoes${withParams(sp, { tx: id, nova: undefined })}`
 
-  // Agrupa por dia, com o saldo do dia (sem transferências e ignoradas)
+  // Agrupa por dia, com o saldo do dia (sem transferências e ignoradas); em outra ordem a lista é corrida, com a data na linha
+  const byDay = !f.sort || f.sort === "recentes" || f.sort === "antigas"
   const days = new Map<string, typeof rows>()
-  for (const r of rows) days.set(r.tx.date, [...(days.get(r.tx.date) ?? []), r])
+  if (byDay) for (const r of rows) days.set(r.tx.date, [...(days.get(r.tx.date) ?? []), r])
+  else if (rows.length) days.set("", rows)
   const dayNet = (list: typeof rows) => list.filter((r) => r.tx.kind !== "TRANSFER" && !r.tx.ignored).reduce((s, r) => s + r.tx.amount, 0)
 
   const views = [
@@ -166,11 +168,15 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
       </PageTitle>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-72" role="search">
+        <div className="relative min-w-0 flex-1 max-sm:basis-full sm:max-w-72" role="search">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <SearchInput defaultValue={f.q} placeholder="Buscar por descrição…" aria-label="Buscar transações" className={cn(fieldClass, "pl-9")} />
         </div>
-        <Filters f={f} sp={sp}>{f.view && <input type="hidden" name="ver" value={f.view} />}</Filters>
+        <Filters f={f} sp={sp}>
+          {f.view && <input type="hidden" name="ver" value={f.view} />}
+          {f.sort && f.sort !== "recentes" && <input type="hidden" name="ordem" value={f.sort} />}
+        </Filters>
+        <SortMenu f={f} sp={sp} />
       </div>
 
       <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0" aria-label="Visões">
@@ -223,11 +229,13 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                   const net = dayNet(list)
                   return (
                     <tbody key={day}>
-                      <tr className="border-b bg-muted/40 text-xs font-medium text-muted-foreground">
-                        <td colSpan={4} className="h-8 px-4">{dayLabel(day)}</td>
-                        <td className={cn("px-3 text-right tabular-nums", net > 0 && "text-income")}>{net ? <Money value={net} signed /> : "—"}</td>
-                        <td />
-                      </tr>
+                      {byDay && (
+                        <tr className="border-b bg-muted/40 text-xs font-medium text-muted-foreground">
+                          <td colSpan={4} className="h-8 px-4">{dayLabel(day)}</td>
+                          <td className={cn("px-3 text-right tabular-nums", net > 0 && "text-income")}>{net ? <Money value={net} signed /> : "—"}</td>
+                          <td />
+                        </tr>
+                      )}
                       {list.map((r) => {
                         const { tx, accountName, color } = r
                         return (
@@ -242,6 +250,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                                 {!tx.pluggyId && <span className="shrink-0 rounded-full border px-2 text-xs text-muted-foreground">Manual</span>}
                                 {tx.ignored && <span className="shrink-0 rounded-full border px-2 text-xs text-muted-foreground">Ignorada</span>}
                               </span>
+                              {!byDay && <span className="text-xs text-muted-foreground tabular-nums">{dateBR(tx.date)}</span>}
                             </Link>
                           </td>
                           <td className="px-3">
@@ -307,13 +316,15 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
               const net = dayNet(list)
               return (
                 <section key={day} className="grid gap-1.5">
-                  <div className="flex justify-between px-1 text-xs font-medium text-muted-foreground">
-                    <span>{dayLabel(day)}</span>
-                    {net ? <Money value={net} signed /> : <span>—</span>}
-                  </div>
+                  {byDay && (
+                    <div className="flex justify-between px-1 text-xs font-medium text-muted-foreground">
+                      <span>{dayLabel(day)}</span>
+                      {net ? <Money value={net} signed /> : <span>—</span>}
+                    </div>
+                  )}
                   <Card className="gap-0 py-0">
                     {list.map((r) => (
-                      <TxSwipe key={r.tx.id} item={r} href={txHref(r.tx.id)} showAccount />
+                      <TxSwipe key={r.tx.id} item={r} href={txHref(r.tx.id)} showAccount showDate={!byDay} />
                     ))}
                   </Card>
                 </section>

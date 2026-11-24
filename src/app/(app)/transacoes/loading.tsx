@@ -10,9 +10,10 @@ export default function Loading() {
       <SkTitle title="w-40" description="w-64" actions={["w-32", "w-36 max-md:hidden"]} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Skeleton className="h-9 min-w-0 flex-1 rounded-lg sm:max-w-72" />
+        <Skeleton className="h-9 min-w-0 flex-1 rounded-lg max-sm:basis-full sm:max-w-72" />
         <Skeleton className="h-8 w-36 rounded-lg" />
         <Skeleton className="h-8 w-24 rounded-lg" />
+        <Skeleton className="h-8 w-8 rounded-lg sm:w-40" />
       </div>
 
       <div className="-mx-4 flex gap-2 overflow-hidden px-4 md:mx-0 md:px-0">
