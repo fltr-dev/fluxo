@@ -289,8 +289,6 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
         <input value={v.description} onChange={(e) => set("description", e.target.value)} maxLength={500} className={fieldClass} />
       </Field>
 
-      {!recur && items}
-
       <div className="grid gap-2">
         <span className="text-sm font-medium">Como vai pagar</span>
         <Segmented
@@ -359,7 +357,8 @@ export function DebtForm({ action, initial, closeHref, editing, start }: { actio
         )}
       </div>
 
-      {recur && items}
+      {/* itens depois de "Como vai pagar": na recorrente eles saem da regra escolhida acima */}
+      {items}
 
       {v.mode !== "FLEX" && !recur && (
         <div className="grid gap-2">
