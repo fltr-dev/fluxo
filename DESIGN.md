@@ -74,7 +74,7 @@ Porquinho-cofrinho **de perfil** (focinho à esquerda, fenda nas costas, rabinho
 
 **Gráficos** (`--chart-1..5`): claro `#12A06A #0EA5E9 #8B5CF6 #F59E0B #F43F5E`; escuro `#36BC84 #38BDF8 #A78BFA #FBBF24 #FB7185`. Receita × despesa em gráficos usa `--income` e `--expense`, não a série 1..5.
 
-**Categorias de investimento** (`--inv-*`), sempre nesta ordem nos gráficos (a cor segue a categoria, nunca o ranking); validadas para daltonismo em cada tema, com legenda e % escritos ao lado:
+**Categorias de investimento** (`--inv-*`), sempre nesta ordem nos gráficos (a cor segue a categoria, nunca o ranking); validadas para daltonismo em cada tema, com legenda e % escritos ao lado. Vizinhas na carteira típica (Pós, Ações, Pré, BDR, Fundos) não podem repetir família de cor: BDR é rosa-escuro justamente para não se confundir com o âmbar do Pré-fixado e o laranja do ETF.
 
 | Categoria | Claro | Escuro |
 |---|---|---|
@@ -84,7 +84,7 @@ Porquinho-cofrinho **de perfil** (focinho à esquerda, fenda nas costas, rabinho
 | Pré-fixado | `#F59E0B` | `#D97706` |
 | Cripto | `#F43F5E` | `#E11D48` |
 | Inflação | `#2563EB` | `#3B82F6` |
-| BDR | `#CA8A04` | `#A16207` |
+| BDR | `#BE185D` | `#F472B6` |
 | Fundos | `#9333EA` | `#9333EA` |
 | ETF | `#EA580C` | `#EA580C` |
 | Outros | `#71717A` | `#A1A1AA` |
@@ -143,7 +143,7 @@ Campos de formulário usam **16px no celular** (evita o zoom do iOS) e 14px a pa
 
 ## Ícones
 
-Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegação, listas), 24 (vazios). Ícone de categoria sempre num círculo de 40px: fundo `cor 12%` e ícone na cor cheia (modo `soft`), ou fundo cheio com ícone branco em KPIs. Navegação: Dashboard `layout-dashboard` (celular: `house` "Início"), Relatórios `chart-column`, Investimentos `trending-up`, Transações `arrow-left-right`, Calendário `calendar-days`, Limites `gauge`, Metas `target`, Reserva `shield-check`, Categorias `tags`, Regras `list-checks`, Contas `landmark`.
+Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegação, listas), 24 (vazios). Ícone de categoria (e todo ícone em círculo: KPIs, metas, contas) usa **um só estilo em todo o app**, que muda com o tema: no **claro**, fundo na cor cheia com ícone branco; no **escuro**, fundo da cor a 16% com o ícone na cor cheia (no fundo escuro o ícone colorido destaca mais, e o círculo cheio pesaria). Mecanismo: utilitário `cat-icon` no `globals.css`, com a cor em `--c` (`<IconCircle>` em `bits.tsx` já usa; chips pequenos do seletor de categoria também). Nunca monte `background: cor + "1f"` à mão. Círculo de 40px nas listas e KPIs, 36px em Categorias, 24px no seletor. O ícone de direção das linhas de transação (seta num quadrado) não é ícone de categoria e segue suave nos dois temas. Navegação: Dashboard `layout-dashboard` (celular: `house` "Início"), Relatórios `chart-column`, Investimentos `trending-up`, Transações `arrow-left-right`, Calendário `calendar-days`, Limites `gauge`, Metas `target`, Reserva `shield-check`, Categorias `tags`, Regras `list-checks`, Contas `landmark`.
 
 ## Componentes
 
@@ -172,6 +172,7 @@ Lucide, traço 2 (1.75 em tamanhos ≥ 24), tamanhos 16 (inline), 20 (navegaçã
 
 - **Logo carregando = tela inteira esperando.** O `LogoLoader` (`components/logo.tsx`, quadrado do ícone com o símbolo se formando) aparece em três lugares, sempre centralizado na área de conteúdo: (1) **abertura do app e entrada após o login** (`src/app/loading.tsx`, tela cheia, entra depois de 100ms); (2) **por cima do skeleton** quando a tela passa de 1s carregando (banco acordando), já embutido no `SkPage`; (3) **por cima da tela apagada** quando uma gravação passa de 600ms (`html[data-busy]`). Botões continuam com o spinner `Loader2`. É só CSS para animar antes do JavaScript carregar; com "reduzir movimento" fica parado na abertura e não aparece nos casos 2 e 3.
 - **Primeira carga = skeleton fiel.** Cada rota de `src/app/(app)/` tem o próprio `loading.tsx`, que repete a estrutura da `page.tsx`: mesmas classes de grid, colunas e breakpoints, o `Card` de verdade com os mesmos paddings, linhas na altura real (transação 60px, conta 56px, tabela h-12/h-14) e gráficos na altura real. No máximo 6–8 linhas por lista; título e primeiro card não pulam quando o conteúdo chega. Peças em `src/components/skeletons.tsx` (`SkPage`, `SkLine` — caixa na altura da linha de texto e barra em 60% —, `SkTitle` com `wrap` quando a descrição quebra no celular, `SkTabs`, `SkChips`, `SkStats`, `SkRow`, `SkTxRow`/`SkTxDays`, `SkChart`). Telas com abas mostram a aba padrão. **Ao mudar o layout de uma tela, atualize o `loading.tsx` dela junto.** A raiz leva `aria-busy` e "Carregando…" para leitor de tela; os blocos pulsam em `bg-muted` e param com "reduzir movimento".
+- **Logo de carregamento** (`LogoLoader`, classe `ll-center`): quando aparece sobre o skeleton (carga > 1s) ou sobre a tela salvando (> 600ms), fica no **centro da tela inteira**, contando a sidebar, nunca no centro só da área de conteúdo. A entrada de página (`.page-enter`) usa `animation-fill-mode: backwards` para não deixar `transform` no elemento, o que prenderia o `position: fixed` ao conteúdo.
 - **Atualização = tela apagada e bloqueada.** Ao salvar, arquivar, excluir ou trocar um valor que grava sozinho, a tela não volta para o skeleton: o `<main>` fica a 55% de opacidade (depois de 100ms, para ações rápidas não piscarem), não aceita cliques e o cursor vira `progress`; no painel ou modal que está salvando, os campos esmaecem e só o botão com spinner fica em destaque. Mecanismo: `useBusy(pending)` em `components/ui/pending.tsx` marca `html[data-busy]`; já vem ligado em todo botão de envio, nos gestos (`SwipeRow`) e nos seletores com `autoSubmit` (`FormBusy`). Ações novas fora de formulário chamam `useBusy` com o `pending` do `useTransition`. Junto, uma barra de progresso de 3px em `primary` corre no topo da tela (por cima de painéis e modais), e o painel de ações do `SwipeRow` mostra um spinner ao lado do título.
 - **Puxar para atualizar (só celular).** No topo da página, puxar para baixo mostra uma bolinha com o ícone de atualizar que desce de baixo do cabeçalho; passando de 72px ela fica verde e, ao soltar, roda `router.refresh()` (não sincroniza com o banco). Não dispara com painel, modal ou menu aberto. `components/pull-to-refresh.tsx`.
 - **Toque.** O `hover:` do Tailwind também vale enquanto o dedo pressiona (`@custom-variant hover` no `globals.css`), então todo estilo de hover já é o feedback de toque. Faixas com rolagem lateral (`overflow-x-auto`) não mostram barra de rolagem em telas de toque.

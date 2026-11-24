@@ -193,7 +193,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
               const href = c.id ? `/relatorios${withParams(sp, { aba: "categorias", categoria: c.id })}` : "/transacoes?ver=uncategorized"
               return (
                 <Link key={c.id ?? "none"} href={href} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/60">
-                  <IconCircle icon={categoryIcon(c.name)} color={c.color ?? "#a1a1aa"} />
+                  <IconCircle icon={categoryIcon(c.name, c.icon)} color={c.color ?? "#a1a1aa"} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name ?? "A categorizar"}</span>
                   <span className="grid justify-items-end">
                     <span className="text-sm font-semibold tabular-nums">{hide(brl(c.total))}</span>
@@ -257,7 +257,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
             {alerts.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Tudo em dia por aqui.</p>}
             {alerts.map((a) => (
               <Link key={a.key} href={a.href} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/60">
-                <IconCircle icon={a.icon} color={a.color} soft className="size-8" />
+                <IconCircle icon={a.icon} color={a.color} className="size-8" />
                 <span className="grid min-w-0 flex-1">
                   <span className="truncate text-sm font-medium">{a.title}</span>
                   <span className="truncate text-xs text-muted-foreground">{a.desc}</span>

@@ -19,7 +19,7 @@ type Props = {
   placeholder?: string
 }
 
-/** Nome, cor e ícone da categoria com pré-visualização do conjunto (mesmos visuais das listas e da dashboard). */
+/** Nome, cor e ícone da categoria com pré-visualização (o mesmo `cat-icon` de todas as telas). */
 export function CategoryFields({ defaultName = "", defaultColor, defaultIcon, currentIcon, fallbackIcon, placeholder }: Props) {
   const [name, setName] = useState(defaultName)
   const [color, setColor] = useState<string | null>(defaultColor)
@@ -33,15 +33,12 @@ export function CategoryFields({ defaultName = "", defaultColor, defaultIcon, cu
   return (
     <div className="grid gap-4">
       <div className="flex items-center gap-4 rounded-xl border bg-muted/40 p-3" aria-label="Pré-visualização">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full [&_svg]:size-[18px]" style={{ background: `${c}1f`, color: c }}>
+        <span className="cat-icon grid size-10 shrink-0 place-items-center rounded-full [&_svg]:size-[18px]" style={{ "--c": c } as React.CSSProperties}>
           {node}
         </span>
         <span className="grid min-w-0 flex-1">
           <span className="truncate font-medium">{name.trim() || "Nome da categoria"}</span>
-          <span className="text-xs text-muted-foreground">Como aparece nas listas</span>
-        </span>
-        <span className="grid size-10 shrink-0 place-items-center rounded-full text-white [&_svg]:size-[18px]" style={{ background: c }} title="Como aparece na dashboard">
-          {node}
+          <span className="text-xs text-muted-foreground">Como aparece no app</span>
         </span>
       </div>
 

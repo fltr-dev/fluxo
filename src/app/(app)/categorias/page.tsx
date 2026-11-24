@@ -146,7 +146,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                   <SwipeRow {...categoryActions(p.id, p.archived, `/categorias${withParams(sp, { editar: p.id })}`, retireHref(p.id), txCount(p))} title={p.name} description={`${p.subs.length} subcategorias`}>
                   <div className="flex items-center gap-3 py-3">
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
-                  <IconCircle icon={categoryIcon(p.name, p.icon)} color={p.color} soft className="size-9" />
+                  <IconCircle icon={categoryIcon(p.name, p.icon)} color={p.color} className="size-9" />
                   <span className="grid min-w-0 flex-1">
                     <span className={cn("truncate font-medium", p.archived && "text-muted-foreground line-through")}>{p.name}</span>
                     <span className="text-xs text-muted-foreground">{p.subs.length} subcategorias</span>
@@ -170,7 +170,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
             ))}
             {tab === "EXPENSE" && (
               <div className="flex items-center gap-3 pt-3 pl-7">
-                <IconCircle icon={Lock} color="#f59e0b" soft className="size-9" />
+                <IconCircle icon={Lock} color="#f59e0b" className="size-9" />
                 <span className="grid min-w-0 flex-1">
                   <span className="font-medium">A categorizar</span>
                   <span className="text-xs text-muted-foreground">Categoria do sistema · não pode ser editada</span>
@@ -184,7 +184,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/categ
                 {suggestions.map((c) => (
                   <form key={c.name} action={addSuggestion} className="flex items-center gap-3 py-2 pl-7">
                     <input type="hidden" name="name" value={c.name} />
-                    <IconCircle icon={categoryIcon(c.name, c.icon)} color={c.color} soft className="size-9 opacity-70" />
+                    <IconCircle icon={categoryIcon(c.name, c.icon)} color={c.color} className="size-9 opacity-70" />
                     <span className="grid min-w-0 flex-1">
                       <span className="truncate font-medium">{c.name}</span>
                       <span className="truncate text-xs text-muted-foreground">{c.subs.join(", ")}</span>
