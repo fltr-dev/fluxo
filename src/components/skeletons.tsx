@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/logo"
 import { Card, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -6,11 +7,14 @@ import { cn } from "@/lib/utils"
 // (grid, colunas, paddings, alturas de linha), para nada pular quando o conteúdo chega.
 // Convenção de alturas = line-height do texto real: text-xs h-4 · text-sm h-5 · text-base h-6 · text-lg/xl h-7 · text-2xl h-8 · text-3xl h-9.
 
-/** Raiz do esqueleto: avisa leitores de tela e usa o mesmo grid da página. */
+/** Raiz do esqueleto: avisa leitores de tela e usa o mesmo grid da página. Se passar de 1s, o logo animado aparece por cima. */
 export function SkPage({ className = "grid gap-4", children }: { className?: string; children: React.ReactNode }) {
   return (
     <div className={className} aria-busy="true">
       <span className="sr-only" role="status">Carregando…</span>
+      <div className="ll-center ll-late">
+        <LogoLoader className="ring-8 ring-background" />
+      </div>
       {children}
     </div>
   )

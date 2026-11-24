@@ -43,6 +43,8 @@ function limitActions(id: number, categoryId: number) {
   }
 }
 
+export const metadata = { title: "Limites" }
+
 export default async function LimitsPage({ searchParams }: PageProps<"/limites">) {
   const sp = await searchParams
   const ym = monthOf(today())

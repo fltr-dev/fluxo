@@ -105,6 +105,8 @@ function goalActions(id: number, canContribute: boolean) {
   }
 }
 
+export const metadata = { title: "Metas" }
+
 export default async function GoalsPage({ searchParams }: PageProps<"/metas">) {
   const sp = await searchParams
   const now = today()

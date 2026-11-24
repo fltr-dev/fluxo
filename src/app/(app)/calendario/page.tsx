@@ -30,6 +30,8 @@ const compact = (n: number) => (n < 1000 ? Math.round(n).toLocaleString("pt-BR")
 const full = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
 const first = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined)
 
+export const metadata = { title: "Calendário" }
+
 export default async function CalendarPage({ searchParams }: PageProps<"/calendario">) {
   const sp = await searchParams
   const now = today()

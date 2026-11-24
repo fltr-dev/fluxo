@@ -122,6 +122,8 @@ function ManualForm({ action, accounts, options, values, submit, next, start, pl
   )
 }
 
+export const metadata = { title: "Transações" }
+
 export default async function TransactionsPage({ searchParams }: PageProps<"/transacoes">) {
   const sp = await searchParams
   const f = parseFilters(sp)

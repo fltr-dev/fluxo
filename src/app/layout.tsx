@@ -10,7 +10,8 @@ const manrope = Manrope({ variable: "--font-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "fluxo",
+  // Aba do navegador: "Transações · fluxo"; cada page.tsx dá o próprio título
+  title: { default: "fluxo", template: "%s · fluxo" },
   description: "Controle financeiro pessoal",
   applicationName: "fluxo",
   robots: { index: false, follow: false },
