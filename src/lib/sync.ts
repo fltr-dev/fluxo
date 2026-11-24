@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, isNotNull, like, min, or, sql } from "drizzle-or
 import { accounts, db, DEFAULT_INSTITUTION_NAME, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
 import { deriveKind, resolvedKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
-import { classifyPluggy, detectIncomeFromTransactions, positionFromTrades, rateLabelOf } from "./domain/investments"
+import { classifyPluggy, detectIncomeFromTransactions, investmentName, positionFromTrades, rateLabelOf } from "./domain/investments"
 import { deriveInvestmentMovements, deriveInvestmentTrades, mergeTransactions, normalizePluggyTx, type PluggyInvestment } from "./domain/sync-merge"
 import { detectAndMarkTransfers, loadCategorizer, refreshManualBalances, snapshotBalances } from "./ledger"
 import { refreshManualQuotes, updateMarketSeries } from "./market"
@@ -37,16 +37,18 @@ async function syncItem(pluggy: Pluggy, inst: typeof institutions.$inferSelect) 
       availableCreditLimit: a.creditData?.availableCreditLimit ?? null,
       billDueDate: a.creditData?.balanceDueDate?.slice(0, 10) ?? null,
     })),
-    ...invs.map((i) => ({ pluggyId: INVESTMENT_PREFIX + i.id, name: i.name, type: "SAVINGS_INVESTMENT" as const, balance: i.balance })),
+    ...invs.map((i) => ({ pluggyId: INVESTMENT_PREFIX + i.id, name: investmentName(i), type: "SAVINGS_INVESTMENT" as const, balance: i.balance })),
   ]
   if (rows.length) {
     const saved = await db
       .insert(accounts)
       .values(rows.map((r) => ({ ...r, institutionId: inst.id, source: "PLUGGY" as const })))
-      // nome e tipo são editáveis pelo usuário: só o saldo (e o limite/vencimento do cartão) é atualizado
+      // nome e tipo são editáveis pelo usuário: só o saldo (e o limite/vencimento do cartão) é atualizado; nome vazio
+      // (a Pluggy mandou sem nome antes) é preenchido
       .onConflictDoUpdate({
         target: accounts.pluggyId,
         set: {
+          name: sql`case when ${accounts.name} = '' then excluded.name else ${accounts.name} end`,
           balance: sql`excluded.balance`,
           creditLimit: sql`excluded.credit_limit`,
           availableCreditLimit: sql`excluded.available_credit_limit`,
@@ -89,7 +91,7 @@ async function syncInvestments(pluggy: Pluggy, invs: PluggyInvestment[], account
         pluggyId: inv.id,
         assetClass: classifyPluggy(inv),
         code: inv.code || null,
-        name: inv.name,
+        name: investmentName(inv),
         broker: inv.institution?.name || inv.issuer || broker,
         quantity: inv.quantity ?? null,
         unitPrice: inv.value ?? null,

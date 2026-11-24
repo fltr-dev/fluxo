@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 // Rodapé de ações: use <FormActions> (components/bits) como último filho. Ele fica colado ao fim da área rolável,
 // com os botões no canto inferior direito.
 
-type Props = { closeHref: string; title: string; description?: React.ReactNode; children: React.ReactNode; className?: string }
+type Props = { closeHref: string; title: React.ReactNode; description?: React.ReactNode; children: React.ReactNode; className?: string }
 
 /** Fecha com animação: primeiro some (data-closed) e só navega para `closeHref` quando a animação termina. */
 function useAnimatedClose(closeHref: string) {
@@ -49,6 +49,11 @@ const subscribeMobile = (cb: () => void) => {
 /** Celular (PWA): abaixo de 768px o painel lateral sobe de baixo. No servidor vale o painel lateral. */
 export function useIsMobile() {
   return useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE).matches, () => false)
+}
+
+/** Modal no computador, bottom sheet no celular (o "Sheet / modal" do DESIGN.md). */
+export function RouteModal(props: Props) {
+  return useIsMobile() ? <RouteSheet {...props} /> : <RouteDialog {...props} />
 }
 
 const CLOSE_AT = 96 // px arrastados para baixo que fecham o painel

@@ -88,6 +88,17 @@ export function classifyPluggy(inv: PluggyInvestmentInfo): AssetClass {
 
 const n2 = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })
 
+const TYPE_PT: Record<string, string> = { FIXED_INCOME: "Renda fixa", MUTUAL_FUND: "Fundo", EQUITY: "Renda variável", SECURITY: "Previdência", ETF: "ETF", COE: "COE" }
+// Subtipos que já são o nome que o banco usa (os outros caem no tipo traduzido)
+const SHORT_SUBTYPE = /^(CDB|RDB|LCI|LCA|LC|CRI|CRA|LIG|LF)$/
+
+/** Nome do ativo. A Pluggy às vezes manda vazio: monta "subtipo - emissor" (ex.: "CDB - NU FINANCEIRA S.A."), ou usa o código. */
+export function investmentName(inv: PluggyInvestmentInfo & { issuer?: string | null; institution?: { name?: string | null } | null }) {
+  if (inv.name?.trim()) return inv.name.trim()
+  const kind = inv.subtype && SHORT_SUBTYPE.test(inv.subtype) ? inv.subtype : inv.type ? (TYPE_PT[inv.type] ?? null) : null
+  return [kind, inv.issuer || inv.institution?.name].filter(Boolean).join(" - ") || inv.code || "Investimento"
+}
+
 /** "110% CDI", "IPCA + 6,5%", "13,2% a.a." ou null quando a Pluggy não informa a taxa. */
 export function rateLabelOf(inv: PluggyInvestmentInfo): string | null {
   const idx = (inv.rateType ?? "").toUpperCase()
