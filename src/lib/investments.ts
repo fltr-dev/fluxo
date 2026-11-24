@@ -175,6 +175,9 @@ export type HistoryPoint = {
   cdiAcc: number | null
   ibovAcc: number | null
   ipcaAcc: number | null
+  selicAcc: number | null
+  poupancaAcc: number | null
+  dolarAcc: number | null
 }
 
 /** Primeiro mês com saldo registrado de algum investimento (início do histórico). */
@@ -274,7 +277,8 @@ export async function portfolioHistory(months: string[], investmentId?: number) 
   const startIdx = rets.findIndex((r) => r != null)
   const cdi = cdiByMonth(market.filter((r) => r.series === "CDI"))
   const ibov = indexReturnsByMonth(market.filter((r) => r.series === "IBOV"))
-  const ipca = new Map(market.filter((r) => r.series === "IPCA").map((r) => [monthOf(r.date), r.value / 100]))
+  const monthly = (series: string) => new Map(market.filter((r) => r.series === series).map((r) => [monthOf(r.date), r.value / 100]))
+  const ipca = monthly("IPCA")
   const within = (i: number) => startIdx > 0 && i >= startIdx - 1
   const bench = (map: Map<string, number>) => {
     const acc = accumulate(all.map((m, i) => (within(i) && i >= startIdx ? (map.get(m) ?? null) : null)))
@@ -285,6 +289,9 @@ export async function portfolioHistory(months: string[], investmentId?: number) 
   const cdiAcc = bench(cdi)
   const ibovAcc = bench(ibov)
   const ipcaAcc = bench(ipca)
+  const selicAcc = bench(cdiByMonth(market.filter((r) => r.series === "SELIC")))
+  const poupancaAcc = bench(monthly("POUPANCA"))
+  const dolarAcc = bench(indexReturnsByMonth(market.filter((r) => r.series === "DOLAR")))
 
   const points: HistoryPoint[] = all.map((month, i) => ({
     month,
@@ -296,6 +303,9 @@ export async function portfolioHistory(months: string[], investmentId?: number) 
     cdiAcc: cdiAcc[i],
     ibovAcc: ibovAcc[i],
     ipcaAcc: ipcaAcc[i],
+    selicAcc: selicAcc[i],
+    poupancaAcc: poupancaAcc[i],
+    dolarAcc: dolarAcc[i],
   }))
   const last = points[points.length - 1]
   const withRet = points.filter((p) => p.ret != null)

@@ -155,8 +155,8 @@ export const investmentTargets = pgTable("investment_targets", {
 })
 
 /**
- * Séries de mercado para comparar a carteira: CDI (taxa diária, % a.d.), IPCA (variação mensal, %, no dia 1 do mês)
- * e IBOV (pontos no fechamento do mês, no dia 1 do mês).
+ * Séries de mercado para comparar a carteira: CDI e SELIC (taxa diária, % a.d.), IPCA e POUPANCA (variação mensal, %,
+ * no dia 1 do mês), IBOV (pontos) e DOLAR (PTAX, R$/US$) no fechamento do mês, no dia 1 do mês.
  */
 export const marketSeries = pgTable(
   "market_series",

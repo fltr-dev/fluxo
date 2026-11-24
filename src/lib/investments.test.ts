@@ -165,6 +165,12 @@ describe("histórico e rentabilidade", () => {
       { series: "CDI", date: d(1, 2), value: 0.5 },
       { series: "CDI", date: d(1, 3), value: 0.5 },
       { series: "CDI", date: `${ym}-01`, value: 1 },
+      { series: "SELIC", date: d(1, 2), value: 0.5 },
+      { series: "POUPANCA", date: `${addMonths(ym, -1)}-01`, value: 0.6 },
+      { series: "POUPANCA", date: `${ym}-01`, value: 0.5 },
+      { series: "DOLAR", date: `${addMonths(ym, -2)}-01`, value: 5 },
+      { series: "DOLAR", date: `${addMonths(ym, -1)}-01`, value: 5.5 },
+      { series: "DOLAR", date: `${ym}-01`, value: 5.5 },
     ])
     const months = [addMonths(ym, -1), ym]
     const h = await inv.portfolioHistory(months, i.id)
@@ -177,6 +183,11 @@ describe("histórico e rentabilidade", () => {
     expect(prev.cdiAcc).toBeCloseTo(1.005 ** 2 - 1, 10)
     expect(cur.cdiAcc).toBeCloseTo(1.005 ** 2 * 1.01 - 1, 10)
     expect(h.pctOfCdi).toBeCloseTo(cur.acc! / cur.cdiAcc!, 10)
+    // Selic diária como o CDI; poupança mensal em % como o IPCA; dólar por fechamento mensal como o IBOV
+    expect(cur.selicAcc).toBeCloseTo(0.005, 10)
+    expect(cur.poupancaAcc).toBeCloseTo(1.006 * 1.005 - 1, 10)
+    expect(prev.dolarAcc).toBeCloseTo(0.1, 10)
+    expect(cur.dolarAcc).toBeCloseTo(0.1, 10)
     await testDb.delete(schema.accounts).where(eq(schema.accounts.id, acc.id))
   })
 })
