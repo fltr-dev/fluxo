@@ -7,6 +7,7 @@ import {
   detectIncomeFromTransactions,
   incomeTypeOf,
   indexReturnsByMonth,
+  investmentName,
   monthlyReturns,
   positionFromTrades,
   rateLabelOf,
@@ -16,6 +17,12 @@ import {
 } from "./investments"
 
 describe("categoria do ativo", () => {
+  it("nome vazio da Pluggy vira subtipo - emissor", () => {
+    expect(investmentName({ name: "  ", subtype: "CDB", issuer: "NU FINANCEIRA S.A." })).toBe("CDB - NU FINANCEIRA S.A.")
+    expect(investmentName({ name: "", type: "FIXED_INCOME", subtype: "TREASURY", institution: { name: "XP" } })).toBe("Renda fixa - XP")
+    expect(investmentName({ name: "", code: "ITSA4" })).toBe("ITSA4")
+    expect(investmentName({ name: "Tesouro Selic 2029" })).toBe("Tesouro Selic 2029")
+  })
   it("pelo ticker da B3", () => {
     expect(classFromCode("MXRF11")).toBe("FII")
     expect(classFromCode("aapl34")).toBe("BDR")

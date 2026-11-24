@@ -1,5 +1,5 @@
 import { desc } from "drizzle-orm"
-import { Archive, Banknote, ChartPie, ChevronRight, CircleAlert, CircleCheck, CreditCard as CreditCardIcon, ExternalLink, Landmark, Pencil, PiggyBank, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react"
+import { Archive, Banknote, ChartPie, ChevronRight, CircleAlert, CircleCheck, CreditCard as CreditCardIcon, Landmark, Pencil, PiggyBank, Plus, ShieldCheck, Wallet } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { AccountAvatar } from "@/components/account-avatar"
@@ -13,13 +13,14 @@ import { SyncButton } from "@/components/shell-client"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { db, institutions, syncRuns } from "@/db"
-import { ACCOUNT_GROUPS, ACCOUNT_ORDERS, ACCOUNT_TYPES, accountOrder, accountSubline, groupAccounts, type PortfolioRow } from "@/lib/account-types"
+import { ACCOUNT_ORDERS, ACCOUNT_TYPES, accountOrder, accountSubline, groupAccounts, isClosedInvestment, type PortfolioRow } from "@/lib/account-types"
 import { accountLook } from "@/lib/banks"
 import { brl, ago } from "@/lib/format"
 import { listAccounts, withParams } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { AccountEditSheet } from "./account-edit"
-import { addInstitution, createManualAccount, removeInstitution, renameAccount, renameInstitution, syncNow } from "./actions"
+import { ConnectionDialog } from "./connection-dialog"
+import { addInstitution, createManualAccount, renameAccount, syncNow } from "./actions"
 
 // A sincronização manual roda dentro da Server Action desta página
 export const maxDuration = 60
@@ -51,6 +52,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
   const [insts, accs, runs] = await Promise.all([db.select().from(institutions), listAccounts(), db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(8)])
   const last = runs[0]
   const editing = accs.find((a) => a.id === Number(sp.editar))
+  const viewing = insts.find((i) => i.id === Number(sp.detalhe))
   const order = accountOrder(sp.ordem)
   const { groups, archived } = groupAccounts(accs, order)
   const here = (patch: Record<string, string | number | undefined>) => `/contas${withParams(sp, patch)}`
@@ -160,7 +162,7 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
             {last ? `Última sincronização ${last.finishedAt ? ago(last.finishedAt) : "em andamento"} (${last.trigger === "CRON" ? "automática" : "manual"})` : "Nenhuma sincronização ainda"}
           </span>
           <span className="text-sm text-muted-foreground">
-            {insts.length} {insts.length === 1 ? "conexão" : "conexões"} · {active.length} contas ativas · sincronização automática 1x por dia
+            {insts.length} {insts.length === 1 ? "conexão" : "conexões"} · {active.filter((a) => !isClosedInvestment(a)).length} contas ativas · sincronização automática 1x por dia
           </span>
         </div>
         <form action={syncNow}>
@@ -250,75 +252,27 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
                 </p>
               )}
               {insts.map((i) => {
-                const mine = accs.filter((a) => a.institutionId === i.id)
-                const n = mine.length
-                // Contas da conexão por tipo (correntes e cartões antes dos investimentos), maior saldo primeiro
-                const byType = ACCOUNT_GROUPS.map(([type, label]) => ({
-                  type,
-                  label,
-                  rows: mine.filter((a) => a.type === type).sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance)),
-                })).filter((g) => g.rows.length)
+                // Conta "ativa" = não arquivada e não é ativo zerado (aplicação já resgatada que o Open Finance continua mandando)
+                const n = accs.filter((a) => a.institutionId === i.id && !a.archived && !isClosedInvestment(a)).length
                 return (
-                  <div key={i.id} className="grid gap-2 border-b py-3 first:pt-0 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-3">
-                      <AccountAvatar look={accountLook({ name: i.name })} size={36} />
-                      <div className="grid min-w-0 flex-1">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <InlineName id={i.id} value={i.name} action={renameInstitution} label="conexão" className="text-sm font-medium" />
-                          <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", i.error ? RUN.ERROR[1] : RUN.OK[1])}>{i.error ? "Com erro" : "Ativa"}</span>
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {n} {n === 1 ? "conta" : "contas"} · sincronizado {i.lastSyncedAt ? ago(i.lastSyncedAt) : "nunca"}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          Item ID <span className="font-mono">{i.pluggyItemId.slice(0, 8)}…</span>
-                        </span>
-                      </div>
-                      <form action={removeInstitution}>
-                        <input type="hidden" name="id" value={i.id} />
-                        <Button type="submit" variant="ghost" size="icon-sm" aria-label={`Remover conexão ${i.name}`} className="size-10 text-muted-foreground hover:text-destructive md:size-8">
-                          <Trash2 />
-                        </Button>
-                      </form>
-                    </div>
-                    {n > 0 && (
-                      <details className="group">
-                        <summary className="ml-12 flex w-fit cursor-pointer items-center gap-1 text-xs font-medium text-primary select-none hover:underline">
-                          Ver contas
-                          <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
-                        </summary>
-                        <div className="mt-2 grid gap-2">
-                          {byType.map((g) => (
-                            <div key={g.type} className="grid">
-                              <span className="text-xs font-medium text-muted-foreground">{g.label}</span>
-                              {g.rows.map((a) => (
-                                <Link
-                                  key={a.id}
-                                  href={here({ editar: a.id })}
-                                  scroll={false}
-                                  className={cn("-mx-1.5 flex min-h-8 min-w-0 items-center justify-between gap-3 rounded-md px-1.5 text-sm hover:bg-muted", a.archived && "opacity-60")}
-                                  aria-label={`Editar ${a.name}`}
-                                >
-                                  <span className="truncate">{a.name}</span>
-                                  <Money value={a.balance} className="shrink-0 text-xs text-muted-foreground" />
-                                </Link>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                    {i.error && (
-                      <div className="flex flex-wrap items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
-                        <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                        <span className="min-w-40 flex-1">{i.error}</span>
-                        <a href="https://meu.pluggy.ai" target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                          Abrir MeuPluggy
-                          <ExternalLink />
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                  <Link
+                    key={i.id}
+                    href={here({ detalhe: i.id })}
+                    scroll={false}
+                    className="group/conn -mx-2 flex min-h-16 items-center gap-3 rounded-lg border-b px-2 py-3 transition-colors duration-150 last:border-0 hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+                  >
+                    <AccountAvatar look={accountLook({ name: i.name })} size={36} />
+                    <span className="grid min-w-0 flex-1 gap-0.5">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium">{i.name}</span>
+                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", i.error ? RUN.ERROR[1] : RUN.OK[1])}>{i.error ? "Com erro" : "Ativa"}</span>
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        <span className="tabular-nums">{n}</span> {n === 1 ? "conta ativa" : "contas ativas"} · sincronizado {i.lastSyncedAt ? ago(i.lastSyncedAt) : "nunca"}
+                      </span>
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover/conn:translate-x-0.5" aria-hidden />
+                  </Link>
                 )
               })}
             </CardContent>
@@ -394,6 +348,8 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/cont
         </RouteDialog>
       )}
 
+      {/* A edição aberta pelo modal da conexão o substitui; fechar a edição volta para ele (o ?detalhe= fica na URL) */}
+      {viewing && !editing && <ConnectionDialog inst={viewing} accounts={accs.filter((a) => a.institutionId === viewing.id)} href={here} />}
       {editing && <AccountEditSheet account={editing} closeHref={here({ editar: undefined })} />}
     </div>
   )

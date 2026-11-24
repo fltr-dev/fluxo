@@ -24,6 +24,9 @@ export const accountSubline = (a: Pick<Groupable, "name" | "bank" | "color" | "i
 
 const sum = (list: { balance: number }[]) => list.reduce((t, a) => t + a.balance, 0)
 
+/** Ativo de investimento zerado (ex.: aplicação de caixinha já resgatada, que o Open Finance continua mandando). */
+export const isClosedInvestment = (a: { investmentId: number | null; balance: number }) => a.investmentId != null && a.balance === 0
+
 /**
  * Agrupa as contas por tipo para a listagem: arquivadas à parte (sem os ativos de investimento), grupos vazios
  * somem, subtotal por grupo (cartão negativo, como nos KPIs) e ordenação por saldo (|saldo| desc), nome ou banco.
@@ -40,7 +43,7 @@ export function groupAccounts<A extends Groupable>(accs: A[], order: AccountOrde
   const active = accs.filter((a) => !a.archived)
   const groups = ACCOUNT_GROUPS.map(([type, label]) => {
     const of = active.filter((a) => a.type === type)
-    const assets = of.filter((a) => a.investmentId != null)
+    const assets = of.filter((a) => a.investmentId != null && !isClosedInvestment(a))
     const rows: (A | PortfolioRow)[] = of.filter((a) => a.investmentId == null)
     if (assets.length) rows.push({ portfolio: true, name: "Carteira de investimentos", count: assets.length, balance: sum(assets) })
     return { type, label, total: sum(of), rows: rows.sort(by) }
