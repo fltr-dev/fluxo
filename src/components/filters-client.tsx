@@ -9,10 +9,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 /** Menu cujas opções são links (ex.: período, que vive na URL). */
-export function MenuLinks({ label, items }: { label: React.ReactNode; items: { label: string; href: string; active?: boolean }[] }) {
+export function MenuLinks({ label, ariaLabel, items }: { label: React.ReactNode; ariaLabel?: string; items: { label: string; href: string; active?: boolean }[] }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" />}>{label}</DropdownMenuTrigger>
+      <DropdownMenuTrigger render={<Button variant="outline" aria-label={ariaLabel} />}>{label}</DropdownMenuTrigger>
       <DropdownMenuContent className="w-52">
         {items.map((i) => (
           <DropdownMenuItem key={i.href} render={<Link href={i.href} />}>

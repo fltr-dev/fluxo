@@ -14,6 +14,18 @@
   }
 }
 
+/* O hover do Tailwind 4 só existe com mouse; no toque, o mesmo estilo aparece enquanto o dedo pressiona */
+@custom-variant hover {
+  @media (hover: hover) {
+    &:hover {
+      @slot;
+    }
+  }
+  &:active {
+    @slot;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-income: var(--income);
@@ -226,6 +238,21 @@
   :where(.overflow-auto, .overflow-y-auto, .overflow-x-auto, .overflow-scroll, .overflow-y-scroll) {
     position: relative;
   }
+  /* No toque, faixas que rolam de lado (chips, abas, tabelas) não mostram a barra de rolagem */
+  @media (pointer: coarse) {
+    .overflow-x-auto {
+      scrollbar-width: none;
+    }
+    .overflow-x-auto::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  /* No celular, puxar o topo atualiza a tela (PullToRefresh); o gesto nativo do navegador fica desligado */
+  @media (max-width: 767px) {
+    html {
+      overscroll-behavior-y: none;
+    }
+  }
 }
 
 /* Atualização em andamento (components/ui/pending.tsx põe data-busy no <html>): a tela fica levemente apagada e
@@ -242,6 +269,38 @@ html[data-busy] :is(main, [data-slot="sheet-content"], [data-slot="dialog-conten
 }
 html[data-busy] body {
   cursor: progress;
+}
+/* Barra de progresso no topo enquanto grava: visível também por cima de painéis e modais */
+html[data-busy] body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--primary) 30%, var(--primary) 70%, transparent) no-repeat;
+  background-size: 40% 100%;
+  animation: busy-bar 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  /* invisível nos primeiros 100ms (ações rápidas não piscam); depois os keyframes assumem */
+  opacity: 0;
+  animation-delay: 100ms;
+  pointer-events: none;
+}
+@keyframes busy-bar {
+  from {
+    opacity: 1;
+    background-position: -60% 0;
+  }
+  to {
+    opacity: 1;
+    background-position: 160% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-busy] body::before {
+    animation: none;
+    opacity: 1;
+    background: var(--primary);
+  }
 }
 /* No painel/modal que está salvando, os campos esmaecem e só o botão com spinner fica em destaque */
 html[data-busy] :is([data-slot="sheet-content"], [data-slot="dialog-content"]) :is(input, textarea, [data-slot="select-trigger"]) {

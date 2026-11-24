@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { useBusy } from "@/components/ui/pending"
+import { Spinner, useBusy } from "@/components/ui/pending"
 import { hide } from "@/components/bits"
 import { cn } from "@/lib/utils"
 
@@ -108,7 +108,10 @@ function useRowActions({ title, description, menu, extra }: SheetProps) {
       <SheetContent side={side} className={cn("gap-0", side === "bottom" ? "max-h-[85dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]" : "w-full data-[side=right]:sm:max-w-sm")}>
         {side === "bottom" && <span aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30" />}
         <SheetHeader className="border-b px-5 pt-3 pb-3 pr-12">
-          <SheetTitle className="truncate text-base font-semibold">{title}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+            <span className="truncate">{title}</span>
+            {pending && <span className="shrink-0 text-primary [&_svg]:size-4" role="status" aria-label="Salvando"><Spinner /></span>}
+          </SheetTitle>
           {description && <SheetDescription className="tabular-nums">{(description.includes("R$")) ? hide(description) : description}</SheetDescription>}
         </SheetHeader>
         <div className="grid gap-3 overflow-y-auto p-3">
@@ -266,7 +269,7 @@ export function SwipeRow({ left = [], right = [], className, children, ...sheetP
           if (!a.confirm || confirming === a.label) settle(0)
           exec(a)
         }}
-        className={cn("flex h-full min-w-[76px] flex-col items-center justify-center gap-1 px-2 text-center text-xs leading-tight font-medium disabled:opacity-70", TONE[a.tone ?? "neutral"], i === 0 && "flex-1")}
+        className={cn("flex h-full min-w-[76px] flex-col items-center justify-center gap-1 px-2 text-center text-xs leading-tight font-medium transition-[filter] active:brightness-90 disabled:opacity-70", TONE[a.tone ?? "neutral"], i === 0 && "flex-1")}
       >
         <Icon className="size-5" />
         {confirming === a.label ? a.confirm : a.label}

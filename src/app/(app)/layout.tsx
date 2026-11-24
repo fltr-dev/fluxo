@@ -6,6 +6,7 @@ import { auth, ownerName, sessionIsCurrent, signOut } from "@/auth"
 import { LogoLoader } from "@/components/logo"
 import { NotificationBell, type BellItem } from "@/components/notification-bell"
 import { PageTransition } from "@/components/page-transition"
+import { PullToRefresh } from "@/components/pull-to-refresh"
 import { Breadcrumb, MobileNav, PrivacyToggle, SyncButton } from "@/components/shell-client"
 import { CofyProvider } from "@/components/cofy/store"
 import { SettingsProvider } from "@/components/settings-dialog"
@@ -119,6 +120,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </div>
         </div>
 
+        <PullToRefresh />
         <MobileNav signOut={logout} badges={badges} accounts={sidebarAccounts} accountsOpen={accountsOpen} appName={APP.name} version={APP.version}
           dev={APP.dev} />
       </div>
