@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 const { setCategory, bulkUpdate, restoreCategories } = await import("./actions")
-const { saveRule, previewRule } = await import("../regras/actions")
+const { saveRule, saveRuleInPlace, previewRule } = await import("../regras/actions")
 const { quickSubcategory } = await import("../categorias/actions")
 
 const form = (fields: Record<string, string | number | (string | number)[]>) => {
@@ -102,6 +102,20 @@ describe("regra", () => {
     expect((await tx(hit)).subcategoryId).toBe(taxi)
     expect((await tx(pop)).subcategoryId).toBeNull()
     expect((await tx(mine)).subcategoryId).toBe(food)
+  })
+})
+
+describe("regra criada na tela de transações", () => {
+  const ruleForm = (extra: Record<string, string>) => form({ matchType: "CONTAINS", pattern: "SEBO DO ZE", priority: 100, kind: "EXPENSE", accountId: "", minAmount: "", maxAmount: "", ...extra })
+
+  it("salva e aplica sem redirecionar, devolvendo o aviso", async () => {
+    const id = await addTx("SEBO DO ZE LIVROS")
+    expect(await saveRuleInPlace(ruleForm({ subcategoryId: String(taxi), apply: "on" }))).toEqual({ message: "Regra criada · 1 transação recategorizada" })
+    expect((await tx(id)).subcategoryId).toBe(taxi)
+  })
+
+  it("erro de validação volta como mensagem", async () => {
+    expect(await saveRuleInPlace(ruleForm({ subcategoryId: "" }))).toEqual({ error: "Escolha a categoria" })
   })
 })
 

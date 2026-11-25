@@ -11,9 +11,11 @@ import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { RouteDialog, RouteSheet } from "@/components/route-overlay"
 import { TxContextRow, TxOptions, TxSwipe } from "@/components/tx-row"
 import { UndoForm } from "@/components/undo"
+import { RuleForm } from "../regras/rule-kind-category"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { transactions } from "@/db"
+import { eq } from "drizzle-orm"
+import { db, transactions } from "@/db"
 import { today } from "@/lib/domain/dates"
 import { dateBR, dayLabel, pct } from "@/lib/format"
 import { subcategoryOptions } from "@/lib/ledger"
@@ -127,12 +129,21 @@ export const metadata = { title: "Transações" }
 export default async function TransactionsPage({ searchParams }: PageProps<"/transacoes">) {
   const sp = await searchParams
   const f = parseFilters(sp)
-  const [{ rows, count }, options, accounts, status] = await Promise.all([listTransactions(f), subcategoryOptions(), listAccounts(), shellStatus()])
+  const ruleFrom = Number(sp.regra) || undefined
+  const [{ rows, count }, options, accounts, status, [ruleTx]] = await Promise.all([
+    listTransactions(f),
+    subcategoryOptions(),
+    listAccounts(),
+    shellStatus(),
+    ruleFrom ? db.select().from(transactions).where(eq(transactions.id, ruleFrom)) : [],
+  ])
   const activeAccounts = accounts.filter((a) => !a.archived)
   const label = new Map(options.map((o) => [o.id, `${o.parentName} › ${o.name}`]))
   const pages = Math.max(1, Math.ceil(count / PAGE_SIZE))
-  const here = `/transacoes${withParams(sp, { tx: undefined, nova: undefined })}`
-  const txHref = (id: number) => `/transacoes${withParams(sp, { tx: id, nova: undefined })}`
+  const here = `/transacoes${withParams(sp, { tx: undefined, nova: undefined, regra: undefined })}`
+  const txHref = (id: number) => `/transacoes${withParams(sp, { tx: id, nova: undefined, regra: undefined })}`
+  // Regra a partir da transação num painel desta tela: salvar ou fechar volta para a lista com os mesmos filtros
+  const ruleHref = (id: number) => `/transacoes${withParams(sp, { regra: id, tx: undefined, nova: undefined })}`
 
   // Agrupa por dia, com o saldo do dia (sem transferências e ignoradas); em outra ordem a lista é corrida, com a data na linha
   const byDay = !f.sort || f.sort === "recentes" || f.sort === "antigas"
@@ -239,7 +250,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                       {list.map((r) => {
                         const { tx, accountName, color } = r
                         return (
-                        <TxContextRow key={tx.id} item={r} href={txHref(tx.id)} className={cn("border-b last:border-0 hover:bg-muted/30", tx.ignored && "opacity-60", openId === tx.id && "bg-muted")}>
+                        <TxContextRow key={tx.id} item={r} href={txHref(tx.id)} ruleHref={ruleHref(tx.id)} className={cn("border-b last:border-0 hover:bg-muted/30", tx.ignored && "opacity-60", openId === tx.id && "bg-muted")}>
                           <td className="pl-4"><input type="checkbox" name="ids" value={tx.id} form="bulk" aria-label={`Selecionar ${tx.description}`} className="size-4 accent-primary" /></td>
                           <td className="max-w-0 px-3 py-2.5">
                             <Link href={txHref(tx.id)} scroll={false} className="group grid gap-0.5">
@@ -324,7 +335,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                   )}
                   <Card className="gap-0 py-0">
                     {list.map((r) => (
-                      <TxSwipe key={r.tx.id} item={r} href={txHref(r.tx.id)} showAccount showDate={!byDay} />
+                      <TxSwipe key={r.tx.id} item={r} href={txHref(r.tx.id)} ruleHref={ruleHref(r.tx.id)} showAccount showDate={!byDay} />
                     ))}
                   </Card>
                 </section>
@@ -380,14 +391,33 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
           title="Detalhes da transação"
           description={open.tx.pluggyId ? `Importada da Pluggy · ${open.accountName}` : `Lançamento manual · ${open.accountName}`}
         >
-          <TxDetails tx={open.tx} accountName={open.accountName} label={label} options={options} accounts={accounts} here={here} />
+          <TxDetails tx={open.tx} accountName={open.accountName} label={label} options={options} accounts={accounts} here={here} ruleHref={ruleHref(open.tx.id)} />
+        </RouteSheet>
+      )}
+
+      {ruleTx && (
+        <RouteSheet closeHref={here} title="Nova regra" description={`A partir de “${ruleTx.description}”`}>
+          <div className="grid gap-6">
+            <RuleForm
+              key={ruleTx.id}
+              rule={{ pattern: ruleTx.description, subcategoryId: ruleTx.subcategoryId ?? undefined, kind: ruleTx.amount < 0 ? "EXPENSE" : "INCOME" }}
+              accounts={activeAccounts}
+              options={options}
+              returnTo={here}
+            />
+            {/* os botões do rodapé acionam o formulário pelo atributo `form` */}
+            <FormActions>
+              <CancelLink href={here} />
+              <Button type="submit" form="rule-form" size="lg">Criar regra</Button>
+            </FormActions>
+          </div>
         </RouteSheet>
       )}
     </div>
   )
 }
 
-function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx; accountName: string; label: Map<number, string>; options: Option[]; accounts: Account[]; here: string }) {
+function TxDetails({ tx, accountName, label, options, accounts, here, ruleHref }: { tx: Tx; accountName: string; label: Map<number, string>; options: Option[]; accounts: Account[]; here: string; ruleHref: string }) {
   const manual = !tx.pluggyId
   return (
     <div className="grid gap-5">
@@ -453,7 +483,7 @@ function TxDetails({ tx, accountName, label, options, accounts, here }: { tx: Tx
             <input type="hidden" name="current" value={String(tx.subcategoryId ?? "")} />
             <label htmlFor="sheet-cat" className="text-sm font-medium">Categoria</label>
             <SubcategorySelect id="sheet-cat" name="subcategoryId" options={options} defaultValue={String(tx.subcategoryId ?? "")} emptyLabel="A categorizar" />
-            <Link href={`/regras?de=${tx.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+            <Link href={ruleHref} scroll={false} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
               <ListChecks className="size-3.5" />
               Criar regra a partir desta transação
             </Link>

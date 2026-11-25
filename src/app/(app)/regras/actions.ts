@@ -12,7 +12,8 @@ import { subcategoryKinds } from "@/lib/ledger"
 
 const MATCH_TYPES = ["CONTAINS", "STARTS_WITH", "EQUALS", "REGEX"] as const
 
-export async function saveRule(form: FormData) {
+/** Grava a regra (nova ou editada) e, se pedido, reaplica as regras às existentes. Devolve quantas mudaram. */
+async function persistRule(form: FormData) {
   await requireUser()
   const { apply, ...v } = parseForm(form, {
     id: fd.optId,
@@ -40,7 +41,27 @@ export async function saveRule(form: FormData) {
   const data = { ...rest, kind: transfer ? null : kind, subcategoryId: transfer ? null : subcategoryId! }
   if (id) await db.update(categoryRules).set(data).where(eq(categoryRules.id, id))
   else await db.insert(categoryRules).values(data)
-  redirect(apply ? `/regras?aplicadas=${await reapplyRules()}` : "/regras")
+  return apply ? await reapplyRules() : null
+}
+
+export async function saveRule(form: FormData) {
+  const applied = await persistRule(form)
+  redirect(applied != null ? `/regras?aplicadas=${applied}` : "/regras")
+}
+
+/** Salvar sem sair da tela atual (painel na lista de transações): devolve o aviso em vez de redirecionar. */
+export async function saveRuleInPlace(form: FormData): Promise<{ message: string } | { error: string }> {
+  let applied: number | null
+  try {
+    applied = await persistRule(form)
+  } catch (e) {
+    // validação do zod: o formulário já impede; não mostra o JSON dela
+    return { error: e instanceof Error && !(e instanceof z.ZodError) ? e.message : "Confira os campos da regra" }
+  }
+  refresh()
+  const saved = form.get("id") ? "Regra salva" : "Regra criada"
+  if (applied == null) return { message: saved }
+  return { message: `${saved} · ${applied} ${applied === 1 ? "transação recategorizada" : "transações recategorizadas"}` }
 }
 
 export async function deleteRule(form: FormData) {
