@@ -62,6 +62,34 @@ describe("desfazer categorização", () => {
   })
 })
 
+describe("parcelas", () => {
+  const parcels = async (description: string, amount: number) => {
+    const ids: number[] = []
+    for (const n of [1, 2, 3])
+      ids.push(await addTx(description, { amount, date: `2026-0${n}-06`, installmentNumber: n, totalInstallments: 3 }))
+    return ids
+  }
+
+  it("categorizar uma parcela aplica a categoria a todas as parcelas da compra, e o desfazer volta todas", async () => {
+    const ids = await parcels("EC *HARPERCOLLINS", -69.99)
+    const other = await addTx("EC *HARPERCOLLINS", { amount: -69.99, date: "2026-02-06", installmentNumber: 1, totalInstallments: 3 }) // outra compra, um mês depois
+    const r = await setCategory(form({ id: ids[1], subcategoryId: food }))
+    expect(r.message).toBe("Categoria alterada em 3 parcelas")
+    for (const id of ids) expect([(await tx(id)).subcategoryId, (await tx(id)).categorySource]).toEqual([food, "USER"])
+    expect((await tx(other)).subcategoryId).toBeNull()
+    await restoreCategories(r.undo)
+    for (const id of ids) expect((await tx(id)).subcategoryId).toBeNull()
+  })
+
+  it("em massa: duas parcelas da mesma compra selecionadas não duplicam o desfazer", async () => {
+    const ids = await parcels("LIVRARIA", -30)
+    const r = await bulkUpdate(form({ ids: [ids[0], ids[2]], op: "categorizar", subcategoryId: taxi }))
+    expect(r?.message).toBe("3 transações categorizadas")
+    expect(r!.undo.map((u) => u.id).sort()).toEqual([...ids].sort())
+    for (const id of ids) expect((await tx(id)).subcategoryId).toBe(taxi)
+  })
+})
+
 describe("regra", () => {
   it("'Igual a' com aplicar às existentes recategoriza só o que casa e preserva a escolha do usuário", async () => {
     const hit = await addTx("99")
