@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNotNull, like, min, or, sql } from "drizzle-or
 import { accounts, db, DEFAULT_INSTITUTION_NAME, institutions, investmentMovements, investments, investmentTrades, syncRuns, transactions } from "@/db"
 import { deriveKind, resolvedKind } from "./domain/categorize"
 import { addDays, toLocalDate, today } from "./domain/dates"
+import { sameInstallmentPurchase } from "./domain/installments"
 import { classifyPluggy, detectIncomeFromTransactions, investmentName, positionFromTrades, rateLabelOf } from "./domain/investments"
 import { deriveInvestmentMovements, deriveInvestmentTrades, mergeTransactions, normalizePluggyTx, type PluggyInvestment } from "./domain/sync-merge"
 import { detectAndMarkTransfers, loadCategorizer, refreshManualBalances, snapshotBalances } from "./ledger"
@@ -210,12 +211,20 @@ async function syncAccountTransactions(pluggy: Pluggy, cat: Categorizer, acc: ty
     )
   const { inserts, updates, deletes } = mergeTransactions(existing, incoming, windowStart)
 
+  // Parcela nova de compra já categorizada pelo usuário herda a categoria das outras parcelas
+  const categorizedInstallments = inserts.some((i) => i.totalInstallments && i.totalInstallments > 1)
+    ? await db
+        .select()
+        .from(transactions)
+        .where(and(eq(transactions.accountId, acc.id), isNotNull(transactions.totalInstallments), isNotNull(transactions.subcategoryId), eq(transactions.categorySource, "USER")))
+    : []
+
   const values = []
   for (const ins of inserts) {
     const { carry, ...tx } = ins
-    const userCategory = carry?.categorySource === "USER"
-    const res = userCategory
-      ? { subcategoryId: carry.subcategoryId, categorySource: "USER" as const, suggestedSubcategoryId: null, suggestionConfidence: null }
+    const user = carry?.categorySource === "USER" ? carry : sameInstallmentPurchase({ ...tx, id: 0, accountId: acc.id }, categorizedInstallments)[0]
+    const res = user
+      ? { subcategoryId: user.subcategoryId, categorySource: "USER" as const, suggestedSubcategoryId: null, suggestionConfidence: null }
       : await cat.categorize({ ...tx, accountId: acc.id, accountName: acc.name })
     values.push({
       ...tx,

@@ -1,13 +1,15 @@
 "use client"
 
 import { Eye, LoaderCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import { accountGroups } from "@/components/account-avatar"
 import { Field, fieldClass, Money } from "@/components/bits"
 import { FormSelect, SubcategorySelect } from "@/components/form-select"
 import { dateBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { previewRule, saveRule, type RuleDraft } from "./actions"
+import { previewRule, saveRule, saveRuleInPlace, type RuleDraft } from "./actions"
 
 // TRANSFER = regra de transferência (sem categoria, vale para entradas e saídas)
 type Kind = "" | "EXPENSE" | "INCOME" | "TRANSFER"
@@ -28,6 +30,8 @@ type Props = {
   rule: Partial<Omit<RuleDraft, "subcategoryId">> & { subcategoryId?: number | null }
   accounts: Parameters<typeof accountGroups>[0]
   options: SubOption[]
+  /** Salva sem sair da tela: mostra o aviso e volta para este endereço (ex.: a lista de transações com os filtros). */
+  returnTo?: string
 }
 
 const num = (s: string) => (s.trim() === "" ? null : Number(s))
@@ -37,7 +41,8 @@ const num = (s: string) => (s.trim() === "" ? null : Number(s))
  * regra recategorizaria. Tipo e categoria andam juntos: com Despesa só aparecem categorias de despesa (e vice-versa);
  * trocar o tipo limpa a categoria que deixou de servir. Com Transferência a categoria some.
  */
-export function RuleForm({ rule, accounts, options }: Props) {
+export function RuleForm({ rule, accounts, options, returnTo }: Props) {
+  const router = useRouter()
   const [matchType, setMatchType] = useState<MatchType>(rule.matchType ?? "CONTAINS")
   const [pattern, setPattern] = useState(rule.pattern ?? "")
   const [accountId, setAccountId] = useState(String(rule.accountId ?? ""))
@@ -77,6 +82,13 @@ export function RuleForm({ rule, accounts, options }: Props) {
     }
   }, [rule.id, matchType, pattern, accountId, kind, transfer, min, max, priority, sub])
 
+  async function saveInPlace(form: FormData, back: string) {
+    const r = await saveRuleInPlace(form)
+    if ("error" in r) return void toast.error(r.error)
+    toast(r.message)
+    router.push(back, { scroll: false })
+  }
+
   function changeKind(next: Kind) {
     setKind(next)
     const chosen = options.find((o) => String(o.id) === sub)
@@ -84,7 +96,7 @@ export function RuleForm({ rule, accounts, options }: Props) {
   }
 
   return (
-    <form id="rule-form" action={saveRule} className="grid gap-4">
+    <form id="rule-form" action={returnTo ? (f) => saveInPlace(f, returnTo) : saveRule} className="grid gap-4">
       {rule.id && <input type="hidden" name="id" value={rule.id} />}
       <fieldset className="grid gap-1.5">
         <legend className="mb-1.5 text-sm font-medium">Descrição da transação</legend>

@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 const { setCategory, bulkUpdate, restoreCategories } = await import("./actions")
-const { saveRule, previewRule } = await import("../regras/actions")
+const { saveRule, saveRuleInPlace, previewRule } = await import("../regras/actions")
 const { quickSubcategory } = await import("../categorias/actions")
 
 const form = (fields: Record<string, string | number | (string | number)[]>) => {
@@ -62,6 +62,34 @@ describe("desfazer categorização", () => {
   })
 })
 
+describe("parcelas", () => {
+  const parcels = async (description: string, amount: number) => {
+    const ids: number[] = []
+    for (const n of [1, 2, 3])
+      ids.push(await addTx(description, { amount, date: `2026-0${n}-06`, installmentNumber: n, totalInstallments: 3 }))
+    return ids
+  }
+
+  it("categorizar uma parcela aplica a categoria a todas as parcelas da compra, e o desfazer volta todas", async () => {
+    const ids = await parcels("EC *HARPERCOLLINS", -69.99)
+    const other = await addTx("EC *HARPERCOLLINS", { amount: -69.99, date: "2026-02-06", installmentNumber: 1, totalInstallments: 3 }) // outra compra, um mês depois
+    const r = await setCategory(form({ id: ids[1], subcategoryId: food }))
+    expect(r.message).toBe("Categoria alterada em 3 parcelas")
+    for (const id of ids) expect([(await tx(id)).subcategoryId, (await tx(id)).categorySource]).toEqual([food, "USER"])
+    expect((await tx(other)).subcategoryId).toBeNull()
+    await restoreCategories(r.undo)
+    for (const id of ids) expect((await tx(id)).subcategoryId).toBeNull()
+  })
+
+  it("em massa: duas parcelas da mesma compra selecionadas não duplicam o desfazer", async () => {
+    const ids = await parcels("LIVRARIA", -30)
+    const r = await bulkUpdate(form({ ids: [ids[0], ids[2]], op: "categorizar", subcategoryId: taxi }))
+    expect(r?.message).toBe("3 transações categorizadas")
+    expect(r!.undo.map((u) => u.id).sort()).toEqual([...ids].sort())
+    for (const id of ids) expect((await tx(id)).subcategoryId).toBe(taxi)
+  })
+})
+
 describe("regra", () => {
   it("'Igual a' com aplicar às existentes recategoriza só o que casa e preserva a escolha do usuário", async () => {
     const hit = await addTx("99")
@@ -74,6 +102,20 @@ describe("regra", () => {
     expect((await tx(hit)).subcategoryId).toBe(taxi)
     expect((await tx(pop)).subcategoryId).toBeNull()
     expect((await tx(mine)).subcategoryId).toBe(food)
+  })
+})
+
+describe("regra criada na tela de transações", () => {
+  const ruleForm = (extra: Record<string, string>) => form({ matchType: "CONTAINS", pattern: "SEBO DO ZE", priority: 100, kind: "EXPENSE", accountId: "", minAmount: "", maxAmount: "", ...extra })
+
+  it("salva e aplica sem redirecionar, devolvendo o aviso", async () => {
+    const id = await addTx("SEBO DO ZE LIVROS")
+    expect(await saveRuleInPlace(ruleForm({ subcategoryId: String(taxi), apply: "on" }))).toEqual({ message: "Regra criada · 1 transação recategorizada" })
+    expect((await tx(id)).subcategoryId).toBe(taxi)
+  })
+
+  it("erro de validação volta como mensagem", async () => {
+    expect(await saveRuleInPlace(ruleForm({ subcategoryId: "" }))).toEqual({ error: "Escolha a categoria" })
   })
 })
 

@@ -7,7 +7,7 @@ import { requireUser } from "@/auth"
 import { db, transactions } from "@/db"
 import { deriveKind } from "@/lib/domain/categorize"
 import { fd, parseForm } from "@/lib/form"
-import { refreshManualBalances, subcategoryKinds } from "@/lib/ledger"
+import { refreshManualBalances, subcategoryKinds, withInstallments } from "@/lib/ledger"
 
 const noSuggestion = { suggestedSubcategoryId: null, suggestionConfidence: null }
 
@@ -55,9 +55,9 @@ export async function restoreCategories(snaps: Snapshot[]) {
   refresh()
 }
 
-async function categorize(id: number, subcategoryId: number | null, kinds: Map<number, "INCOME" | "EXPENSE">) {
-  const tx = await getTx(id)
-  if (subcategoryId && !kinds.has(subcategoryId)) throw new Error("Subcategoria inválida")
+type Tx = typeof transactions.$inferSelect
+
+async function categorizeOne(tx: Tx, subcategoryId: number | null, kinds: Map<number, "INCOME" | "EXPENSE">) {
   await unlinkPair(tx)
   await db
     .update(transactions)
@@ -69,16 +69,35 @@ async function categorize(id: number, subcategoryId: number | null, kinds: Map<n
       ...noSuggestion,
       updatedAt: new Date(),
     })
-    .where(eq(transactions.id, id))
+    .where(eq(transactions.id, tx.id))
   return snapshot(tx)
 }
+
+/** Categoriza a transação e as outras parcelas da compra; `done` evita repetir (e sobrescrever o desfazer) no lote. */
+async function categorize(id: number, subcategoryId: number | null, kinds: Map<number, "INCOME" | "EXPENSE">, done = new Set<number>()) {
+  if (subcategoryId && !kinds.has(subcategoryId)) throw new Error("Subcategoria inválida")
+  const undo: Snapshot[] = []
+  for (const t of await withInstallments(await getTx(id))) {
+    if (done.has(t.id)) continue
+    done.add(t.id)
+    undo.push(await categorizeOne(t, subcategoryId, kinds))
+  }
+  return undo
+}
+
+const installmentsNote = (n: number) => (n > 1 ? ` em ${n} parcelas` : "")
 
 export async function setCategory(form: FormData): Promise<Undo> {
   await requireUser()
   const { id, subcategoryId } = parseForm(form, { id: fd.id, subcategoryId: fd.optId })
-  const before = await categorize(id, subcategoryId, await subcategoryKinds())
+  const undo = await categorize(id, subcategoryId, await subcategoryKinds())
   refresh()
-  return { message: subcategoryId ? "Categoria alterada" : "Transação voltou para A categorizar", undo: [before] }
+  const message = subcategoryId
+    ? `Categoria alterada${installmentsNote(undo.length)}`
+    : undo.length > 1
+      ? `${undo.length} parcelas voltaram para A categorizar`
+      : "Transação voltou para A categorizar"
+  return { message, undo }
 }
 
 export async function acceptSuggestion(form: FormData): Promise<Undo | undefined> {
@@ -86,19 +105,9 @@ export async function acceptSuggestion(form: FormData): Promise<Undo | undefined
   const { id } = parseForm(form, { id: fd.id })
   const tx = await getTx(id)
   if (!tx.suggestedSubcategoryId) return
-  const kinds = await subcategoryKinds()
-  await db
-    .update(transactions)
-    .set({
-      subcategoryId: tx.suggestedSubcategoryId,
-      categorySource: "USER",
-      kind: deriveKind(tx.amount, kinds.get(tx.suggestedSubcategoryId)),
-      ...noSuggestion,
-      updatedAt: new Date(),
-    })
-    .where(eq(transactions.id, id))
+  const undo = await categorize(id, tx.suggestedSubcategoryId, await subcategoryKinds())
   refresh()
-  return { message: "Sugestão aceita", undo: [snapshot(tx)] }
+  return { message: `Sugestão aceita${installmentsNote(undo.length)}`, undo }
 }
 
 export async function rejectSuggestion(form: FormData) {
@@ -215,7 +224,8 @@ export async function bulkUpdate(form: FormData): Promise<Undo | undefined> {
   const { subcategoryId } = parseForm(form, { subcategoryId: fd.optId })
   const kinds = await subcategoryKinds()
   const undo: Snapshot[] = []
-  for (const id of ids) undo.push(await categorize(id, subcategoryId, kinds))
+  const done = new Set<number>()
+  for (const id of ids) undo.push(...(await categorize(id, subcategoryId, kinds, done)))
   refresh()
-  return { message: `${ids.length} ${ids.length === 1 ? "transação categorizada" : "transações categorizadas"}`, undo }
+  return { message: `${undo.length} ${undo.length === 1 ? "transação categorizada" : "transações categorizadas"}`, undo }
 }

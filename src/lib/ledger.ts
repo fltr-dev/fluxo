@@ -11,6 +11,7 @@ import {
   type Resolution,
 } from "./domain/categorize"
 import { addDays } from "./domain/dates"
+import { sameInstallmentPurchase } from "./domain/installments"
 import { detectTransfers } from "./domain/transfers"
 import { classifyWithJev, jevEnabled, jevThresholds } from "./jev"
 
@@ -135,4 +136,14 @@ export async function snapshotBalances(date: string) {
     .insert(balanceSnapshots)
     .values(rows.map((r) => ({ accountId: r.id, date, balance: r.balance })))
     .onConflictDoUpdate({ target: [balanceSnapshots.accountId, balanceSnapshots.date], set: { balance: sql`excluded.balance`, estimated: false } })
+}
+
+/** A transação e as demais parcelas da mesma compra (a categoria vale para a compra toda). */
+export async function withInstallments(tx: typeof transactions.$inferSelect) {
+  if (!tx.totalInstallments || tx.totalInstallments < 2) return [tx]
+  const candidates = await db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.accountId, tx.accountId), eq(transactions.totalInstallments, tx.totalInstallments)))
+  return [tx, ...sameInstallmentPurchase(tx, candidates)]
 }

@@ -22,7 +22,8 @@ type Option = Parameters<typeof SubcategorySelect>[0]["options"][number]
 const Options = createContext<Option[]>([])
 export const TxOptions = ({ options, children }: { options: Option[]; children: ReactNode }) => <Options value={options}>{children}</Options>
 
-function txActions({ tx }: TxItem, detailsHref: string) {
+/** `ruleHref`: onde criar a regra; padrão é a tela de Regras (na lista de transações, um painel na própria tela). */
+function txActions({ tx }: TxItem, detailsHref: string, ruleHref = `/regras?de=${tx.id}`) {
   const id = tx.id
   const transfer = tx.kind === "TRANSFER"
   const manual = !tx.pluggyId
@@ -38,7 +39,7 @@ function txActions({ tx }: TxItem, detailsHref: string) {
     ...(tx.suggestedSubcategoryId ? [{ ...accept, label: "Aceitar sugestão da IA" }, { label: "Rejeitar sugestão", icon: "x", run: rejectSuggestion, id } as const] : []),
     { ...ignore, label: tx.ignored ? "Voltar a considerar nos relatórios" : "Ignorar nos relatórios" },
     transfer ? { label: "Não é transferência", icon: "transfer", run: unmarkTransfer, id } : { label: "Marcar como transferência", icon: "transfer", run: markTransfer, id },
-    ...(transfer ? [] : [{ label: "Criar regra a partir desta", icon: "rule", href: `/regras?de=${id}` } as const]),
+    ...(transfer ? [] : [{ label: "Criar regra a partir desta", icon: "rule", href: ruleHref } as const]),
     { label: "Ver detalhes e nota", icon: "details", href: detailsHref },
     ...(manual ? [{ label: "Excluir transação", icon: "trash", tone: "danger", run: deleteManual, id, confirm: "Toque de novo para excluir" } as const] : []),
   ]
@@ -64,13 +65,13 @@ function CategoryPicker({ tx, run }: { tx: Tx; run: (fn: () => Promise<unknown>)
 const picker = (tx: Tx) => (tx.kind === "TRANSFER" ? undefined : ({ run }: { run: (fn: () => Promise<unknown>) => void }) => <CategoryPicker tx={tx} run={run} />)
 
 /** Linha da lista: arrastar à direita categoriza (ou aceita a sugestão), à esquerda ignora/exclui; pressionar abre o painel. */
-export function TxSwipe({ item, href, showAccount, showDate }: { item: TxItem; href: string; showAccount?: boolean; showDate?: boolean }) {
+export function TxSwipe({ item, href, ruleHref, showAccount, showDate }: { item: TxItem; href: string; ruleHref?: string; showAccount?: boolean; showDate?: boolean }) {
   const { tx, accountName, color, subName, parentName } = item
   const Icon = tx.kind === "TRANSFER" ? ArrowLeftRight : tx.amount > 0 ? ArrowDownLeft : ArrowUpRight
   const c = tx.kind === "TRANSFER" ? "#71717a" : tx.amount > 0 ? "#22c55e" : (color ?? "#f59e0b")
   const trailing = [showDate && shortDate(tx.date), tx.status === "PENDING" ? "Pendente" : showAccount && accountName].filter(Boolean).join(" · ")
   return (
-    <SwipeRow {...txActions(item, href)} {...sheetInfo(item)} extra={picker(tx)} className="border-b last:border-0">
+    <SwipeRow {...txActions(item, href, ruleHref)} {...sheetInfo(item)} extra={picker(tx)} className="border-b last:border-0">
       <Link href={href} scroll={false} draggable={false} className={cn("flex items-center gap-3 px-3.5 py-3 hover:bg-muted/40", tx.ignored && "opacity-60")}>
         <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ background: `${c}1f`, color: c }}>
           <Icon className="size-4" />
@@ -94,9 +95,9 @@ export function TxSwipe({ item, href, showAccount, showDate }: { item: TxItem; h
 }
 
 /** Linha da tabela do desktop: clique direito abre o mesmo painel. */
-export function TxContextRow({ item, href, className, children }: { item: TxItem; href: string; className?: string; children: ReactNode }) {
+export function TxContextRow({ item, href, ruleHref, className, children }: { item: TxItem; href: string; ruleHref?: string; className?: string; children: ReactNode }) {
   return (
-    <ContextRow menu={txActions(item, href).menu} {...sheetInfo(item)} extra={picker(item.tx)} className={className}>
+    <ContextRow menu={txActions(item, href, ruleHref).menu} {...sheetInfo(item)} extra={picker(item.tx)} className={className}>
       {children}
     </ContextRow>
   )

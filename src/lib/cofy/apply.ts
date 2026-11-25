@@ -4,7 +4,7 @@ import { z } from "zod"
 import { categoryRules, chatActions, db, spendingLimits, transactions } from "@/db"
 import { createDebt, payInstallment, type DebtInputValue } from "../debts"
 import { deriveKind } from "../domain/categorize"
-import { refreshManualBalances, subcategoryKinds } from "../ledger"
+import { refreshManualBalances, subcategoryKinds, withInstallments } from "../ledger"
 import type { ActionView } from "./types"
 
 // Executa (ou cancela) o que o Cofy propôs. Só roda quando o usuário clica em Confirmar; usa as mesmas
@@ -43,10 +43,12 @@ async function run(kind: string, op: unknown): Promise<string> {
       for (const r of v.rows) {
         const [tx] = await db.select().from(transactions).where(eq(transactions.id, r.id))
         if (!tx) continue
-        await db
-          .update(transactions)
-          .set({ subcategoryId: r.subcategoryId, categorySource: "USER", kind: deriveKind(tx.amount, kinds.get(r.subcategoryId)), transferPairId: null, suggestedSubcategoryId: null, suggestionConfidence: null, updatedAt: new Date() })
-          .where(eq(transactions.id, r.id))
+        // A categoria vale para todas as parcelas da compra
+        for (const t of await withInstallments(tx))
+          await db
+            .update(transactions)
+            .set({ subcategoryId: r.subcategoryId, categorySource: "USER", kind: deriveKind(t.amount, kinds.get(r.subcategoryId)), transferPairId: null, suggestedSubcategoryId: null, suggestionConfidence: null, updatedAt: new Date() })
+            .where(eq(transactions.id, t.id))
       }
       return `${v.rows.length} ${v.rows.length === 1 ? "transação categorizada" : "transações categorizadas"}`
     }
