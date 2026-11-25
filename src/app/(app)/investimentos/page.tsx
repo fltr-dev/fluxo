@@ -141,7 +141,7 @@ export default async function InvestmentsPage({ searchParams }: PageProps<"/inve
       </section>
 
       <Card className="gap-4 px-5 py-5">
-        <CardHead icon={ChartLine} title="Evolução da carteira" description="Patrimônio × valor aplicado, ou rentabilidade acumulada × índices" />
+        <CardHead icon={ChartLine} title="Evolução da carteira" description="Rentabilidade acumulada × índices, ou patrimônio × valor aplicado" />
         <EvolutionChart data={pts.slice(1)} />
       </Card>
 

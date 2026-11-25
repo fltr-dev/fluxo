@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts"
 import { Dot, Line as LegendLine, ToggleLegend, useSeriesToggle } from "@/components/chart-legend"
 import { brl, monthLabel, signedPct } from "@/lib/format"
 import { hide } from "@/components/bits"
 import { cn } from "@/lib/utils"
 
-// Gráficos da tela de Investimentos. A carteira é sempre a linha escura e forte; os índices ficam em cinza,
-// com traços diferentes e o nome escrito, para não competir com as cores das categorias.
+// Gráficos da tela de Investimentos. A carteira é sempre a linha forte no tom do texto; cada índice tem a sua cor
+// (--idx-*) e o seu traço, para nunca depender só da cor.
 
 const compactNum = (n: number) => new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(n)
 const pctTick = (n: number) => `${(n * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`
@@ -54,30 +54,103 @@ export type EvolutionPoint = {
   cdiAcc: number | null
   ibovAcc: number | null
   ipcaAcc: number | null
-  selicAcc: number | null
   poupancaAcc: number | null
   dolarAcc: number | null
 }
 
+// A ordem é a das cores validadas para daltonismo (globals.css); a Selic fica de fora porque anda colada no CDI
 const INDEXES = [
-  { key: "cdiAcc", label: "CDI", color: "var(--muted-foreground)", dash: "6 4" },
-  { key: "ibovAcc", label: "IBOV", color: "var(--muted-foreground)", dash: "1 3" },
-  { key: "ipcaAcc", label: "IPCA", color: "var(--muted-foreground)", dash: "8 3 2 3" },
-  { key: "selicAcc", label: "Selic", color: "var(--muted-foreground)", dash: "2 2" },
-  { key: "poupancaAcc", label: "Poupança", color: "var(--muted-foreground)", dash: "12 4" },
-  { key: "dolarAcc", label: "Dólar", color: "var(--muted-foreground)", dash: "4 2 1 2 1 2" },
+  { key: "cdiAcc", label: "CDI", color: "var(--idx-cdi)", dash: "6 4" },
+  { key: "ibovAcc", label: "IBOV", color: "var(--idx-ibov)", dash: "1 3" },
+  { key: "ipcaAcc", label: "IPCA", color: "var(--idx-ipca)", dash: "8 3 2 3" },
+  { key: "poupancaAcc", label: "Poupança", color: "var(--idx-poupanca)", dash: "12 4" },
+  { key: "dolarAcc", label: "Dólar", color: "var(--idx-dolar)", dash: "4 2 1 2" },
 ] as const
 type IndexKey = (typeof INDEXES)[number]["key"]
-// começam visíveis só a carteira, o CDI e o IBOV: seis linhas cinzas juntas não se leem
-const HIDDEN_AT_START: IndexKey[] = ["ipcaAcc", "selicAcc", "poupancaAcc", "dolarAcc"]
+// começam visíveis a carteira, o CDI e o IBOV; o resto entra pela pílula
+const HIDDEN_AT_START: IndexKey[] = ["ipcaAcc", "poupancaAcc", "dolarAcc"]
+
+type Mode = "pct" | "brl"
+const MODES: { key: Mode; label: string }[] = [
+  { key: "pct", label: "% Rentabilidade" },
+  { key: "brl", label: "R$ Patrimônio" },
+]
+
+// As séries não usam a animação do Recharts (no primeiro quadro ela desenha a linha inteira e depois esconde): cada uma
+// é revelada por recorte em CSS (.chart-reveal). Na abertura a carteira entra primeiro e os índices em seguida.
+// As classes ficam escritas por extenso para o Tailwind gerá-las; os ms ao lado são os mesmos, para o ponto final.
+const INTRO_DELAYS = ["[--reveal-delay:260ms]", "[--reveal-delay:370ms]", "[--reveal-delay:480ms]", "[--reveal-delay:590ms]", "[--reveal-delay:700ms]"]
+const introMs = (order: number) => 260 + 110 * order
+const INTRO_MS = 1400
+// O recorte chega ao fim da linha em pouco mais da metade do tempo (easing exponencial): é quando o ponto final aparece
+const dotDelay = (delayMs: number, durationMs: number) => delayMs + durationMs * 0.55
 
 /**
- * Evolução da carteira: um gráfico, duas leituras sobre o mesmo eixo de tempo. Em R$, patrimônio × valor aplicado;
- * em %, rentabilidade acumulada × índices escolhidos. Nunca as duas escalas juntas.
+ * Ponto só no último mês de cada linha: onde a série termina, o número que aparece na pílula. Os pontos ficam numa camada
+ * do Recharts fora do recorte da linha, então surgem sozinhos quando a linha chega.
+ */
+function endDot(lastIndex: number, color: string, r: number, delayMs: number) {
+  return function EndDot({ index, cx, cy }: { index?: number; cx?: number; cy?: number }) {
+    if (index !== lastIndex || cx == null || cy == null) return <g key={`d${index}`} />
+    return <circle key={`d${index}`} className="chart-dot" style={{ animationDelay: `${delayMs}ms` }} cx={cx} cy={cy} r={r} fill={color} stroke="var(--card)" strokeWidth={2} />
+  }
+}
+
+/** Linha de um índice. O atraso de entrada é lido só ao montar: ligar o índice depois revela na hora. */
+function IndexLine({ dataKey, color, dash, order, lastIndex }: { dataKey: IndexKey; color: string; dash: string; order?: number; lastIndex: number }) {
+  const [intro] = useState(order)
+  return (
+    <Line
+      className={cn("chart-reveal", intro != null && INTRO_DELAYS[intro])}
+      dataKey={dataKey}
+      type="monotone"
+      stroke={color}
+      strokeWidth={2}
+      strokeDasharray={dash}
+      strokeLinecap={dash === "1 3" ? "round" : undefined}
+      dot={endDot(lastIndex, color, 3.5, dotDelay(intro != null ? introMs(intro) : 0, 700))}
+      activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)", fill: color }}
+      isAnimationActive={false}
+    />
+  )
+}
+
+/** Pílula de uma série: liga/desliga a linha e mostra onde ela termina. Desligada fica tracejada e riscada. */
+function SeriesChip({ label, color, dash, value, on, strong, onToggle }: { label: string; color: string; dash?: string; value: number | null; on: boolean; strong?: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      title={on ? `Esconder ${label}` : `Mostrar ${label}`}
+      onClick={onToggle}
+      className={cn(
+        "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold whitespace-nowrap outline-none md:h-8 md:gap-2",
+        "transition-[opacity,background-color,border-color,color] duration-150 ease-[cubic-bezier(.2,.7,.2,1)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/35",
+        on ? "border-border bg-card hover:bg-muted" : "border-dashed border-border text-muted-foreground line-through opacity-55 hover:opacity-90",
+      )}
+    >
+      <Swatch color={on ? color : "var(--muted-foreground)"} dash={dash} />
+      <span className={cn(on && (strong ? "text-foreground" : "text-muted-foreground"))}>{label}</span>
+      {value != null && <span className={cn("tabular-nums", on && "text-foreground")}>{signedPct(value)}</span>}
+    </button>
+  )
+}
+
+/**
+ * Evolução da carteira: um gráfico, duas leituras sobre o mesmo eixo de tempo. Em %, rentabilidade acumulada × índices
+ * escolhidos (abre nesse modo); em R$, patrimônio × valor aplicado. Nunca as duas escalas juntas.
  */
 export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: EvolutionPoint[]; allowPct?: boolean; height?: number }) {
-  const [mode, setMode] = useState<"brl" | "pct">("brl")
-  // R$: patrimônio × aplicado; %: carteira × índices. Cada modo tem a sua legenda clicável.
+  // Abre em Rentabilidade; sem dois meses de rentabilidade (mas com saldo), abre no Patrimônio para não começar vazio
+  const [mode, setMode] = useState<Mode>(() => (allowPct && data.filter((d) => d.acc != null).length >= 2 ? "pct" : "brl"))
+  // Janela da abertura: só as linhas montadas nela entram em sequência
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setIntro(false), INTRO_MS)
+    return () => clearTimeout(t)
+  }, [])
+  const fillId = `evo-${useId().replace(/[^\w-]/g, "")}`
+  // %: carteira × índices; R$: patrimônio × aplicado. Cada modo tem a sua legenda clicável.
   const money = useSeriesToggle(["value", "applied"])
   const rel = useSeriesToggle(["acc", ...INDEXES.map((i) => i.key)], HIDDEN_AT_START)
   const on = Object.fromEntries(INDEXES.map((i) => [i.key, rel.isVisible(i.key)])) as Record<IndexKey, boolean>
@@ -85,6 +158,8 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
   const rows = pct ? data.filter((d) => d.acc != null) : data.filter((d) => d.value != null)
   const available = INDEXES.filter((i) => rows.some((d) => d[i.key] != null))
   const last = rows[rows.length - 1]
+  const lastIndex = rows.length - 1
+  const shown = available.filter((i) => on[i.key])
 
   const tooltip = ({ active, payload, label }: TipProps) => {
     if (!active || !payload?.length) return null
@@ -103,36 +178,41 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {pct ? (
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Séries do gráfico">
-            <button
-              type="button"
-              aria-pressed={rel.isVisible("acc")}
-              title={rel.isVisible("acc") ? "Esconder Carteira" : "Mostrar Carteira"}
-              onClick={() => rel.toggle("acc")}
-              className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold text-muted-foreground transition-[opacity,background-color] duration-150", rel.isVisible("acc") ? "border-foreground bg-foreground text-background" : "line-through opacity-60")}
-            >
-              <Swatch color="currentColor" />
-              Carteira
-            </button>
-            {available.map((i) => (
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        {allowPct && (
+          // Segmentado com o fundo do item ativo deslizando de um lado ao outro (como o marcador do menu)
+          <div className="relative grid grid-cols-2 rounded-lg bg-muted p-[3px] md:order-last md:inline-grid md:shrink-0" role="group" aria-label="Mostrar em">
+            <span
+              aria-hidden
+              className="absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-md border bg-card shadow-sm transition-transform duration-[220ms] ease-[cubic-bezier(.2,.7,.2,1)] motion-reduce:transition-none"
+              style={{ transform: mode === MODES[0].key ? undefined : "translateX(100%)" }}
+            />
+            {MODES.map((m) => (
               <button
-                key={i.key}
+                key={m.key}
                 type="button"
-                aria-pressed={on[i.key]}
-                title={on[i.key] ? `Esconder ${i.label}` : `Mostrar ${i.label}`}
-                onClick={() => rel.toggle(i.key)}
+                aria-pressed={mode === m.key}
+                onClick={() => setMode(m.key)}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold text-muted-foreground transition-[opacity,background-color] duration-150",
-                  on[i.key] && "border-foreground bg-foreground text-background",
+                  "relative h-9 rounded-md px-3 text-xs font-semibold whitespace-nowrap text-muted-foreground transition-colors duration-150 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 md:h-8",
+                  mode === m.key && "text-foreground",
                 )}
               >
-                <Swatch color="currentColor" dash={i.dash} />
-                {i.label}
+                {m.label}
               </button>
             ))}
-            {available.length === 0 && <span className="text-xs text-muted-foreground">Índices ainda não carregados</span>}
+          </div>
+        )}
+        {pct ? (
+          // As pílulas quebram em linhas. Rolagem lateral foi descartada: dentro do card arredondado com overflow-hidden o
+          // Chromium deixava de pintar a fileira.
+          <div role="group" aria-label="Séries do gráfico" className="flex flex-wrap gap-1.5">
+
+            <SeriesChip label="Carteira" color="var(--foreground)" strong value={last?.acc ?? null} on={rel.isVisible("acc")} onToggle={() => rel.toggle("acc")} />
+            {available.map((i) => (
+              <SeriesChip key={i.key} label={i.label} color={i.color} dash={i.dash} value={last?.[i.key] ?? null} on={on[i.key]} onToggle={() => rel.toggle(i.key)} />
+            ))}
+            {available.length === 0 && <span className="self-center text-xs text-muted-foreground">Índices ainda não carregados</span>}
           </div>
         ) : (
           <ToggleLegend
@@ -145,21 +225,6 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
             ]}
           />
         )}
-        {allowPct && (
-          <div className="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label="Mostrar em">
-            {(["brl", "pct"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => setMode(m)}
-                className={cn("h-7 rounded-md px-2.5 text-xs font-semibold text-muted-foreground", mode === m && "bg-card text-foreground shadow-sm")}
-              >
-                {m === "brl" ? "R$ Patrimônio" : "% Rentabilidade"}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {rows.length < 2 ? (
@@ -171,33 +236,60 @@ export function EvolutionChart({ data, allowPct = true, height = 260 }: { data: 
               : "Ainda não há saldo registrado. Ele é gravado a cada sincronização."}
         </p>
       ) : (
-        <ComposedChart responsive className={cn(pct && "axis-public")} style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+        <ComposedChart responsive className={cn(pct && "axis-public")} style={{ width: "100%", height }} data={rows} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
+          <defs>
+            {/* a área da carteira some em direção à linha do zero (ou à base, em R$) */}
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--foreground)" stopOpacity={0.13} />
+              <stop offset="100%" stopColor="var(--foreground)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <CartesianGrid {...grid} />
           <XAxis dataKey="month" tickFormatter={monthLabel} tick={axis} axisLine={false} tickLine={false} tickMargin={8} minTickGap={16} />
           <YAxis orientation="right" tickFormatter={pct ? pctTick : compactNum} tick={axis} axisLine={false} tickLine={false} width={64} domain={["auto", "auto"]} />
           <Tooltip content={tooltip} cursor={cursorLine} />
           {pct ? (
             <>
-              <ReferenceLine y={0} stroke="var(--border)" />
-              {available.map((i) => on[i.key] && <Line key={i.key} dataKey={i.key} type="monotone" stroke={i.color} strokeWidth={2} strokeDasharray={i.dash} dot={false} activeDot={false} isAnimationActive={false} />)}
-              {rel.isVisible("acc") && <Line dataKey="acc" type="monotone" stroke="var(--foreground)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} isAnimationActive={false} />}
+              <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.35} />
+              {shown.map((i) => (
+                <IndexLine key={i.key} dataKey={i.key} color={i.color} dash={i.dash} lastIndex={lastIndex} order={intro ? shown.indexOf(i) : undefined} />
+              ))}
+              {rel.isVisible("acc") && (
+                <Area
+                  className="chart-reveal [--reveal-duration:900ms]"
+                  dataKey="acc"
+                  type="monotone"
+                  baseValue={0}
+                  stroke="var(--foreground)"
+                  strokeWidth={2.5}
+                  fill={`url(#${fillId})`}
+                  dot={endDot(lastIndex, "var(--foreground)", 4, dotDelay(0, 900))}
+                  activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }}
+                  isAnimationActive={false}
+                />
+              )}
             </>
           ) : (
             <>
-              {money.isVisible("value") && <Area dataKey="value" type="monotone" stroke="var(--foreground)" strokeWidth={2.5} fill="var(--foreground)" fillOpacity={0.05} activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }} isAnimationActive={false} />}
-              {money.isVisible("applied") && <Line dataKey="applied" type="monotone" stroke="var(--muted-foreground)" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={false} isAnimationActive={false} />}
+              {money.isVisible("applied") && (
+                <Line className="chart-reveal [--reveal-delay:120ms]" dataKey="applied" type="monotone" stroke="var(--muted-foreground)" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={false} isAnimationActive={false} />
+              )}
+              {money.isVisible("value") && (
+                <Area
+                  className="chart-reveal [--reveal-duration:900ms]"
+                  dataKey="value"
+                  type="monotone"
+                  stroke="var(--foreground)"
+                  strokeWidth={2.5}
+                  fill={`url(#${fillId})`}
+                  dot={endDot(lastIndex, "var(--foreground)", 4, dotDelay(0, 900))}
+                  activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--card)" }}
+                  isAnimationActive={false}
+                />
+              )}
             </>
           )}
         </ComposedChart>
-      )}
-
-      {pct && last && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
-          {rel.isVisible("acc") && <span className="flex items-center gap-1.5"><Swatch color="var(--foreground)" />Carteira <b className="text-foreground tabular-nums">{signedPct(last.acc ?? 0)}</b></span>}
-          {available.filter((i) => on[i.key] && last[i.key] != null).map((i) => (
-            <span key={i.key} className="flex items-center gap-1.5"><Swatch color={i.color} dash={i.dash} />{i.label} <b className="text-foreground tabular-nums">{signedPct(last[i.key]!)}</b></span>
-          ))}
-        </div>
       )}
     </div>
   )

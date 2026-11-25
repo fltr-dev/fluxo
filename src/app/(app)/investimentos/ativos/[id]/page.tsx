@@ -117,7 +117,7 @@ export default async function AssetPage({ params, searchParams }: PageProps<"/in
 
       <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
         <Card className="gap-4 px-5 py-5">
-          <CardHead icon={ChartLine} title="Evolução" description="Saldo × valor aplicado, ou rentabilidade × índices, nos últimos 12 meses" />
+          <CardHead icon={ChartLine} title="Evolução" description="Rentabilidade × índices, ou saldo × valor aplicado, nos últimos 12 meses" />
           <EvolutionChart data={history.points.slice(1)} height={240} />
         </Card>
         <Card className="gap-4 px-5 py-5">
