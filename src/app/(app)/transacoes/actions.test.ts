@@ -60,6 +60,14 @@ describe("desfazer categorização", () => {
     await restoreCategories(r!.undo)
     for (const id of ids) expect((await tx(id)).subcategoryId).toBeNull()
   })
+
+  it("ignorar em massa: desfaz", async () => {
+    const ids = [await addTx("C"), await addTx("D")]
+    const r = await bulkUpdate(form({ ids, op: "ignorar" }))
+    expect((await tx(ids[0])).ignored).toBe(true)
+    await restoreCategories(r!.undo)
+    for (const id of ids) expect((await tx(id)).ignored).toBe(false)
+  })
 })
 
 describe("regra", () => {

@@ -26,7 +26,8 @@ function txActions({ tx }: TxItem, detailsHref: string) {
   const id = tx.id
   const transfer = tx.kind === "TRANSFER"
   const manual = !tx.pluggyId
-  const ignore: RowAction = tx.ignored ? { label: "Considerar", icon: "eye", run: toggleIgnored, id } : { label: "Ignorar", icon: "eyeOff", run: toggleIgnored, id }
+  const toggle = (f: FormData) => toggleIgnored(f).then(toastUndo)
+  const ignore: RowAction = tx.ignored ? { label: "Considerar", icon: "eye", run: toggle, id } : { label: "Ignorar", icon: "eyeOff", run: toggle, id }
   const accept: RowAction = { label: "Aceitar", icon: "check", tone: "primary", run: (f) => acceptSuggestion(f).then(toastUndo), id }
   const left: RowAction[] = transfer
     ? []
