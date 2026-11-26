@@ -31,6 +31,7 @@ const snapshotShape = z.object({
   transferPairId: z.number().int().positive().nullable(),
   suggestedSubcategoryId: z.number().int().positive().nullable(),
   suggestionConfidence: z.number().nullable(),
+  ignored: z.boolean(),
 })
 export type Snapshot = z.infer<typeof snapshotShape>
 export type Undo = { message: string; undo: Snapshot[] }
@@ -43,6 +44,7 @@ const snapshot = (t: typeof transactions.$inferSelect): Snapshot => ({
   transferPairId: t.transferPairId,
   suggestedSubcategoryId: t.suggestedSubcategoryId,
   suggestionConfidence: t.suggestionConfidence,
+  ignored: t.ignored,
 })
 
 /** Volta as transações ao estado de antes (inclusive a sugestão da IA e o par de transferência). */
@@ -124,12 +126,13 @@ export async function setNote(form: FormData) {
   refresh()
 }
 
-export async function toggleIgnored(form: FormData) {
+export async function toggleIgnored(form: FormData): Promise<Undo> {
   await requireUser()
   const { id } = parseForm(form, { id: fd.id })
   const tx = await getTx(id)
   await db.update(transactions).set({ ignored: !tx.ignored, updatedAt: new Date() }).where(eq(transactions.id, id))
   refresh()
+  return { message: tx.ignored ? "Transação volta a contar nos relatórios" : "Transação ignorada nos relatórios", undo: [snapshot(tx)] }
 }
 
 export async function markTransfer(form: FormData) {
@@ -217,9 +220,10 @@ export async function bulkUpdate(form: FormData): Promise<Undo | undefined> {
   const ids = z.array(fd.id).min(1).max(500).parse(form.getAll("ids"))
   const op = z.enum(["categorizar", "ignorar"]).parse(form.get("op"))
   if (op === "ignorar") {
+    const before = await db.select().from(transactions).where(inArray(transactions.id, ids))
     await db.update(transactions).set({ ignored: true, updatedAt: new Date() }).where(inArray(transactions.id, ids))
     refresh()
-    return
+    return { message: `${ids.length} ${ids.length === 1 ? "transação ignorada" : "transações ignoradas"}`, undo: before.map(snapshot) }
   }
   const { subcategoryId } = parseForm(form, { subcategoryId: fd.optId })
   const kinds = await subcategoryKinds()

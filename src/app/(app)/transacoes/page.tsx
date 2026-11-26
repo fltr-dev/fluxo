@@ -158,6 +158,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
     ["suggested", "Sugestões da IA", Sparkles, status.suggested],
     ["pending", "Pendentes", Clock, undefined],
     ["transfers", "Transferências", ArrowLeftRight, undefined],
+    ["ignored", "Ignoradas", EyeOff, undefined],
   ] as const
 
   const openId = Number(sp.tx) || undefined
@@ -497,14 +498,14 @@ function TxDetails({ tx, accountName, label, options, accounts, here, ruleHref }
       </form>
 
       <div className="grid gap-2">
-        <form action={toggleIgnored} className="flex items-center justify-between gap-4 rounded-xl border p-3.5">
+        <UndoForm action={toggleIgnored} className="flex items-center justify-between gap-4 rounded-xl border p-3.5">
           <input type="hidden" name="id" value={tx.id} />
           <span className="grid">
             <span className="text-sm font-medium">Ignorar nos relatórios</span>
             <span className="text-xs text-muted-foreground">Não conta em receitas, despesas, limites nem médias.</span>
           </span>
           <Button type="submit" variant="outline" size="sm">{tx.ignored ? "Voltar a considerar" : "Ignorar"}</Button>
-        </form>
+        </UndoForm>
         <form action={tx.kind === "TRANSFER" ? unmarkTransfer : markTransfer} className="flex items-center justify-between gap-4 rounded-xl border p-3.5">
           <input type="hidden" name="id" value={tx.id} />
           <span className="grid">

@@ -26,7 +26,7 @@ export type Filters = Period & {
   categoryIds?: number[]
   kind?: "INCOME" | "EXPENSE"
   q?: string
-  view?: "uncategorized" | "suggested" | "transfers" | "pending"
+  view?: "uncategorized" | "suggested" | "transfers" | "pending" | "ignored"
   /** ausente = "recentes" */
   sort?: Sort
   page: number
@@ -74,7 +74,7 @@ export function parseFilters(sp: SearchParams): Filters {
     categoryIds: many?.length === 1 && many[0] === one ? undefined : many,
     kind: tipo === "receita" ? "INCOME" : tipo === "despesa" ? "EXPENSE" : undefined,
     q: str(sp, "q")?.slice(0, 100),
-    view: ver === "uncategorized" || ver === "suggested" || ver === "transfers" || ver === "pending" ? ver : undefined,
+    view: ver === "uncategorized" || ver === "suggested" || ver === "transfers" || ver === "pending" || ver === "ignored" ? ver : undefined,
     sort: ordem && Object.hasOwn(SORTS, ordem) ? (ordem as Sort) : "recentes",
     page: posInt(sp, "pagina") ?? 1,
   }
@@ -329,6 +329,7 @@ const listWhere = (f: Filters) =>
     f.view === "suggested" ? isNotNull(transactions.suggestedSubcategoryId) : undefined,
     f.view === "transfers" ? eq(transactions.kind, "TRANSFER") : undefined,
     f.view === "pending" ? eq(transactions.status, "PENDING") : undefined,
+    f.view === "ignored" ? eq(transactions.ignored, true) : undefined,
   )
 
 /** Ordem da lista; empates caem na data mais recente. Sem categoria fica sempre no fim. */

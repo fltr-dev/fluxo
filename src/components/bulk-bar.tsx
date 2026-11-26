@@ -16,9 +16,26 @@ export function BulkBar({ formId, action, children }: { formId: string; action: 
   const [count, setCount] = useState(0)
   useEffect(() => {
     const update = () => setCount(boxes(formId).filter((b) => b.checked).length)
+    // Shift + clique marca/desmarca o intervalo desde o último checkbox clicado
+    let last: HTMLInputElement | null = null
+    const range = (e: MouseEvent) => {
+      const box = e.target as HTMLInputElement
+      const all = boxes(formId)
+      if (!all.includes(box)) return
+      if (e.shiftKey && last && all.includes(last)) {
+        const [a, b] = [all.indexOf(last), all.indexOf(box)].sort((x, y) => x - y)
+        all.slice(a, b + 1).forEach((x) => (x.checked = box.checked))
+        update()
+      }
+      last = box
+    }
     document.addEventListener("change", update)
+    document.addEventListener("click", range)
     update()
-    return () => document.removeEventListener("change", update)
+    return () => {
+      document.removeEventListener("change", update)
+      document.removeEventListener("click", range)
+    }
   }, [formId])
   const clear = () => {
     boxes(formId).forEach((b) => (b.checked = false))
